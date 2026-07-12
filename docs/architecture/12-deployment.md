@@ -50,6 +50,35 @@ URL the org already has) so the folder-access path is available. If keeping the
 app itself as a downloaded file is important, the picker/download baseline still
 works — just more manually. Either way there is no server that Plantree operates.
 
+### Browser support & compatibility
+
+The in-place path depends on the **File System Access API**, which is
+Chromium-only — and, importantly, is **not exposed on mobile browsers at all**:
+
+| Browser / platform | In-place file access | Notes |
+|--------------------|:--------------------:|-------|
+| Edge · Chrome · Brave · Opera (desktop) | ✅ full | `showOpenFilePicker` / `showSaveFilePicker` / `showDirectoryPicker`. The intended experience. |
+| Firefox (desktop) | ❌ none | No user-file picker; fallback path only. |
+| Safari (desktop) | ❌ none for user files | Implements only the private OPFS, not user-visible pickers. |
+| Any mobile browser (iOS / Android) | ❌ none | Picker methods aren't exposed; the folder-in-place model does not work on a phone. |
+
+Two implementation requirements follow:
+
+1. **Recommend a compatible browser — but don't hard-block.** On an unsupported
+   *desktop* browser, show a clear, non-blocking message ("Open Plantree in
+   Microsoft Edge or Google Chrome to edit files in place") while still offering
+   the load/download fallback, so no one is ever fully stuck. Detect the
+   capability (`'showOpenFilePicker' in window`); never sniff the user-agent
+   string.
+2. **Mobile needs a different answer.** Because no mobile browser exposes the
+   picker, the pure file model cannot deliver rich in-app editing on a phone —
+   in tension with the [mobile-first principle](07-cross-cutting-concerns.md#mobile--offline).
+   Here mobile field use falls back to the OneDrive mobile app (open/share the
+   JSON) or the download path, both clunky. **This is the constraint most likely
+   to justify the [Graph/SPFx evolution step](#evolution-path)** — a
+   Graph-integrated client works on any browser, desktop *or* mobile, because it
+   reaches SharePoint over HTTPS rather than the local filesystem.
+
 ## Sharing, sync and history
 
 - The **document library** is the share surface: SharePoint permissions decide
