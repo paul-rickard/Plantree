@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Plantree — File Append Test</title>
+<style>
+  :root {
+    --bg: #f4f6f5; --surface: #fff; --ink: #16201e; --muted: #5c6b67;
+    --line: #e0e5e2; --accent: #0e6e66; --accent-soft: #e4f0ee;
+    --good: #1e8e5a; --warn: #b77a12; --crit: #c0453b;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0e1613; --surface:#16211d; --ink:#e8eeeb; --muted:#9aaaa4;
+      --line:#26332e; --accent:#37b3a4; --accent-soft:#17322e;
+      --good:#37b37a; --warn:#d69b3a; --crit:#e0685d; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans);
+    line-height: 1.5; padding: 24px; display: flex; justify-content: center; }
+  .wrap { width: 100%; max-width: 760px; display: flex; flex-direction: column; gap: 18px; }
+  header h1 { font-size: 20px; margin: 0 0 4px; letter-spacing: -.01em; }
+  header p { margin: 0; color: var(--muted); font-size: 13.5px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+  .card + .card { margin-top: 0; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  label.field { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 220px; }
+  .lbl { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; font-family: var(--mono); }
+  input[type=text], textarea {
+    font: inherit; padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px;
+    background: var(--bg); color: var(--ink); outline: none; resize: vertical; width: 100%;
+  }
+  input[type=text]:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  button {
+    font: inherit; font-weight: 600; font-size: 13.5px; padding: 9px 15px; border-radius: 9px;
+    border: 1px solid transparent; cursor: pointer; transition: background .12s, border-color .12s;
+  }
+  .primary { background: var(--accent); color: #fff; }
+  .primary:hover { filter: brightness(1.08); }
+  .primary:disabled { opacity: .5; cursor: not-allowed; filter: none; }
+  .ghost { background: var(--surface); border-color: var(--line); color: var(--ink); }
+  .ghost:hover { border-color: var(--muted); }
+  .status { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 600;
+    padding: 4px 11px; border-radius: 999px; }
+  .status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .status.ok { color: var(--good); background: color-mix(in srgb, var(--good) 12%, transparent); }
+  .status.warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 12%, transparent); }
+  .file-name { font-family: var(--mono); font-size: 12.5px; color: var(--muted); }
+  .file-name b { color: var(--ink); }
+  pre.preview {
+    font-family: var(--mono); font-size: 12.5px; background: var(--bg); border: 1px solid var(--line);
+    border-radius: 9px; padding: 12px 14px; margin: 0; max-height: 300px; overflow: auto;
+    white-space: pre-wrap; word-break: break-word; min-height: 60px;
+  }
+  .hint { font-size: 12.5px; color: var(--muted); }
+  .hint code { font-family: var(--mono); background: var(--bg); padding: 1px 5px; border-radius: 4px; border: 1px solid var(--line); }
+  .toast { font-size: 12.5px; color: var(--good); font-weight: 600; min-height: 18px; }
+  .toast.err { color: var(--crit); }
+  h2 { font-size: 14px; margin: 0 0 12px; }
+  .muted { color: var(--muted); }
+  .count { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Plantree · file append test</h1>
+      <p>Proof of concept for the serverless, file-based model: type text, append it to a real file on disk.</p>
+    </header>
+
+    <div class="card">
+      <div class="row" style="justify-content: space-between;">
+        <span id="support" class="status warn">checking…</span>
+        <span id="fileName" class="file-name">No file selected</span>
+      </div>
+    </div>
+
+    <!-- File System Access API path -->
+    <div class="card" id="fsaCard" hidden>
+      <h2>1 · Choose a file</h2>
+      <div class="row">
+        <button class="ghost" id="openBtn">Open existing file…</button>
+        <button class="ghost" id="newBtn">Create new file…</button>
+      </div>
+      <p class="hint" style="margin: 12px 0 0;">Point it at a <code>.txt</code>, <code>.jsonl</code> or <code>.json</code> file — ideally one inside a OneDrive-synced SharePoint library folder, so appends sync back automatically.</p>
+
+      <h2 style="margin-top: 22px;">2 · Append an entry</h2>
+      <div class="row" style="align-items: flex-end;">
+        <label class="field">
+          <span class="lbl">Text to append</span>
+          <input type="text" id="entry" placeholder="e.g. Replaced G4 filter on CRAH-12" autocomplete="off" />
+        </label>
+        <button class="primary" id="appendBtn" disabled>Append</button>
+      </div>
+      <div class="row" style="margin-top: 10px; gap: 16px;">
+        <label class="row" style="gap: 7px; font-size: 13px;"><input type="checkbox" id="tsChk" checked /> Prefix each line with a timestamp</label>
+        <span class="hint">Lines written: <span class="count" id="lineCount">0</span></span>
+      </div>
+      <div class="toast" id="toast" style="margin-top: 10px;"></div>
+
+      <h2 style="margin-top: 22px;">Current file contents</h2>
+      <pre class="preview" id="preview">—</pre>
+    </div>
+
+    <!-- Fallback path -->
+    <div class="card" id="fallbackCard" hidden>
+      <h2>Fallback mode <span class="muted" style="font-weight: 400; font-size: 12.5px;">(this browser has no File System Access API)</span></h2>
+      <p class="hint">Same logical operation, done manually: load a file, append in memory, download the result and re-upload it to SharePoint. For true in-place appends, use <b>Microsoft Edge</b> or <b>Chrome</b>.</p>
+      <div class="row" style="margin: 12px 0;">
+        <input type="file" id="loadInput" accept=".txt,.json,.jsonl,.csv,.log" />
+      </div>
+      <div class="row" style="align-items: flex-end;">
+        <label class="field">
+          <span class="lbl">Text to append</span>
+          <input type="text" id="entryFb" placeholder="Type a line to append…" autocomplete="off" />
+        </label>
+        <button class="primary" id="appendFbBtn">Append</button>
+        <button class="ghost" id="downloadBtn">Download file</button>
+      </div>
+      <label class="row" style="gap: 7px; font-size: 13px; margin-top: 10px;"><input type="checkbox" id="tsChkFb" checked /> Prefix each line with a timestamp</label>
+      <div class="toast" id="toastFb" style="margin-top: 10px;"></div>
+      <h2 style="margin-top: 22px;">Working contents</h2>
+      <pre class="preview" id="previewFb">—</pre>
+    </div>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+  var supported = typeof window.showOpenFilePicker === "function";
+  var supEl = document.getElementById("support");
+
+  if (supported) {
+    supEl.className = "status ok";
+    supEl.textContent = "File System Access API available";
+    document.getElementById("fsaCard").hidden = false;
+    initFSA();
+  } else {
+    supEl.className = "status warn";
+    supEl.textContent = "Fallback mode (no in-place append)";
+    document.getElementById("fallbackCard").hidden = false;
+    initFallback();
+  }
+
+  function stamp(text, useTs) {
+    var line = useTs ? "[" + new Date().toISOString() + "] " + text : text;
+    return line + "\n";
+  }
+  function countLines(s) { if (!s) return 0; var t = s.replace(/\n+$/, ""); return t === "" ? 0 : t.split("\n").length; }
+
+  /* ---------------- File System Access API ---------------- */
+  function initFSA() {
+    var handle = null;
+    var entry = document.getElementById("entry");
+    var appendBtn = document.getElementById("appendBtn");
+    var tsChk = document.getElementById("tsChk");
+    var toast = document.getElementById("toast");
+    var preview = document.getElementById("preview");
+    var fileName = document.getElementById("fileName");
+    var lineCount = document.getElementById("lineCount");
+
+    function say(msg, isErr) { toast.textContent = msg; toast.className = "toast" + (isErr ? " err" : ""); }
+
+    async function ensureWritable(h) {
+      var opts = { mode: "readwrite" };
+      if ((await h.queryPermission(opts)) === "granted") return true;
+      return (await h.requestPermission(opts)) === "granted";
+    }
+
+    async function refresh() {
+      var file = await handle.getFile();
+      var text = await file.text();
+      preview.textContent = text || "(empty)";
+      lineCount.textContent = countLines(text);
+      fileName.innerHTML = "Editing <b>" + file.name + "</b> · " + file.size + " bytes";
+    }
+
+    document.getElementById("openBtn").addEventListener("click", async function () {
+      try {
+        var picked = await window.showOpenFilePicker({ multiple: false });
+        handle = picked[0];
+        if (!(await ensureWritable(handle))) { say("Write permission denied.", true); return; }
+        appendBtn.disabled = false;
+        await refresh();
+        say("Opened. Ready to append.");
+      } catch (e) { if (e.name !== "AbortError") say(e.message, true); }
+    });
+
+    document.getElementById("newBtn").addEventListener("click", async function () {
+      try {
+        handle = await window.showSaveFilePicker({
+          suggestedName: "plantree-log.txt",
+          types: [{ description: "Text / JSON lines", accept: { "text/plain": [".txt", ".log"], "application/json": [".json", ".jsonl"] } }]
+        });
+        if (!(await ensureWritable(handle))) { say("Write permission denied.", true); return; }
+        appendBtn.disabled = false;
+        await refresh();
+        say("New file created. Ready to append.");
+      } catch (e) { if (e.name !== "AbortError") say(e.message, true); }
+    });
+
+    async function doAppend() {
+      var text = entry.value.trim();
+      if (!text) { say("Type something first.", true); entry.focus(); return; }
+      if (!handle) { say("Choose a file first.", true); return; }
+      try {
+        var file = await handle.getFile();                       // read current size
+        var writable = await handle.createWritable({ keepExistingData: true });
+        await writable.seek(file.size);                          // move to end = true append
+        await writable.write(stamp(text, tsChk.checked));        // append only the new bytes
+        await writable.close();                                  // flush to disk (OneDrive syncs it)
+        entry.value = "";
+        await refresh();
+        say("Appended ✓");
+        entry.focus();
+      } catch (e) { say("Append failed: " + e.message, true); }
+    }
+
+    appendBtn.addEventListener("click", doAppend);
+    entry.addEventListener("keydown", function (e) { if (e.key === "Enter") doAppend(); });
+  }
+
+  /* ---------------- Fallback (load / append-in-memory / download) ---------------- */
+  function initFallback() {
+    var contents = "";
+    var name = "plantree-log.txt";
+    var entry = document.getElementById("entryFb");
+    var tsChk = document.getElementById("tsChkFb");
+    var toast = document.getElementById("toastFb");
+    var preview = document.getElementById("previewFb");
+    var fileName = document.getElementById("fileName");
+
+    function say(msg, isErr) { toast.textContent = msg; toast.className = "toast" + (isErr ? " err" : ""); }
+    function render() { preview.textContent = contents || "(empty)"; }
+
+    document.getElementById("loadInput").addEventListener("change", function (e) {
+      var f = e.target.files[0];
+      if (!f) return;
+      name = f.name;
+      var r = new FileReader();
+      r.onload = function () { contents = r.result; render(); fileName.innerHTML = "Loaded <b>" + name + "</b>"; say("Loaded " + name); };
+      r.readAsText(f);
+    });
+
+    document.getElementById("appendFbBtn").addEventListener("click", function () {
+      var text = entry.value.trim();
+      if (!text) { say("Type something first.", true); return; }
+      contents += stamp(text, tsChk.checked);
+      entry.value = "";
+      render();
+      say("Appended in memory ✓  — download to save.");
+      entry.focus();
+    });
+    entry.addEventListener("keydown", function (e) { if (e.key === "Enter") document.getElementById("appendFbBtn").click(); });
+
+    document.getElementById("downloadBtn").addEventListener("click", function () {
+      var blob = new Blob([contents], { type: "text/plain" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url; a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      say("Downloaded " + name + " — re-upload it to SharePoint.");
+    });
+  }
+})();
+</script>
+</body>
+</html>
