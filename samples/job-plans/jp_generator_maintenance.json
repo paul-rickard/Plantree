@@ -1,0 +1,49 @@
+{
+  "id": "jp_generator_maintenance",
+  "type": "jobPlan",
+  "code": "JP-GEN-STD",
+  "name": "Standby Generator Maintenance",
+  "description": "Full maintenance programme for standby diesel generators. One plan holds every cadence; the task × frequency matrix (task.frequencyIds) decides which tasks drop when.",
+  "rev": 2,
+  "createdAt": "2026-01-14T00:00:00Z",
+  "createdBy": null,
+  "updatedAt": "2026-06-01T00:00:00Z",
+  "updatedBy": null,
+  "activeVersion": 1,
+  "versions": [
+    {
+      "version": 1,
+      "lifecycleState": "active",
+      "estimatedLabourHours": null,
+      "safetyInstructions": "Confirm the generator is in manual/off before intrusive work. Hot surfaces and rotating parts.",
+      "frequencies": [
+        { "id": "f_weekly", "label": "Weekly", "unit": "week", "interval": 1, "basis": "calendar" },
+        { "id": "f_monthly", "label": "Monthly", "unit": "month", "interval": 1, "basis": "calendar" },
+        { "id": "f_6monthly", "label": "6-Monthly", "unit": "month", "interval": 6, "basis": "calendar" },
+        { "id": "f_yearly", "label": "Annual", "unit": "year", "interval": 1, "basis": "calendar" }
+      ],
+      "tasks": [
+        { "seq": 1, "instruction": "Visual inspection for leaks and damage.", "responseType": "passfail", "unit": null, "acceptableRange": null, "choices": null, "requiredSkills": [], "frequencyIds": ["f_weekly"] },
+        { "seq": 2, "instruction": "Check coolant and oil levels.", "responseType": "passfail", "unit": null, "acceptableRange": null, "choices": null, "requiredSkills": [], "frequencyIds": ["f_weekly", "f_monthly"] },
+        { "seq": 3, "instruction": "Check battery charge / electrolyte.", "responseType": "numeric", "unit": "V", "acceptableRange": [12.6, 13.8], "choices": null, "requiredSkills": [], "frequencyIds": ["f_weekly", "f_monthly"] },
+        { "seq": 4, "instruction": "No-load test run (15 min); record parameters.", "responseType": "passfail", "unit": null, "acceptableRange": null, "choices": null, "requiredSkills": [], "frequencyIds": ["f_monthly"] },
+        { "seq": 5, "instruction": "Change oil and oil filter.", "responseType": "passfail", "unit": null, "acceptableRange": null, "choices": null, "requiredSkills": ["Mechanical"], "frequencyIds": ["f_6monthly"] },
+        { "seq": 6, "instruction": "Replace fuel and air filters.", "responseType": "passfail", "unit": null, "acceptableRange": null, "choices": null, "requiredSkills": ["Mechanical"], "frequencyIds": ["f_6monthly"] },
+        { "seq": 7, "instruction": "Full-load / building-load test; record kW and frequency.", "responseType": "numeric", "unit": "kW", "acceptableRange": null, "choices": null, "requiredSkills": ["Electrical – LV"], "frequencyIds": ["f_yearly"] },
+        { "seq": 8, "instruction": "Fuel polishing / tank water check.", "responseType": "passfail", "unit": null, "acceptableRange": null, "choices": null, "requiredSkills": [], "frequencyIds": ["f_6monthly", "f_yearly"] }
+      ],
+      "plannedParts": [
+        { "partRef": null, "description": "Oil filter", "quantity": 1, "unit": "each" },
+        { "partRef": null, "description": "Fuel filter", "quantity": 2, "unit": "each" },
+        { "partRef": null, "description": "Engine oil", "quantity": 20, "unit": "L" }
+      ],
+      "requiredSkills": ["Mechanical", "Electrical – LV"],
+      "requiredTools": [],
+      "requiredPermits": [],
+      "parameters": [],
+      "approvedBy": "R. Tan",
+      "approvedAt": "2026-01-14T00:00:00Z",
+      "notes": "Initial programme."
+    }
+  ]
+}

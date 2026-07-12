@@ -41,6 +41,11 @@
         },
         "estimatedLabourHours": { "type": ["number", "null"], "minimum": 0 },
         "safetyInstructions": { "type": ["string", "null"] },
+        "frequencies": {
+          "type": "array",
+          "description": "Work-order generation frequencies this plan can drop at (daily, weekly, monthly, n-monthly, yearly, n-yearly). Each task is mapped to the frequencies it belongs to via task.frequencyIds — a task x frequency matrix. When a frequency falls due, a work order is generated containing the tasks mapped to it.",
+          "items": { "$ref": "#/$defs/frequency" }
+        },
         "tasks": {
           "type": "array",
           "description": "Ordered steps.",
@@ -84,7 +89,29 @@
           "items": { "type": "string" },
           "description": "Options for a 'choice' response."
         },
-        "requiredSkills": { "type": "array", "items": { "type": "string" } }
+        "requiredSkills": { "type": "array", "items": { "type": "string" } },
+        "frequencyIds": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Ids of the frequencies this task drops at (its ticked cells in the task x frequency matrix). A task may belong to several frequencies."
+        }
+      }
+    },
+    "frequency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "unit", "interval"],
+      "description": "A recurrence column in the matrix. unit x interval expresses daily (day/1), weekly (week/1), monthly (month/1), n-monthly (month/n), yearly (year/1) and n-yearly (year/n).",
+      "properties": {
+        "id": { "type": "string" },
+        "label": { "type": ["string", "null"], "description": "Display label, e.g. 'Quarterly'; derivable from unit/interval." },
+        "unit": { "enum": ["day", "week", "month", "year"] },
+        "interval": { "type": "integer", "minimum": 1 },
+        "basis": {
+          "enum": ["calendar", "completion"],
+          "default": "calendar",
+          "description": "Fixed calendar dates vs recurring from last completion."
+        }
       }
     },
     "plannedPart": {

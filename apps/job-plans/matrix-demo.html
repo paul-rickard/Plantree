@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Plantree — Maintenance Matrix (demo)</title>
+<style>
+  :root {
+    --bg:#f4f6f5; --surface:#fff; --surface-2:#fbfcfb; --ink:#16201e; --muted:#5c6b67; --faint:#8a9995;
+    --line:#e0e5e2; --line-strong:#d3dad7; --accent:#0e6e66; --accent-soft:#e4f0ee;
+    --good:#1e8e5a; --warn:#b77a12; --info:#3a6ea5; --info-soft:color-mix(in srgb,#3a6ea5 12%,transparent);
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace; --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0e1613; --surface:#16211d; --surface-2:#131e1a; --ink:#e8eeeb; --muted:#9aaaa4; --faint:#6e7e79;
+      --line:#26332e; --line-strong:#33433d; --accent:#37b3a4; --accent-soft:#17322e; --good:#37b37a; --warn:#d69b3a; --info:#6c9fd6; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans); font-size:14px; line-height:1.5; }
+  h1,h2,h3 { margin:0; }
+  .mono { font-family:var(--mono); } .num { font-variant-numeric:tabular-nums; }
+  .lbl { font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); font-weight:600; font-family:var(--mono); }
+
+  .top { display:flex; align-items:center; gap:12px; padding:12px 20px; background:var(--surface); border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  .brand { display:flex; align-items:center; gap:9px; font-weight:680; font-size:16px; }
+  .brand .mark { color:var(--accent); } .brand small { font-weight:500; color:var(--faint); font-family:var(--mono); font-size:11px; }
+  .top .desc { color:var(--muted); font-size:12.5px; }
+
+  .wrap { max-width:1120px; margin:0 auto; padding:22px 20px 60px; display:flex; flex-direction:column; gap:20px; }
+  .planname { font-size:21px; letter-spacing:-.02em; }
+  .planname small { font-family:var(--mono); font-size:12px; color:var(--faint); font-weight:500; margin-left:8px; }
+
+  .card { background:var(--surface); border:1px solid var(--line); border-radius:12px; }
+  .card > h2 { font-size:13.5px; padding:13px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px; }
+  .card > h2 .count { margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--muted); font-weight:500; }
+  .card-body { padding:16px; }
+
+  .addbar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .addbar .lbl { margin-right:2px; }
+  input[type=text], input[type=number], select { font:inherit; padding:7px 10px; border:1px solid var(--line-strong); border-radius:8px; background:var(--bg); color:var(--ink); outline:none; }
+  input:focus, select:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+  button.btn { font:inherit; font-weight:600; font-size:12.5px; padding:6px 11px; border-radius:8px; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); cursor:pointer; }
+  button.btn:hover { border-color:var(--faint); }
+  button.btn.accent { color:var(--accent); border-color:color-mix(in srgb,var(--accent) 40%,transparent); }
+  button.chipadd { border-style:dashed; }
+  button.x { border:0; background:transparent; color:var(--faint); cursor:pointer; font-size:13px; padding:2px 4px; }
+  button.x:hover { color:var(--crit,#c0453b); }
+
+  .scroll { overflow-x:auto; }
+  table.matrix { border-collapse:separate; border-spacing:0; width:100%; min-width:560px; }
+  table.matrix th, table.matrix td { padding:10px 8px; border-bottom:1px solid var(--line); }
+  table.matrix thead th { position:sticky; top:0; background:var(--surface); z-index:2; text-align:center; vertical-align:bottom; }
+  table.matrix th.tcol, table.matrix td.tcol { position:sticky; left:0; background:var(--surface); text-align:left; z-index:1; min-width:240px; }
+  table.matrix thead th.tcol { z-index:3; }
+  .freqhead { display:flex; flex-direction:column; align-items:center; gap:3px; }
+  .freqhead .fl { font-weight:650; font-size:12.5px; white-space:nowrap; }
+  .freqhead .fs { font-family:var(--mono); font-size:9.5px; color:var(--faint); white-space:nowrap; }
+  .taskcell .ti { font-weight:540; }
+  .taskcell .tm { font-family:var(--mono); font-size:10.5px; color:var(--faint); }
+  td.cell { text-align:center; }
+  .cbx { appearance:none; -webkit-appearance:none; width:20px; height:20px; border:1.5px solid var(--line-strong); border-radius:6px; cursor:pointer; position:relative; vertical-align:middle; background:var(--bg); transition:background .1s,border-color .1s; }
+  .cbx:hover { border-color:var(--accent); }
+  .cbx:checked { background:var(--accent); border-color:var(--accent); }
+  .cbx:checked::after { content:""; position:absolute; left:6px; top:2px; width:5px; height:10px; border:solid #fff; border-width:0 2px 2px 0; transform:rotate(45deg); }
+  tr.totals td { border-bottom:0; font-family:var(--mono); font-size:11px; color:var(--muted); text-align:center; padding-top:8px; }
+  tr.totals td.tcol { text-align:right; color:var(--faint); }
+
+  .drops { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; }
+  .drop { border:1px solid var(--line); border-radius:10px; padding:12px 13px; background:var(--surface-2); }
+  .drop h3 { font-size:13px; display:flex; align-items:baseline; gap:8px; }
+  .drop h3 .n { margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--accent); background:var(--accent-soft); padding:1px 7px; border-radius:999px; }
+  .drop ul { margin:9px 0 0; padding-left:16px; font-size:12.5px; color:var(--muted); }
+  .drop li { margin:2px 0; }
+  .drop.empty { opacity:.6; }
+
+  table.tl { border-collapse:collapse; width:100%; min-width:560px; font-size:12px; }
+  table.tl th, table.tl td { padding:6px 4px; text-align:center; border-bottom:1px solid var(--line); }
+  table.tl th.rl, table.tl td.rl { text-align:left; white-space:nowrap; font-weight:560; padding-right:12px; }
+  table.tl th { font-family:var(--mono); font-size:10px; color:var(--faint); font-weight:600; }
+  .dot { width:9px; height:9px; border-radius:50%; background:var(--accent); display:inline-block; }
+  .cap { font-size:11.5px; color:var(--faint); margin-top:8px; }
+  pre.data { font-family:var(--mono); font-size:11px; margin:0; white-space:pre-wrap; word-break:break-word; }
+  details > summary { cursor:pointer; font-size:12.5px; color:var(--accent); font-weight:600; }
+  .banner { display:flex; gap:9px; align-items:flex-start; font-size:12.5px; color:var(--info); background:var(--info-soft); border:1px solid color-mix(in srgb,var(--info) 24%,transparent); border-radius:9px; padding:10px 12px; }
+  .banner b { color:var(--ink); }
+</style>
+</head>
+<body>
+  <div class="top">
+    <div class="brand">
+      <svg class="mark" width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 22V12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M12 12L6.5 7.5M12 12l5.5-4.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="6" cy="7" r="2" fill="currentColor"/><circle cx="18" cy="7" r="2" fill="currentColor"/></svg>
+      Plantree <small>· Maintenance Matrix</small>
+    </div>
+    <span class="desc">One job plan holds every cadence. Tick a task into the frequencies where it should drop.</span>
+  </div>
+
+  <div class="wrap">
+    <div><span class="planname" id="planName">Standby Generator Maintenance</span><small id="planCode">JP-GEN-STD</small></div>
+
+    <div class="banner"><span>&#9432;</span><span>Each ticked cell means <b>this task is generated when this frequency drops</b>. A task can belong to several frequencies. When a frequency falls due, its work order contains exactly its ticked tasks.</span></div>
+
+    <div class="card">
+      <h2>Frequencies <span class="count" id="freqCount"></span></h2>
+      <div class="card-body">
+        <div class="addbar">
+          <span class="lbl">Quick add</span>
+          <span id="quickAdds"></span>
+          <span class="lbl" style="margin-left:10px">Custom</span>
+          <span>every</span>
+          <input type="number" id="ivl" value="2" min="1" style="width:66px" />
+          <select id="unit"><option value="day">day(s)</option><option value="week">week(s)</option><option value="month" selected>month(s)</option><option value="year">year(s)</option></select>
+          <button class="btn accent" id="addFreq">Add column</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Task × frequency matrix <span class="count" id="matrixCount"></span></h2>
+      <div class="card-body">
+        <div class="scroll"><table class="matrix" id="matrix"></table></div>
+        <div class="addbar" style="margin-top:14px">
+          <span class="lbl">Add task</span>
+          <input type="text" id="newTask" placeholder="e.g. Check exhaust system" style="min-width:260px" />
+          <select id="newRt"><option value="passfail">pass/fail</option><option value="numeric">numeric</option><option value="text">text</option><option value="none">none</option></select>
+          <button class="btn" id="addTask">Add row</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>What generates when a frequency drops</h2>
+      <div class="card-body"><div class="drops" id="drops"></div></div>
+    </div>
+
+    <div class="card">
+      <h2>Drop timeline · next 12 months</h2>
+      <div class="card-body">
+        <div class="scroll"><table class="tl" id="timeline"></table></div>
+        <div class="cap">Months from programme start. Daily/weekly shown as firing each month. Where several frequencies land in the same month they each generate a work order (a scheduling layer can later merge coincident drops).</div>
+      </div>
+    </div>
+
+    <details>
+      <summary>Show stored data (plan.frequencies + task.frequencyIds)</summary>
+      <div class="card" style="margin-top:10px"><div class="card-body"><pre class="data" id="data"></pre></div></div>
+    </details>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+  var plan = {
+    name: "Standby Generator Maintenance", code: "JP-GEN-STD",
+    frequencies: [
+      { id: "f_weekly", unit: "week", interval: 1 },
+      { id: "f_monthly", unit: "month", interval: 1 },
+      { id: "f_6monthly", unit: "month", interval: 6 },
+      { id: "f_yearly", unit: "year", interval: 1 }
+    ],
+    tasks: [
+      { id: "t1", instruction: "Visual inspection for leaks and damage.", responseType: "passfail", frequencyIds: ["f_weekly"] },
+      { id: "t2", instruction: "Check coolant and oil levels.", responseType: "passfail", frequencyIds: ["f_weekly", "f_monthly"] },
+      { id: "t3", instruction: "Check battery charge / electrolyte.", responseType: "numeric", frequencyIds: ["f_weekly", "f_monthly"] },
+      { id: "t4", instruction: "No-load test run (15 min).", responseType: "passfail", frequencyIds: ["f_monthly"] },
+      { id: "t5", instruction: "Change oil and oil filter.", responseType: "passfail", frequencyIds: ["f_6monthly"] },
+      { id: "t6", instruction: "Replace fuel and air filters.", responseType: "passfail", frequencyIds: ["f_6monthly"] },
+      { id: "t7", instruction: "Full-load / building-load test.", responseType: "numeric", frequencyIds: ["f_yearly"] },
+      { id: "t8", instruction: "Fuel polishing / tank water check.", responseType: "passfail", frequencyIds: ["f_6monthly", "f_yearly"] }
+    ]
+  };
+  var nId = 100;
+
+  function el(t, p, k) {
+    var n = document.createElement(t);
+    if (p) Object.keys(p).forEach(function (key) {
+      if (key === "class") n.className = p[key];
+      else if (key === "html") n.innerHTML = p[key];
+      else if (key.slice(0, 2) === "on") n.addEventListener(key.slice(2), p[key]);
+      else if (key in n) { try { n[key] = p[key]; } catch (e) { n.setAttribute(key, p[key]); } }
+      else n.setAttribute(key, p[key]);
+    });
+    (k || []).forEach(function (c) { if (c != null) n.appendChild(typeof c === "string" ? document.createTextNode(c) : c); });
+    return n;
+  }
+  var UNITP = { day: "day", week: "week", month: "month", year: "year" };
+  function label(f) {
+    var n = f.interval, u = f.unit;
+    if (n === 1) return { day: "Daily", week: "Weekly", month: "Monthly", year: "Annual" }[u];
+    if (u === "month") return n + "-Monthly";
+    if (u === "year") return n + "-Yearly";
+    return "Every " + n + " " + UNITP[u] + "s";
+  }
+  function sub(f) { return "every " + f.interval + " " + UNITP[f.unit] + (f.interval > 1 ? "s" : ""); }
+  function ticked(task, fid) { return task.frequencyIds.indexOf(fid) >= 0; }
+  function countFor(fid) { return plan.tasks.filter(function (t) { return ticked(t, fid); }).length; }
+
+  // ---- frequencies ----
+  var QUICK = [
+    { unit: "day", interval: 1 }, { unit: "week", interval: 1 }, { unit: "month", interval: 1 },
+    { unit: "month", interval: 3 }, { unit: "month", interval: 6 }, { unit: "year", interval: 1 }
+  ];
+  function freqExists(u, i) { return plan.frequencies.some(function (f) { return f.unit === u && f.interval === i; }); }
+  function addFreq(u, i) {
+    if (freqExists(u, i)) return;
+    plan.frequencies.push({ id: "f_" + (nId++), unit: u, interval: i });
+    render();
+  }
+  function removeFreq(fid) {
+    plan.frequencies = plan.frequencies.filter(function (f) { return f.id !== fid; });
+    plan.tasks.forEach(function (t) { t.frequencyIds = t.frequencyIds.filter(function (x) { return x !== fid; }); });
+    render();
+  }
+
+  function renderQuickAdds() {
+    var host = document.getElementById("quickAdds"); host.innerHTML = "";
+    QUICK.forEach(function (q) {
+      var exists = freqExists(q.unit, q.interval);
+      host.appendChild(el("button", { class: "btn chipadd", disabled: exists, style: "margin-right:6px", onclick: function () { addFreq(q.unit, q.interval); } }, ["+ " + label(q)]));
+    });
+  }
+
+  // ---- matrix ----
+  function renderMatrix() {
+    var table = document.getElementById("matrix"); table.innerHTML = "";
+    var headCells = [el("th", { class: "tcol" }, [el("span", { class: "lbl" }, ["Task"])])];
+    plan.frequencies.forEach(function (f) {
+      headCells.push(el("th", {}, [el("div", { class: "freqhead" }, [
+        el("button", { class: "x", title: "Remove column", onclick: function () { removeFreq(f.id); } }, ["✕"]),
+        el("span", { class: "fl" }, [label(f)]),
+        el("span", { class: "fs" }, [sub(f)])
+      ])]));
+    });
+    headCells.push(el("th", { style: "width:36px" }, []));
+    table.appendChild(el("thead", {}, [el("tr", {}, headCells)]));
+
+    var body = el("tbody", {}, []);
+    plan.tasks.forEach(function (task) {
+      var cells = [el("td", { class: "tcol taskcell" }, [
+        el("div", { class: "ti" }, [task.instruction]),
+        el("div", { class: "tm" }, [task.responseType])
+      ])];
+      plan.frequencies.forEach(function (f) {
+        var cb = el("input", { type: "checkbox", class: "cbx", checked: ticked(task, f.id),
+          title: task.instruction + " · " + label(f),
+          onchange: function () {
+            if (cb.checked) { if (!ticked(task, f.id)) task.frequencyIds.push(f.id); }
+            else task.frequencyIds = task.frequencyIds.filter(function (x) { return x !== f.id; });
+            renderDrops(); renderTimeline(); renderData(); updateTotals();
+          } });
+        cells.push(el("td", { class: "cell" }, [cb]));
+      });
+      cells.push(el("td", { class: "cell" }, [el("button", { class: "x", title: "Remove task", onclick: function () {
+        plan.tasks = plan.tasks.filter(function (t) { return t.id !== task.id; }); render();
+      } }, ["✕"])]));
+      body.appendChild(el("tr", {}, cells));
+    });
+    // totals row
+    var totals = [el("td", { class: "tcol" }, ["tasks per drop"])];
+    plan.frequencies.forEach(function (f) { totals.push(el("td", { class: "num", "data-fid": f.id }, [String(countFor(f.id))])); });
+    totals.push(el("td", {}, []));
+    body.appendChild(el("tr", { class: "totals" }, totals));
+    table.appendChild(body);
+    document.getElementById("freqCount").textContent = plan.frequencies.length + " frequencies";
+    document.getElementById("matrixCount").textContent = plan.tasks.length + " tasks";
+  }
+  function updateTotals() {
+    plan.frequencies.forEach(function (f) {
+      var c = document.querySelector('td[data-fid="' + f.id + '"]'); if (c) c.textContent = countFor(f.id);
+    });
+  }
+
+  // ---- drops preview ----
+  function renderDrops() {
+    var host = document.getElementById("drops"); host.innerHTML = "";
+    plan.frequencies.forEach(function (f) {
+      var tasks = plan.tasks.filter(function (t) { return ticked(t, f.id); });
+      var card = el("div", { class: "drop" + (tasks.length ? "" : " empty") }, [
+        el("h3", {}, [label(f), el("span", { class: "n" }, [tasks.length + " task" + (tasks.length === 1 ? "" : "s")])]),
+        tasks.length ? el("ul", {}, tasks.map(function (t) { return el("li", {}, [t.instruction]); }))
+          : el("div", { style: "font-size:12.5px;color:var(--faint);margin-top:8px" }, ["No tasks — generates nothing."])
+      ]);
+      host.appendChild(card);
+    });
+  }
+
+  // ---- timeline ----
+  function fires(f, m) {
+    if (f.unit === "day" || f.unit === "week") return true;
+    if (f.unit === "month") return m % f.interval === 0;
+    if (f.unit === "year") return m % (12 * f.interval) === 0;
+    return false;
+  }
+  function renderTimeline() {
+    var table = document.getElementById("timeline"); table.innerHTML = "";
+    var head = [el("th", { class: "rl" }, ["Frequency"])];
+    for (var m = 1; m <= 12; m++) head.push(el("th", {}, ["M" + m]));
+    table.appendChild(el("thead", {}, [el("tr", {}, head)]));
+    var body = el("tbody", {}, []);
+    plan.frequencies.forEach(function (f) {
+      var row = [el("td", { class: "rl" }, [label(f)])];
+      for (var m = 1; m <= 12; m++) row.push(el("td", {}, [fires(f, m) ? el("span", { class: "dot" }) : null]));
+      body.appendChild(el("tr", {}, row));
+    });
+    table.appendChild(body);
+  }
+
+  // ---- data ----
+  function renderData() {
+    var out = { frequencies: plan.frequencies.map(function (f) { return { id: f.id, label: label(f), unit: f.unit, interval: f.interval }; }),
+      tasks: plan.tasks.map(function (t) { return { id: t.id, instruction: t.instruction, responseType: t.responseType, frequencyIds: t.frequencyIds }; }) };
+    document.getElementById("data").textContent = JSON.stringify(out, null, 2);
+  }
+
+  function render() { renderQuickAdds(); renderMatrix(); renderDrops(); renderTimeline(); renderData(); }
+
+  // wire add controls
+  document.getElementById("addFreq").addEventListener("click", function () {
+    var i = Math.max(1, parseInt(document.getElementById("ivl").value || "1", 10));
+    addFreq(document.getElementById("unit").value, i);
+  });
+  document.getElementById("addTask").addEventListener("click", function () {
+    var t = document.getElementById("newTask");
+    var text = t.value.trim(); if (!text) return;
+    plan.tasks.push({ id: "t" + (nId++), instruction: text, responseType: document.getElementById("newRt").value, frequencyIds: [] });
+    t.value = ""; render();
+  });
+  document.getElementById("newTask").addEventListener("keydown", function (e) { if (e.key === "Enter") document.getElementById("addTask").click(); });
+
+  render();
+})();
+</script>
+</body>
+</html>

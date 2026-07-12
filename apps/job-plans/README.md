@@ -12,8 +12,10 @@ schedules exist.
 |------|---------|
 | `apps/job-plans/index.html` | Self-contained authoring app — no server, no build step. Open it in a browser. |
 | `apps/job-plans/inheritance-demo.html` | Working demo of **Class → Model → Instance** template inheritance with attribute-level locks (see below). |
+| `apps/job-plans/matrix-demo.html` | Working demo of the **task × frequency matrix** — one plan, every cadence (see below). |
 | `schemas/job-plan.schema.json` | The job-plan document contract (JSON Schema, draft 2020-12). This is the architecture, made executable. |
-| `samples/job-plans/jp_ups_quarterly_inspection.json` | A worked example (the Quarterly UPS Inspection) — also a schema fixture. |
+| `samples/job-plans/jp_ups_quarterly_inspection.json` | Worked example (Quarterly UPS Inspection) — also a schema fixture. |
+| `samples/job-plans/jp_generator_maintenance.json` | Worked example with a full frequency matrix (generator programme). |
 
 ## Template inheritance (`inheritance-demo.html`)
 
@@ -39,6 +41,28 @@ work order would freeze at creation, so upstream edits never rewrite history.
 This model is a candidate to formalise in
 [`docs/architecture/10-maintenance-strategy-application.md`](../../docs/architecture/10-maintenance-strategy-application.md)
 once it's settled; it is not yet in the architecture docs.
+
+## Maintenance matrix (`matrix-demo.html`)
+
+A single job plan holds **every generation frequency**, and a task × frequency
+matrix decides when each task drops. Frequencies are `unit × interval` — daily
+(`day/1`), weekly (`week/1`), monthly (`month/1`), n-monthly (`month/n`), yearly
+(`year/1`), n-yearly (`year/n`) — so any cadence is expressible.
+
+- **Rows = tasks, columns = frequencies, checkbox = "drops here."** A task can
+  belong to several frequencies (e.g. *check levels* both weekly and monthly).
+- **What generates** cards show the work order each frequency produces when it
+  falls due — its ticked tasks, nothing else.
+- **Drop timeline** shows which frequencies fire across the next 12 months.
+
+This is captured in the schema: each version gains a `frequencies` array
+(`$defs/frequency`) and each task gains `frequencyIds` (its ticked cells). Note
+this deliberately folds *when* into the plan — a small, intentional departure
+from the strict plan/schedule separation in
+[doc 10](../../docs/architecture/10-maintenance-strategy-application.md); the
+matrix is a widely-used PM pattern and matches how programmes are built in
+practice. Site-specific timing (anchor dates, calendars) remains an
+instance/schedule concern for later.
 
 ## Run it
 
