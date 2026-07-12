@@ -62,9 +62,11 @@ Work reaches the machine two ways:
 
 - **From a `WorkRequest`** — enters at **Requested** and goes through review/
   approval, because demand needs triage.
-- **From a `PMSchedule`** — the strategy is already approved, so generated work
-  can enter directly at **Planned** (or **Scheduled** if a window is implied),
-  skipping request/review. The provenance (`pmScheduleId`) is retained.
+- **From a `MaintenanceSchedule`** — the strategy is already approved, so
+  generated work can enter directly at **Planned** (or **Scheduled** if a window
+  is implied), skipping request/review. The provenance (`scheduleId`) and the
+  [content snapshot](10-maintenance-strategy-application.md#the-work-order-snapshot)
+  are retained.
 
 This is why the model separates `WorkRequest` from `WorkOrder`: the two entry
 paths have genuinely different front ends.

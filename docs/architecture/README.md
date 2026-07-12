@@ -37,6 +37,7 @@ explicitly a later-release concern (see the [roadmap](08-roadmap.md)).
 | 07 | [Cross-cutting concerns](07-cross-cutting-concerns.md) | Multi-tenancy, security, mobile/offline, integration, admin, NFRs |
 | 08 | [Release roadmap](08-roadmap.md) | MVP → Release 4 sequencing and rationale |
 | 09 | [Glossary](09-glossary.md) | Domain vocabulary |
+| 10 | [Maintenance strategy application](10-maintenance-strategy-application.md) | How plans reach assets: class/model application, applicability rules, exceptions, routes, snapshots |
 
 ## Status
 

@@ -5,8 +5,10 @@ to an entity, the entity name is given in `code font`.
 
 | Term | Meaning |
 |------|---------|
+| **Applicability rule** (`ApplicabilityRule`) | A predicate over asset attributes (class / subtype / model / site / criteria) that determines which assets inherit a maintenance strategy; evaluated continuously. |
 | **Asset** (`Asset`) | Any maintainable thing Plantree tracks — equipment, plant, a component. The most-referenced record in the system. |
 | **Asset criticality** | A rating of how important an asset is / how severe its failure would be; drives prioritisation, scheduling and risk. |
+| **Asset exception** (`AssetException`) | A justified, visible deviation from an asset's inherited strategy (frequency change, extra/excluded task, suspension) — recorded instead of copying the strategy onto the asset. |
 | **Asset hierarchy (physical)** | Site → Building → Room → precise Location; *where an asset physically is* (`Location`). |
 | **Asset hierarchy (functional)** | The service/system an asset supports, independent of where it physically sits (`FunctionalLocation`). A UPS in Electrical Room 2 supporting Power Train A. |
 | **Asset status** | proposed · operating · isolated · failed · retired — governs what work is permitted. |
@@ -21,14 +23,18 @@ to an entity, the entity name is given in `code font`.
 | **FMEA** | Failure Mode and Effects Analysis — a structured method for identifying how assets fail and the consequences. |
 | **Functional location** (`FunctionalLocation`) | A node in the functional/system hierarchy — a position defined by the service it delivers, not its physical place. |
 | **Grace period / tolerance** | The window around a PM due date/meter within which completion still counts as on-time. |
-| **Job plan** (`JobPlan`) | A reusable, versioned template of tasks, estimated labour, planned parts and safety for a piece of work. |
+| **Impact preview** | A before-commit summary of an applicability-rule change — how many assets gain/lose the strategy and how many work orders it generates — so fleet-wide changes are never silent. |
+| **Inheritance (most-specific-wins)** | An asset inherits the *most specific* applicable strategy, resolved class → subtype → model → site → asset → work order; narrower matches override broader ones. |
+| **Job plan** (`JobPlan`) | A reusable, versioned template of *what is done* — tasks, labour, parts, readings, safety; referenced by schedules, never copied onto assets. |
 | **Labour entry** (`LabourEntry`) | Time booked against a work order; the basis of labour cost and utilisation. |
 | **LOTO** | Lockout/Tagout — isolation records ensuring energy sources are made safe before work. |
 | **Meter** (`Meter`) | A counter/measurement on an asset (run hours, cycles, throughput) used for meter-based PM and condition. |
 | **MTBF** | Mean Time Between Failures — average operating time between failures; a reliability KPI. |
 | **MTTR** | Mean Time To Repair — average time to restore an asset after failure; a maintainability KPI. |
+| **Maintenance schedule** (`MaintenanceSchedule`) | *When & where* work happens — the trigger, frequency and planning settings that turn a job plan into work orders. |
+| **Maintenance strategy** (`MaintenanceStrategy`) | A **package of schedules** for a class of equipment, applied to assets by rule (e.g. "Standard UPS Maintenance"). |
+| **Parameterised plan** | One job plan whose values (voltage, trip time, …) resolve from the asset/model template — governing one plan instead of dozens of near-identical copies. |
 | **PM (preventive maintenance)** | Scheduled maintenance intended to prevent failure, triggered by time, meter, event or condition. |
-| **PM schedule** (`PMSchedule`) | The *trigger* that generates work orders from a job plan at the right time. |
 | **Permit-to-work** (`Permit`) | Authorisation controlling when/how hazardous work may proceed; may gate the start of a work order. |
 | **Predictive maintenance** | Using condition trends/models to act before failure; forecasts remaining useful life. |
 | **Preventive vs reactive** | Planned PM work vs unplanned corrective work; their ratio is a core maintenance-maturity KPI. |
@@ -41,5 +47,6 @@ to an entity, the entity name is given in `code font`.
 | **SLA** | Service Level Agreement — response/resolution target driving due dates and escalation. |
 | **SWMS / JHA** | Safe Work Method Statement / Job Hazard Analysis — documented hazard controls for a task. |
 | **Work order** (`WorkOrder`) | The unit of executable, costable work; the operational heart of the system. |
+| **Work-order snapshot** | The applicable content (pinned job-plan version, resolved parameters, tasks, ranges, active exceptions) captured onto a work order at generation, so history stays truthful after the live plan changes. |
 | **Work request** (`WorkRequest`) | Reported demand for work, before it is committed to (or rejected as) a work order. |
-| **Versioning** | Job plans, tasks and forms are version-controlled; historical work pins the version used, so the *exact* instructions that applied are always recoverable. |
+| **Versioning** | Job plans (`draft → approved → active → superseded → retired`), tasks and forms are version-controlled; historical work snapshots the version used, so the *exact* instructions that applied are always recoverable. |

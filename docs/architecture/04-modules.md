@@ -44,17 +44,29 @@ The operational heart. See the [lifecycle](05-work-management-lifecycle.md).
 - Follow-up work creation; supervisor review & close-out approval.
 - Full change & audit history.
 
-## 3. Preventive maintenance — *Maintenance Strategy* — MVP (time/calendar/meter), R2 (advanced triggers, routes)
+## 3. Preventive maintenance — *Maintenance Strategy* — MVP (time/calendar/meter), R2 (advanced triggers, routes, fleet rules)
 
-- Time-based, calendar and meter-based schedules.
-- Runtime / cycle / consumption triggers; event- and condition-based triggers
-  *(R2/R4 for condition)*; seasonal maintenance.
+The application model — apply once, assign by rule, generate per asset only when
+needed — is detailed in
+[maintenance strategy application](10-maintenance-strategy-application.md).
+
+- **Separate plan from schedule:** versioned job plans (*what*) referenced by
+  maintenance schedules (*when & where*); one plan serves many frequencies.
+- **Strategies as packages** of schedules, applied to a class of equipment in one
+  action (e.g. commissioning a generator applies its whole programme).
+- **Class / subtype / model / site / asset application** with most-specific
+  override, and a visible explanation of *why* a plan applies.
+- **Parameterised plans** — values (voltage, trip time, …) resolved from the
+  asset/model template instead of duplicating near-identical plans.
+- **Asset exceptions** — justified, visible deviations rather than copied plans.
+- **Applicability rules** over asset attributes with an **impact preview** and
+  approval before fleet-wide changes *(R2)*.
+- Time / calendar / meter schedules; runtime / cycle / consumption, event- and
+  condition-based triggers *(R2/R4 for condition)*; seasonal maintenance.
 - Fixed-date vs completion-based recurrence.
-- Reusable job plans & task templates (**versioned**).
-- Automatic work-order generation; PM forecasting.
+- Automatic work-order generation with **content snapshot**; PM forecasting.
 - Task bundling; route-based maintenance *(R2)*.
-- Grace periods & completion tolerances.
-- Missed / overdue / deferred handling.
+- Grace periods & completion tolerances; missed / overdue / deferred handling.
 - Regulatory & statutory flags.
 
 ## 4. Planning & scheduling — *Work Management* — R2

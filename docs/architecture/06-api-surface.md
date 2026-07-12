@@ -60,14 +60,21 @@ GET/POST   /functional-locations           # functional/system hierarchy
 ```
 
 ### Maintenance strategy & PM
+See [maintenance strategy application](10-maintenance-strategy-application.md) for
+the model these resources implement.
 ```
-GET/POST   /maintenance-strategies
 GET/POST   /job-plans
 GET        /job-plans/{id}/versions        # versioned; a version is immutable once published
-POST       /job-plans/{id}/versions        # publish a new version
-GET/POST   /pm-schedules
-GET        /pm-schedules/{id}/forecast      # upcoming due dates/meters
-POST       /pm-schedules/{id}/generate      # force generation of due work (also runs on a timer)
+POST       /job-plans/{id}/versions        # publish a new version (draft→approved→active)
+GET/POST   /maintenance-strategies         # a package of schedules for a class
+GET/POST   /maintenance-strategies/{id}/schedules   # MaintenanceSchedule (when & where)
+GET        /schedules/{id}/forecast        # upcoming due dates/meters
+POST       /schedules/{id}/generate        # force generation of due work (also runs on a timer)
+GET/POST   /maintenance-strategies/{id}/applicability-rules
+POST       /applicability-rules/{id}/preview   # impact preview: assets +/- and work orders in next N days
+POST       /applicability-rules/{id}/commit    # apply (adds/removes strategy from resolved assets)
+GET        /assets/{id}/applied-strategies  # what applies to this asset and WHY (most-specific resolution)
+GET/POST   /assets/{id}/exceptions         # AssetException — justified, visible deviations
 ```
 
 ### Work management

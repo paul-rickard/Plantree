@@ -86,30 +86,31 @@ A counter/measurement used to trigger meter-based PM and to record condition.
 
 ## Maintenance strategy
 
-### MaintenanceStrategy
-The maintenance *intent* for an asset (or asset type). Groups the schedules that
-implement it and records the rationale (run-to-failure, PM, condition-based,
-RCM-derived).
+The full application model — how these objects combine to apply maintenance at
+scale without copying plans onto assets — is in
+[maintenance strategy application](10-maintenance-strategy-application.md). This
+section defines the entities; that document defines the behaviour.
 
-| Field | Meaning |
-|-------|---------|
-| PK `id` | |
-| FK `assetId` **or** FK `assetTypeId` | Applied to a specific asset or a whole class. |
-| `approach` | `run_to_failure \| preventive \| condition_based \| predictive`. |
-| *`rationale`* | Why this strategy (links to reliability analysis in later releases). |
-| `status` | `draft \| active \| superseded`. |
+Six objects work together: **job plan** (*what*), **maintenance schedule**
+(*when & where*), **maintenance strategy** (a package of schedules),
+**applicability rule** (which assets inherit it), **asset exception** (justified
+deviations) and the **work-order snapshot** (what was actually issued — see
+[versioning](#versioning)).
 
 ### JobPlan (versioned)
-Reusable content for a piece of work. The unit that makes PM creation painless.
+Reusable content — *what is done*. The unit that makes PM creation painless. Never
+copied onto assets; referenced by schedules.
 
 | Field | Meaning |
 |-------|---------|
 | PK `id`, `version` | Version-controlled; see [versioning](#versioning). |
 | `code`, `name` | |
+| `lifecycleState` | `draft \| approved \| active \| superseded \| retired`. |
 | `estimatedLabour` | Planned hours, optionally per trade. |
 | — tasks | Ordered `JobPlanTask`s. |
 | — planned parts | Parts expected to be consumed. |
 | — required skills, tools, permits | Prerequisites surfaced onto generated work. |
+| *`parameters`* | Named values (e.g. operating voltage, trip time) **resolved from the asset / model template** at generation — one parameterised plan instead of many near-identical copies. |
 | `safetyInstructions` | Standing safety notes / references. |
 
 ### JobPlanTask (versioned)
@@ -123,23 +124,64 @@ One step within a job plan.
 | *`acceptableRange`* | Low/high bounds for numeric checks. |
 | *`requiredSkillIds`* | Competency needed for this step. |
 
-### PMSchedule
-The *trigger*. Converts a job plan into work at the right time.
+### MaintenanceSchedule
+*When & where* work happens — the trigger that converts a job plan into work at
+the right time and place. Belongs to a strategy; references (does not embed) a
+job plan, so the same plan runs quarterly at one site and six-monthly at another.
 
 | Field | Meaning |
 |-------|---------|
-| PK `id` | |
+| PK `id`, FK `strategyId` | The strategy this schedule is part of. |
 | FK `jobPlanId` (+version pinning policy) | Content to generate. |
-| FK `assetId` **or** route target | What the work is performed on. |
 | `triggerType` | `calendar \| fixed_date \| meter \| runtime \| event \| condition \| seasonal`. |
 | `frequency` | e.g. every 3 months / every 500 h. |
 | `recurrenceBasis` | `fixed` (from due date) vs `completion` (from last completion). |
 | *`meterId`, `meterInterval`* | For meter/runtime triggers. |
 | *`gracePeriod`, `tolerance`* | Completion window before a PM is "missed". |
-| *`leadTime`* | How far ahead to generate the work order (for parts/planning). |
+| *`leadTime`, `seasonalWindow`, `maintenanceWindow`* | Planning settings. |
+| *FK `responsibleTeamId`, `priority`* | Default team and work-order priority. |
+| `generationMode` | `per_asset` (one work order per applicable asset) or `route` (one work order covering many assets — see [doc 10](10-maintenance-strategy-application.md#routes-for-many-asset-inspections)). |
 | `regulatory` | Flag: statutory / compliance PM (affects reporting & deferral rules). |
 | `status` | `active \| paused`. |
 | — forecast | Next due date/meter is derived; PM forecasting reads across schedules. |
+
+### MaintenanceStrategy
+A **package of related schedules** for a class of equipment (e.g. "Standby
+Generator – Standard Strategy"). Assigning it applies the whole programme at once.
+
+| Field | Meaning |
+|-------|---------|
+| PK `id`, `code`, `name` | |
+| `approach` | `run_to_failure \| preventive \| condition_based \| predictive`. |
+| — schedules | The `MaintenanceSchedule`s it contains. |
+| — applicability | The `ApplicabilityRule`(s) that resolve it to assets. |
+| *`rationale`* | Why this strategy (links to reliability analysis in later releases). |
+| `status` | `draft \| active \| superseded`. |
+
+### ApplicabilityRule
+Determines **which assets inherit** a strategy. Evaluated continuously: assets
+entering or leaving the criteria gain or lose the strategy (subject to
+approval/preview).
+
+| Field | Meaning |
+|-------|---------|
+| PK `id`, FK `strategyId` | |
+| `level` | `class \| subtype \| model \| site \| asset` — the application level; **most specific wins**. |
+| `criteria` | Attribute predicate, e.g. `class=CRAH AND status=Operating AND criticality>=3 AND manufacturer=Stulz AND site=SYD1`. |
+| `status` | `draft \| active` — draft rules can be impact-previewed before commit. |
+| — resolved assets | Derived set; the system can explain *why* each asset matches. |
+
+### AssetException
+A justified, visible deviation from an asset's inherited strategy — recorded
+instead of copying the strategy onto the asset and breaking inheritance.
+
+| Field | Meaning |
+|-------|---------|
+| PK `id`, FK `assetId`, FK `strategyId` | The asset and the strategy it deviates from. |
+| `kind` | `frequency_change \| add_task \| exclude_task \| different_team \| suspend \| model_specific_procedure`. |
+| `detail` | The specifics (e.g. "battery-impedance test every 3 months instead of 6"). |
+| *`effectiveFrom`, `effectiveTo`* | For temporary deviations/suspensions. |
+| `justification`, `approvedBy` | Why, and who authorised it — surfaced in maintenance reviews. |
 
 ---
 
@@ -170,7 +212,7 @@ for the state machine.
 | `type` | `corrective \| preventive \| inspection \| project \| safety`. |
 | `priority`, `dueDate` | |
 | `status` | The lifecycle state (see doc 05). |
-| *FK `pmScheduleId`* / *FK `workRequestId`* | Provenance: generated by PM or converted from a request. |
+| *FK `scheduleId`* / *FK `workRequestId`* | Provenance: generated by a maintenance schedule or converted from a request. |
 | *FK `jobPlanId` + `jobPlanVersion`* | Pinned content version used. |
 | `assignedTo` | Individual, `Crew`, or `Contractor`. |
 | `estimatedLabour`, `actualLabour` | Planned vs booked hours (actual derived from labour entries). |
@@ -313,15 +355,28 @@ transaction to ERP.
 
 ## Versioning
 
-`JobPlan`, `JobPlanTask` and `FormTemplate` are **version-controlled**. The rule:
+`JobPlan`, `JobPlanTask` and `FormTemplate` are **version-controlled**. Job plans
+move through a controlled lifecycle — `draft → approved → active → superseded →
+retired` — and the rules are:
 
 - Editing a published version creates a **new version**; prior versions are
-  retained, never mutated.
-- A `WorkOrder` / `Inspection` **pins the version** it was created from
-  (`jobPlanVersion`, form template version).
-- Therefore any historical record can always be shown with the *exact*
-  instructions, tasks and acceptance criteria that applied at the time it was
-  performed — even years later, after the template has changed many times.
+  retained, never mutated. Future work uses the new **active** version.
+- **Open work** either retains its original version or is *deliberately* upgraded
+  — never silently.
+- **Completed work permanently retains the version actually performed.**
 
-This is what makes Plantree's history trustworthy for audit, compliance and
-reliability analysis.
+### The work-order snapshot
+
+Pinning a version reference is not enough on its own — a live reference could make
+an old work order appear to have followed today's procedure. So when a schedule
+generates a work order, Plantree **snapshots** the applicable content onto it: the
+pinned job-plan version, the parameter values resolved from the asset/model, the
+tasks, readings and acceptance criteria, and any active `AssetException`. The
+snapshot is what the technician executes and what history keeps.
+
+Therefore any historical record can always be shown with the *exact* instructions,
+parameters and acceptance criteria that applied when it was performed — even years
+later, after the plan, parameters or strategy have changed many times. This is
+what makes Plantree's history trustworthy for audit, compliance and reliability
+analysis. The full model is in
+[maintenance strategy application](10-maintenance-strategy-application.md#the-work-order-snapshot).

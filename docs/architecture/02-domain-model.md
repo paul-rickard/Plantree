@@ -26,9 +26,11 @@ strategy decision. Every other module attaches to a point on this loop.
 | `Asset` | A maintainable thing. Belongs to one physical location and (optionally) one functional location; may nest under a parent asset. |
 | `AssetType` | Classification / model class; carries default attributes and expected life. |
 | `Meter` | A counter or measurement on an asset (runtime hours, cycles, throughput). |
-| `MaintenanceStrategy` | The intent for how an asset is maintained; the parent of its PM schedules. |
-| `JobPlan` | A reusable, versioned template of tasks, labour, parts and safety for a piece of work. |
-| `PMSchedule` | A trigger (time / meter / event / condition) that generates work from a job plan. |
+| `JobPlan` | A reusable, versioned template of *what is done* — tasks, labour, parts, readings, safety. |
+| `MaintenanceSchedule` | *When & where* work happens — the trigger (time / meter / event / condition), frequency and planning settings that turn a job plan into work. |
+| `MaintenanceStrategy` | A **package of schedules** for a class of equipment (e.g. "Standard UPS Maintenance"). |
+| `ApplicabilityRule` | Determines which assets inherit a strategy — by class, subtype, model, site or attribute criteria. |
+| `AssetException` | A justified, visible deviation from an asset's inherited strategy (frequency change, extra/excluded task, suspension). |
 | `WorkRequest` | A reported need for work, before it becomes (or is rejected as) a work order. |
 | `WorkOrder` | The unit of executable, costable work. The operational heart of the system. |
 | `WorkOrderTask` | A step / checklist item on a work order, instantiated from a job-plan task. |
@@ -74,12 +76,15 @@ erDiagram
     ASSET ||--o{ ASSET : "parent of"
     ASSET ||--o{ METER : "measured by"
 
-    ASSET ||--o{ MAINTENANCE_STRATEGY : "maintained per"
-    MAINTENANCE_STRATEGY ||--o{ PM_SCHEDULE : "realised by"
-    JOB_PLAN ||--o{ PM_SCHEDULE : "template for"
+    MAINTENANCE_STRATEGY ||--o{ MAINTENANCE_SCHEDULE : "packages"
+    MAINTENANCE_STRATEGY ||--o{ APPLICABILITY_RULE : "applied via"
+    APPLICABILITY_RULE ||--o{ ASSET : "resolves to"
+    ASSET ||--o{ ASSET_EXCEPTION : "deviates via"
+    ASSET_EXCEPTION }o--|| MAINTENANCE_STRATEGY : "overrides"
+    JOB_PLAN ||--o{ MAINTENANCE_SCHEDULE : "referenced by"
     JOB_PLAN ||--o{ JOB_PLAN_TASK : "composed of"
 
-    PM_SCHEDULE ||--o{ WORK_ORDER : generates
+    MAINTENANCE_SCHEDULE ||--o{ WORK_ORDER : generates
     WORK_REQUEST ||--o| WORK_ORDER : "becomes"
     ASSET ||--o{ WORK_ORDER : "work performed on"
     ASSET ||--o{ WORK_REQUEST : "reported against"
@@ -125,14 +130,25 @@ erDiagram
   *committed work*. Not every request becomes an order (some are rejected or
   merged), so the relationship is optional-to-one. Keeping them distinct lets
   requesters and planners have clean, separate experiences.
-- **Job plan vs PM schedule.** A `JobPlan` is the reusable *content* (tasks,
-  estimated labour, parts, safety). A `PMSchedule` is the *trigger* that says
-  when to spawn a work order from that content. One job plan feeds many
-  schedules and many one-off work orders.
-- **Versioning.** `JobPlan`, `JobPlanTask` and `FormTemplate` are
-  version-controlled. A `WorkOrder`/`Inspection` records the specific version it
-  was created from, so historical work always shows the instructions that
-  actually applied. See [data dictionary](03-data-dictionary.md#versioning).
+- **Plan vs schedule vs strategy.** A `JobPlan` is reusable *content* — *what is
+  done* (tasks, labour, parts, readings, safety). A `MaintenanceSchedule` is
+  *when & where* — the trigger, frequency and planning settings that spawn work
+  from a plan. A `MaintenanceStrategy` is a *package of schedules* for a class of
+  equipment. One job plan can be referenced by many schedules at different
+  frequencies without being duplicated. The full model is in
+  [maintenance strategy application](10-maintenance-strategy-application.md).
+- **Strategies apply by rule, never by copy.** Assets do **not** carry copied
+  plans. An `ApplicabilityRule` (class / subtype / model / site / attribute
+  criteria) resolves a strategy to the assets it covers; an asset inherits the
+  *most specific* applicable strategy, and the system can explain why. Genuine
+  one-offs are recorded as a visible `AssetException`, not by breaking
+  inheritance. See [doc 10](10-maintenance-strategy-application.md).
+- **Versioning & snapshot.** `JobPlan`, `JobPlanTask` and `FormTemplate` are
+  version-controlled. When a schedule generates a work order it **snapshots** the
+  pinned job-plan version, resolved parameters and any active exception onto the
+  work order, so historical work always shows the instructions that actually
+  applied — even after the live plan changes. See
+  [data dictionary](03-data-dictionary.md#versioning).
 - **Cost is derived, not a table.** There is no single "cost" entity. Cost rolls
   up from `LabourEntry` (hours × rate), `PartsUsage` (quantity × price) and
   contractor/PO charges. Asset cost history is an aggregation over these against
@@ -156,7 +172,9 @@ flowchart TB
     subgraph Maint["Maintenance Strategy"]
         M1[MaintenanceStrategy]:::e
         M2[JobPlan]:::e
-        M3[PMSchedule]:::e
+        M3[MaintenanceSchedule]:::e
+        M4[ApplicabilityRule]:::e
+        M5[AssetException]:::e
     end
     subgraph Work["Work Management"]
         W1[WorkRequest]:::e

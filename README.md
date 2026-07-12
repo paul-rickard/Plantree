@@ -32,6 +32,7 @@ model, module breakdown, work-order lifecycle, API surface and release roadmap.
 | [Cross-cutting concerns](docs/architecture/07-cross-cutting-concerns.md) | Multi-tenancy, security, mobile/offline, integration, governance |
 | [Release roadmap](docs/architecture/08-roadmap.md) | MVP → Release 4 sequencing |
 | [Glossary](docs/architecture/09-glossary.md) | Domain vocabulary |
+| [Maintenance strategy application](docs/architecture/10-maintenance-strategy-application.md) | How maintenance plans reach assets: class/model application, rules, exceptions, snapshots |
 
 ## Status
 
