@@ -2,8 +2,12 @@
 
 Attribute-level definitions for the core entities introduced in the
 [domain model](02-domain-model.md). This is a *semantic* dictionary — it defines
-what each field means and the rules around it, not physical column types. Types
-firm up when a database is chosen.
+what each field means and the rules around it. Storage is **JSON-backed**: each
+entity is a JSON document conforming to a published JSON Schema, so these
+definitions map directly onto document fields (string ids, string enums,
+ISO-8601 timestamps, explicit units). See
+[data storage](11-data-storage.md) for the storage model, aggregate boundaries
+and example documents/schemas.
 
 Conventions used below:
 - **PK** — identity of the record. Every entity has an opaque surrogate id plus,

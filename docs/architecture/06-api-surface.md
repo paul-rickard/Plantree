@@ -3,8 +3,11 @@
 Plantree exposes a documented API as a first-class product surface — the mobile
 app, integrations and any future UI are all clients of it. This document sets
 the design principles and maps the core resources. The concrete contract
-(paths, payloads, versioning scheme) firms up when implementation begins; the
-*shape* below is the commitment.
+(paths, versioning scheme) firms up when implementation begins; the *shape* below
+is the commitment. Payloads are the [JSON documents](11-data-storage.md) defined
+by the storage schemas — the API's request/response bodies and the on-disk system
+of record are the same JSON, so an OpenAPI spec is generated from the document
+schemas rather than maintained separately.
 
 ## Principles
 
@@ -127,10 +130,11 @@ GET/POST   /notifications  ·  POST /notifications/{id}/acknowledge
 GET        /reports/{key}                   # parameterised; every KPI drills to records
 GET        /reports/{key}/records           # the underlying rows behind a KPI
 POST       /imports        ·  GET /imports/{id}   # bulk CSV/Excel with validation results
-GET        /exports/{resource}              # bulk export
+GET        /exports/{resource}              # bulk export = the canonical on-disk JSON documents
 GET/POST   /webhooks                        # subscribe to domain events
 GET        /audit-events                    # immutable governance log (read-only)
 GET        /openapi.json                    # generated spec
+GET        /schemas/{type}                  # JSON Schema for a document type (the executable data dictionary)
 ```
 
 ## Cross-cutting API conventions

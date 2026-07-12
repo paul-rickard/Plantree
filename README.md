@@ -33,10 +33,12 @@ model, module breakdown, work-order lifecycle, API surface and release roadmap.
 | [Release roadmap](docs/architecture/08-roadmap.md) | MVP → Release 4 sequencing |
 | [Glossary](docs/architecture/09-glossary.md) | Domain vocabulary |
 | [Maintenance strategy application](docs/architecture/10-maintenance-strategy-application.md) | How maintenance plans reach assets: class/model application, rules, exceptions, snapshots |
+| [Data storage](docs/architecture/11-data-storage.md) | JSON-backed storage: canonical documents, schemas, physical layouts, trade-offs |
 
 ## Status
 
-Early architecture stage. No implementation stack has been chosen yet — the
-architecture is deliberately stack-agnostic so that decision can be made
-independently. See the [roadmap](docs/architecture/08-roadmap.md) for the
-intended build sequence.
+Early architecture stage. Storage is decided — **JSON-backed** documents as the
+system of record, for AI-parseability and portability (see
+[data storage](docs/architecture/11-data-storage.md)). The broader application
+stack (language, runtime, UI) is deliberately left open. See the
+[roadmap](docs/architecture/08-roadmap.md) for the intended build sequence.

@@ -13,10 +13,11 @@ Plantree supports multi-company, multi-site and multi-tenant structures.
   `organizationId`; no query ever crosses it implicitly.
 - **Sites within a tenant** are the next scoping level: users and roles can be
   restricted to specific sites, and much reporting rolls up per site.
-- **Isolation model is deferred but bounded:** whether tenants share a database
-  with row-level scoping or are physically separated is an implementation
-  choice, but the domain is designed so that *either* works — nothing relies on
-  cross-tenant data being reachable.
+- **Isolation model:** with [JSON-backed storage](11-data-storage.md), each
+  `organizationId` is a top-level document partition (a directory in the
+  flat-file layout, a scoping key in a JSONB/document store), so tenants are
+  physically separated by default. Nothing reads across the boundary regardless
+  of which physical store is used.
 
 ## Security & access control
 
