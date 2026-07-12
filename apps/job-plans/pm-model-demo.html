@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Plantree — PM Model (inheritance + matrix + nesting)</title>
+<style>
+  :root {
+    --bg:#f4f6f5; --surface:#fff; --surface-2:#fbfcfb; --ink:#16201e; --muted:#5c6b67; --faint:#8a9995;
+    --line:#e0e5e2; --line-strong:#d3dad7; --accent:#0e6e66; --accent-soft:#e4f0ee;
+    --good:#1e8e5a; --good-soft:color-mix(in srgb,#1e8e5a 13%,transparent);
+    --warn:#b77a12; --warn-soft:color-mix(in srgb,#b77a12 13%,transparent);
+    --crit:#c0453b; --info:#3a6ea5; --info-soft:color-mix(in srgb,#3a6ea5 12%,transparent);
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace; --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0e1613; --surface:#16211d; --surface-2:#131e1a; --ink:#e8eeeb; --muted:#9aaaa4; --faint:#6e7e79;
+      --line:#26332e; --line-strong:#33433d; --accent:#37b3a4; --accent-soft:#17322e; --good:#37b37a; --warn:#d69b3a; --crit:#e0685d; --info:#6c9fd6; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans); font-size:14px; line-height:1.5; }
+  h1,h2,h3 { margin:0; }
+  .mono { font-family:var(--mono); } .num { font-variant-numeric:tabular-nums; }
+  .lbl { font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); font-weight:600; font-family:var(--mono); }
+
+  .top { display:flex; align-items:center; gap:12px; padding:12px 20px; background:var(--surface); border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  .brand { display:flex; align-items:center; gap:9px; font-weight:680; font-size:16px; }
+  .brand .mark { color:var(--accent); } .brand small { font-weight:500; color:var(--faint); font-family:var(--mono); font-size:11px; }
+  .top .desc { color:var(--muted); font-size:12.5px; }
+
+  .layout { display:grid; grid-template-columns:230px minmax(0,1fr); align-items:start; }
+  .rail { border-right:1px solid var(--line); background:var(--surface-2); min-height:calc(100vh - 53px); padding:16px 12px; }
+  .rail h3 { font-size:10px; letter-spacing:.07em; text-transform:uppercase; color:var(--faint); font-family:var(--mono); margin:0 6px 10px; }
+  .node { display:block; width:100%; text-align:left; border:1px solid transparent; background:transparent; border-radius:9px; padding:9px 11px; cursor:pointer; margin-bottom:4px; color:var(--ink); font:inherit; }
+  .node:hover { background:var(--surface); }
+  .node.on { background:var(--surface); border-color:var(--line-strong); box-shadow:0 1px 2px rgba(16,32,28,.05); }
+  .node .nt { font-family:var(--mono); font-size:9.5px; letter-spacing:.05em; text-transform:uppercase; color:var(--faint); }
+  .node .nn { font-weight:600; font-size:13.5px; } .node .nc { font-family:var(--mono); font-size:11px; color:var(--muted); }
+  .node.lvl-model { margin-left:16px; } .node.lvl-instance { margin-left:32px; }
+  .legend { display:flex; gap:8px; flex-wrap:wrap; margin-top:16px; }
+
+  .main { padding:20px; display:flex; flex-direction:column; gap:18px; min-width:0; }
+  .nodehead { display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; }
+  .nodehead h1 { font-size:20px; letter-spacing:-.02em; }
+  .nodehead .crumb { color:var(--muted); font-size:12px; font-family:var(--mono); }
+
+  .card { background:var(--surface); border:1px solid var(--line); border-radius:12px; }
+  .card > h2 { font-size:13.5px; padding:12px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px; }
+  .card > h2 .count { margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--muted); font-weight:500; }
+  .card-body { padding:12px 16px 16px; }
+
+  .banner { display:flex; gap:9px; align-items:flex-start; font-size:12.5px; color:var(--info); background:var(--info-soft); border:1px solid color-mix(in srgb,var(--info) 24%,transparent); border-radius:9px; padding:9px 12px; }
+  .banner b { color:var(--ink); }
+
+  input[type=text], input[type=number], select { font:inherit; padding:6px 9px; border:1px solid var(--line-strong); border-radius:7px; background:var(--bg); color:var(--ink); outline:none; }
+  input:focus, select:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+  button.btn { font:inherit; font-weight:600; font-size:12px; padding:5px 10px; border-radius:7px; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); cursor:pointer; }
+  button.btn:hover { border-color:var(--faint); }
+  button.btn.accent { color:var(--accent); border-color:color-mix(in srgb,var(--accent) 40%,transparent); }
+  button.btn.on { background:var(--warn-soft); color:var(--warn); border-color:color-mix(in srgb,var(--warn) 35%,transparent); }
+  button.x { border:0; background:transparent; color:var(--faint); cursor:pointer; padding:2px 4px; }
+  button.x:hover { color:var(--crit); }
+  .addbar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:12px; }
+
+  .prov { display:inline-flex; align-items:center; gap:4px; font-family:var(--mono); font-size:9px; letter-spacing:.03em; text-transform:uppercase; font-weight:700; padding:2px 7px; border-radius:5px; white-space:nowrap; }
+  .p-class { color:var(--muted); background:var(--surface-2); border:1px solid var(--line-strong); }
+  .p-inherited { color:var(--info); background:var(--info-soft); }
+  .p-overridden { color:var(--accent); background:var(--accent-soft); }
+  .p-enforced { color:var(--warn); background:var(--warn-soft); }
+  .p-added { color:var(--good); background:var(--good-soft); }
+  .p-excluded { color:var(--faint); background:var(--surface-2); }
+
+  /* attrs */
+  table.attrs { width:100%; border-collapse:collapse; }
+  table.attrs td { padding:8px 6px; border-bottom:1px solid var(--line); }
+  table.attrs tr:last-child td { border-bottom:0; }
+  .an { font-weight:560; } .av { font-family:var(--mono); font-variant-numeric:tabular-nums; }
+
+  /* matrix */
+  .scroll { overflow-x:auto; }
+  table.matrix { border-collapse:separate; border-spacing:0; width:100%; min-width:640px; }
+  table.matrix th, table.matrix td { padding:8px 7px; border-bottom:1px solid var(--line); }
+  table.matrix thead th { text-align:center; vertical-align:bottom; background:var(--surface); }
+  table.matrix th.tcol, table.matrix td.tcol { text-align:left; min-width:250px; }
+  .freqhead { display:flex; flex-direction:column; align-items:center; gap:2px; }
+  .freqhead .fl { font-weight:650; font-size:12px; white-space:nowrap; } .freqhead .fs { font-family:var(--mono); font-size:9px; color:var(--faint); }
+  td.cell { text-align:center; }
+  .cbx { appearance:none; -webkit-appearance:none; width:19px; height:19px; border:1.5px solid var(--line-strong); border-radius:5px; cursor:pointer; position:relative; vertical-align:middle; background:var(--bg); }
+  .cbx:hover:not(:disabled) { border-color:var(--accent); }
+  .cbx:checked { background:var(--accent); border-color:var(--accent); }
+  .cbx:checked::after { content:""; position:absolute; left:5.5px; top:2px; width:5px; height:9px; border:solid #fff; border-width:0 2px 2px 0; transform:rotate(45deg); }
+  .cbx:disabled { cursor:not-allowed; opacity:.85; }
+  .cbx:disabled:checked { background:var(--faint); border-color:var(--faint); }
+  .trow.excluded .ti { text-decoration:line-through; color:var(--faint); }
+  .ti { font-weight:540; } .tm { font-family:var(--mono); font-size:10px; color:var(--faint); }
+  .rowact { display:flex; gap:5px; align-items:center; justify-content:flex-end; }
+
+  /* schedule */
+  .summary { display:flex; gap:18px; flex-wrap:wrap; align-items:center; margin-bottom:12px; font-size:13px; }
+  .stat b { font-family:var(--mono); font-size:18px; } .stat .k { color:var(--muted); font-size:11.5px; }
+  .arrow { color:var(--faint); }
+  .months { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; }
+  .mo { border:1px solid var(--line); border-radius:9px; padding:9px 10px; cursor:pointer; background:var(--surface-2); text-align:left; font:inherit; color:inherit; }
+  .mo:hover { border-color:var(--accent); }
+  .mo.on { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-soft); }
+  .mo.absorb { background:color-mix(in srgb,var(--warn) 7%,transparent); }
+  .mo .mm { font-family:var(--mono); font-size:10px; color:var(--faint); }
+  .mo .ml { font-weight:640; font-size:13px; margin-top:1px; }
+  .mo .md { font-size:11px; color:var(--muted); margin-top:2px; }
+  .mo .cnt { font-family:var(--mono); font-size:11px; color:var(--accent); }
+  .detail { margin-top:14px; border-top:1px dashed var(--line-strong); padding-top:12px; }
+  .detail h3 { font-size:13px; margin-bottom:8px; }
+  .wtask { display:flex; gap:10px; align-items:center; padding:6px 0; border-bottom:1px solid var(--line); }
+  .wtask:last-child { border-bottom:0; }
+  .wtask .seq { font-family:var(--mono); font-size:11px; color:var(--accent); background:var(--accent-soft); border-radius:5px; padding:1px 6px; }
+  .srctags { margin-left:auto; display:flex; gap:5px; }
+  .srct { font-family:var(--mono); font-size:9px; text-transform:uppercase; letter-spacing:.03em; color:var(--muted); background:var(--surface-2); border:1px solid var(--line); border-radius:4px; padding:1px 6px; }
+  .cap { font-size:11.5px; color:var(--faint); margin-top:10px; }
+  details > summary { cursor:pointer; font-size:12.5px; color:var(--accent); font-weight:600; }
+  pre.data { font-family:var(--mono); font-size:11px; margin:0; white-space:pre-wrap; word-break:break-word; }
+
+  @media (max-width:820px){ .layout{ grid-template-columns:1fr; } .rail{ min-height:auto; border-right:0; border-bottom:1px solid var(--line);} }
+</style>
+</head>
+<body>
+  <div class="top">
+    <div class="brand">
+      <svg class="mark" width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 22V12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M12 12L6.5 7.5M12 12l5.5-4.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="6" cy="7" r="2" fill="currentColor"/><circle cx="18" cy="7" r="2" fill="currentColor"/></svg>
+      Plantree <small>· PM Model</small>
+    </div>
+    <span class="desc">Inheritance (class→model→instance) + task×frequency matrix + work-order nesting, together.</span>
+  </div>
+
+  <div class="layout">
+    <aside class="rail">
+      <h3>Hierarchy</h3>
+      <div id="tree"></div>
+      <div class="legend">
+        <span class="prov p-inherited">Inherited</span>
+        <span class="prov p-overridden">Overridden</span>
+        <span class="prov p-enforced">Enforced</span>
+        <span class="prov p-added">Added</span>
+      </div>
+    </aside>
+    <main class="main" id="main"></main>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+  var LEVELS = ["class", "model", "instance"];
+  var UNITP = { day: "day", week: "week", month: "month", year: "year" };
+  var PERIOD = { day: 1, week: 7, month: 30, year: 365 };
+
+  var H = {
+    class: {
+      type: "assetClass", code: "GEN", name: "Standby Generator",
+      attrs: {
+        estimatedLabourHours: { value: 2, enforced: false },
+        safety: { value: "Set control to MANUAL/OFF and lock off before intrusive work. Hot surfaces, rotating parts.", enforced: true }
+      },
+      freqs: [
+        { id: "f_week", unit: "week", interval: 1, group: "calendar" },
+        { id: "f_month", unit: "month", interval: 1, group: "calendar" },
+        { id: "f_6mon", unit: "month", interval: 6, group: "calendar" },
+        { id: "f_year", unit: "year", interval: 1, group: "calendar" }
+      ],
+      tasks: [
+        { id: "t1", instruction: "Visual inspection for leaks/damage.", responseType: "passfail", frequencyIds: ["f_week"], enforced: false },
+        { id: "t2", instruction: "Check coolant & oil levels.", responseType: "passfail", frequencyIds: ["f_week", "f_month"], enforced: false },
+        { id: "t3", instruction: "Check battery charge.", responseType: "numeric", frequencyIds: ["f_week", "f_month"], enforced: false },
+        { id: "t4", instruction: "No-load test run (15 min).", responseType: "passfail", frequencyIds: ["f_month"], enforced: false },
+        { id: "t5", instruction: "Change oil & oil filter.", responseType: "passfail", frequencyIds: ["f_6mon"], enforced: false },
+        { id: "t6", instruction: "Replace fuel & air filters.", responseType: "passfail", frequencyIds: ["f_6mon"], enforced: false },
+        { id: "t7", instruction: "Full-load / building-load test.", responseType: "numeric", frequencyIds: ["f_year"], enforced: true },
+        { id: "t8", instruction: "Fuel polishing / tank water check.", responseType: "passfail", frequencyIds: ["f_6mon", "f_year"], enforced: false }
+      ]
+    },
+    model: {
+      type: "assetModel", code: "CAT 3512", name: "Caterpillar 3512", parent: "class",
+      attrOverrides: {}, addedFreqs: [], exclusions: [], mapOverrides: {},
+      addedTasks: [ { id: "m1", instruction: "Verify ECM firmware ≥ 4.2.", responseType: "passfail", frequencyIds: ["f_6mon"] } ]
+    },
+    instance: {
+      type: "assetInstance", code: "GEN-1", name: "GEN-1", site: "SYD1", parent: "model",
+      attrOverrides: { estimatedLabourHours: 2.5 }, addedFreqs: [], exclusions: [], mapOverrides: { t2: ["f_month"] },
+      addedTasks: [ { id: "i1", instruction: "Clean radiator core (dusty site).", responseType: "passfail", frequencyIds: ["f_month"] } ]
+    }
+  };
+
+  var sel = "class", selMonth = null, nId = 1;
+  function el(t, p, k) {
+    var n = document.createElement(t);
+    if (p) Object.keys(p).forEach(function (key) {
+      if (key === "class") n.className = p[key];
+      else if (key === "html") n.innerHTML = p[key];
+      else if (key.slice(0, 2) === "on") n.addEventListener(key.slice(2), p[key]);
+      else if (key in n) { try { n[key] = p[key]; } catch (e) { n.setAttribute(key, p[key]); } }
+      else n.setAttribute(key, p[key]);
+    });
+    (k || []).forEach(function (c) { if (c != null) n.appendChild(typeof c === "string" ? document.createTextNode(c) : c); });
+    return n;
+  }
+  function ix(l) { return LEVELS.indexOf(l); }
+  function chainHas(level, tier) { return ix(level) >= ix(tier); }
+  function label(f) {
+    var n = f.interval, u = f.unit;
+    if (n === 1) return { day: "Daily", week: "Weekly", month: "Monthly", year: "Annual" }[u];
+    if (u === "month") return n + "-Monthly"; if (u === "year") return n + "-Yearly";
+    return "Every " + n + " " + UNITP[u] + "s";
+  }
+  function fsub(f) { return "every " + f.interval + " " + UNITP[f.unit] + (f.interval > 1 ? "s" : ""); }
+
+  // ---- attribute resolution ----
+  function effAttr(level, key) {
+    var cls = H.class.attrs[key];
+    if (cls.enforced) return { value: cls.value, state: level === "class" ? "class-enforced" : "enforced", origin: "class" };
+    var value = cls.value, origin = "class";
+    if (chainHas(level, "model") && (key in H.model.attrOverrides)) { value = H.model.attrOverrides[key]; origin = "model"; }
+    if (chainHas(level, "instance") && (key in H.instance.attrOverrides)) { value = H.instance.attrOverrides[key]; origin = "instance"; }
+    var state = level === "class" ? "class" : (origin === level ? "overridden" : "inherited");
+    return { value: value, state: state, origin: origin };
+  }
+
+  // ---- frequency resolution ----
+  function effFreqs(level) {
+    var out = H.class.freqs.map(function (f) { return Object.assign({ origin: "class" }, f); });
+    if (chainHas(level, "model")) H.model.addedFreqs.forEach(function (f) { out.push(Object.assign({ origin: "model" }, f)); });
+    if (chainHas(level, "instance")) H.instance.addedFreqs.forEach(function (f) { out.push(Object.assign({ origin: "instance" }, f)); });
+    return out;
+  }
+
+  // ---- task resolution ----
+  function effTasks(level) {
+    var out = [];
+    H.class.tasks.forEach(function (t) {
+      var excluded = false;
+      if (!t.enforced) {
+        if (chainHas(level, "model") && H.model.exclusions.indexOf(t.id) >= 0) excluded = true;
+        if (chainHas(level, "instance") && H.instance.exclusions.indexOf(t.id) >= 0) excluded = true;
+      }
+      out.push({ task: t, origin: "class", enforced: t.enforced, excluded: excluded });
+    });
+    if (chainHas(level, "model")) H.model.addedTasks.forEach(function (t) { out.push({ task: t, origin: "model" }); });
+    if (chainHas(level, "instance")) H.instance.addedTasks.forEach(function (t) { out.push({ task: t, origin: "instance" }); });
+    return out;
+  }
+  function effTicks(level, row) {
+    var t = row.task;
+    if (row.origin !== "class") return t.frequencyIds.slice();
+    if (t.enforced) return t.frequencyIds.slice();
+    var ticks = t.frequencyIds;
+    if (chainHas(level, "model") && H.model.mapOverrides[t.id]) ticks = H.model.mapOverrides[t.id];
+    if (chainHas(level, "instance") && H.instance.mapOverrides[t.id]) ticks = H.instance.mapOverrides[t.id];
+    return ticks.slice();
+  }
+  function mapOverriddenHere(level, id) { return level !== "class" && !!H[level].mapOverrides[id]; }
+  function rowState(level, row) {
+    if (row.origin === "class") {
+      if (row.enforced) return "enforced";
+      if (row.excluded) return "excluded";
+      if (mapOverriddenHere(level, row.task.id)) return "overridden";
+      return level === "class" ? "class" : "inherited";
+    }
+    return row.origin === level ? "added" : "added-up";
+  }
+  function editableTicks(state) { return state === "class" || state === "overridden" || state === "added"; }
+
+  function chip(state, origin) {
+    var m = { "class": ["p-class", "Class base"], "class-enforced": ["p-enforced", "🔒 Enforced ↓"],
+      enforced: ["p-enforced", "🔒 Enforced"], overridden: ["p-overridden", "🔒 Overridden"],
+      inherited: ["p-inherited", "Inherited" + (origin && origin !== "class" ? "·" + origin : "")],
+      added: ["p-added", "Added here"], "added-up": ["p-inherited", "Added·" + origin], excluded: ["p-excluded", "Excluded"] };
+    var c = m[state] || ["p-class", state];
+    return el("span", { class: "prov " + c[0] }, [c[1]]);
+  }
+
+  // ---- nesting resolver ----
+  function fires(f, m) {
+    if (f.unit === "day" || f.unit === "week") return true;
+    if (f.unit === "month") return m % f.interval === 0;
+    if (f.unit === "year") return m % (12 * f.interval) === 0;
+    return false;
+  }
+  function periodDays(f) { return PERIOD[f.unit] * f.interval; }
+  function ticksForTask(level, row) { return effTicks(level, row); }
+  function resolveMonth(level, m) {
+    var freqs = effFreqs(level);
+    var groups = {};
+    freqs.forEach(function (f) { (groups[f.group || "calendar"] = groups[f.group || "calendar"] || []).push(f); });
+    var wos = [];
+    Object.keys(groups).forEach(function (g) {
+      var due = groups[g].filter(function (f) { return fires(f, m); });
+      if (!due.length) return;
+      due.sort(function (a, b) { return periodDays(b) - periodDays(a); });
+      var winner = due[0], dueIds = due.map(function (f) { return f.id; });
+      var tasks = [];
+      effTasks(level).forEach(function (row) {
+        if (row.excluded) return;
+        var ticks = ticksForTask(level, row);
+        var from = due.filter(function (f) { return ticks.indexOf(f.id) >= 0; });
+        if (from.length) tasks.push({ instruction: row.task.instruction, from: from.map(function (f) { return label(f); }) });
+      });
+      wos.push({ group: g, winner: winner, absorbed: due.slice(1), naive: due.length, tasks: tasks });
+    });
+    return wos;
+  }
+
+  // ---- render ----
+  function render() {
+    renderTree();
+    var main = document.getElementById("main");
+    main.innerHTML = "";
+    main.appendChild(nodeHead());
+    main.appendChild(banner());
+    main.appendChild(attrCard());
+    main.appendChild(matrixCard());
+    main.appendChild(scheduleCard());
+    main.appendChild(dataCard());
+  }
+  function renderTree() {
+    var t = document.getElementById("tree"); t.innerHTML = "";
+    LEVELS.forEach(function (l) {
+      var n = H[l];
+      t.appendChild(el("button", { class: "node lvl-" + l + (sel === l ? " on" : ""), onclick: function () { sel = l; selMonth = null; render(); } }, [
+        el("div", { class: "nt" }, [n.type.replace("asset", "")]),
+        el("div", { class: "nn" }, [(l !== "class" ? "└ " : "") + n.name]),
+        el("div", { class: "nc" }, [n.code + (n.site ? " @ " + n.site : "")])
+      ]));
+    });
+  }
+  function nodeHead() {
+    var n = H[sel];
+    var crumb = sel === "class" ? "Template" : sel === "model" ? "GEN › CAT 3512" : "GEN › CAT 3512 › GEN-1";
+    return el("div", { class: "nodehead" }, [el("h1", {}, [n.name]), el("span", { class: "crumb" }, [crumb + (n.site ? " · " + n.site : "")])]);
+  }
+  function banner() {
+    var txt = sel === "instance"
+      ? "GEN-1 inherits the CAT 3512 model (then the GEN class). Overridden/enforced rows are frozen; everything else tracks its parent. The schedule below is <b>this instance's</b> resolved programme with nesting applied."
+      : sel === "model" ? "The CAT 3512 model inherits the GEN class and adds a firmware check. Override a task's row or add tasks/columns; enforced rows are locked by the class."
+      : "The GEN class is the template. Edit here and it flows to every model/instance that hasn't overridden. Enforce a row to lock it downstream.";
+    return el("div", { class: "banner" }, [el("span", { html: "&#9432;" }), el("span", { html: txt })]);
+  }
+
+  function attrCard() {
+    var rows = [attrRow("safety", "Safety instruction", "text"), attrRow("estimatedLabourHours", "Estimated labour (h)", "number")];
+    return el("div", { class: "card" }, [el("h2", {}, ["Attributes"]), el("div", { class: "card-body" }, [el("table", { class: "attrs" }, [el("tbody", {}, rows)])])]);
+  }
+  function attrRow(key, name, type) {
+    var eff = effAttr(sel, key), cls = H.class.attrs[key];
+    var valCell, actCell, chp;
+    if (sel === "class") {
+      valCell = valInput(cls, "value", type);
+      chp = chip(cls.enforced ? "class-enforced" : "class");
+      actCell = el("button", { class: "btn" + (cls.enforced ? " on" : ""), onclick: function () { cls.enforced = !cls.enforced; if (cls.enforced) { delete H.model.attrOverrides[key]; delete H.instance.attrOverrides[key]; } render(); } }, [cls.enforced ? "🔒 Enforced" : "Enforce"]);
+    } else if (cls.enforced) {
+      valCell = el("span", { class: "av" }, [String(eff.value)]); chp = chip("enforced"); actCell = el("span", { class: "lbl" }, ["locked"]);
+    } else if (eff.state === "overridden") {
+      valCell = valInput(H[sel].attrOverrides, key, type); chp = chip("overridden");
+      actCell = el("button", { class: "btn", onclick: function () { delete H[sel].attrOverrides[key]; render(); } }, ["Revert"]);
+    } else {
+      valCell = el("span", { class: "av" }, [String(eff.value)]); chp = chip("inherited", eff.origin);
+      actCell = el("button", { class: "btn accent", onclick: function () { H[sel].attrOverrides[key] = eff.value; render(); } }, ["Override"]);
+    }
+    return el("tr", {}, [el("td", { class: "an", style: "width:34%" }, [name]), el("td", { style: "width:40%" }, [valCell]), el("td", { style: "width:14%" }, [chp]), el("td", { style: "text-align:right" }, [actCell])]);
+  }
+  function valInput(obj, key, type) {
+    var input = el("input", { type: type === "number" ? "number" : "text", value: obj[key] == null ? "" : obj[key], step: "any", style: type === "number" ? "width:90px" : "width:100%" });
+    input.addEventListener("input", function () { obj[key] = type === "number" ? (input.value === "" ? null : Number(input.value)) : input.value; });
+    return input;
+  }
+
+  function matrixCard() {
+    var freqs = effFreqs(sel), rows = effTasks(sel);
+    var head = [el("th", { class: "tcol" }, [el("span", { class: "lbl" }, ["Task"])]), el("th", { style: "width:120px" }, [el("span", { class: "lbl" }, ["Source"])])];
+    freqs.forEach(function (f) {
+      head.push(el("th", {}, [el("div", { class: "freqhead" }, [
+        (f.origin === sel && sel !== "class") ? el("button", { class: "x", title: "Remove column", onclick: function () { removeFreq(f); } }, ["✕"]) : null,
+        el("span", { class: "fl" }, [label(f)]), el("span", { class: "fs" }, [fsub(f)])
+      ])]));
+    });
+    head.push(el("th", { style: "width:34px" }, []));
+    var body = el("tbody", {}, []);
+    rows.forEach(function (row) {
+      var st = rowState(sel, row), ed = editableTicks(st), ticks = effTicks(sel, row);
+      var cells = [
+        el("td", { class: "tcol" }, [el("div", { class: "ti" }, [row.task.instruction]), el("div", { class: "tm" }, [row.task.responseType])]),
+        el("td", {}, [chip(st, row.origin)])
+      ];
+      freqs.forEach(function (f) {
+        var cb = el("input", { type: "checkbox", class: "cbx", checked: ticks.indexOf(f.id) >= 0, disabled: !ed,
+          onchange: function () { toggleTick(sel, row, f.id, cb.checked); } });
+        cells.push(el("td", { class: "cell" }, [cb]));
+      });
+      cells.push(el("td", { class: "cell" }, [rowAction(st, row)]));
+      body.appendChild(el("tr", { class: "trow" + (row.excluded ? " excluded" : "") }, cells));
+    });
+    var table = el("table", { class: "matrix" }, [el("thead", {}, [el("tr", {}, head)]), body]);
+    // add controls
+    var addTask = el("div", { class: "addbar" }, [
+      el("span", { class: "lbl" }, ["Add task"]),
+      (function () { var i = el("input", { type: "text", placeholder: "New task…", id: "newTaskI", style: "min-width:220px" }); return i; })(),
+      (function () { var s = el("select", { id: "newTaskR" }, ["passfail", "numeric", "text", "none"].map(function (x) { return el("option", { value: x }, [x]); })); return s; })(),
+      el("button", { class: "btn", onclick: addTask2 }, ["Add row"])
+    ]);
+    var addFreq = el("div", { class: "addbar" }, [
+      el("span", { class: "lbl" }, ["Add frequency"]),
+      el("span", {}, ["every"]),
+      (function () { var i = el("input", { type: "number", id: "nf_i", value: "3", min: "1", style: "width:60px" }); return i; })(),
+      (function () { var s = el("select", { id: "nf_u" }, [["day", "day(s)"], ["week", "week(s)"], ["month", "month(s)"], ["year", "year(s)"]].map(function (x) { return el("option", { value: x[0], selected: x[0] === "month" }, [x[1]]); })); return s; })(),
+      el("button", { class: "btn accent", onclick: addFreq2 }, ["Add column"])
+    ]);
+    return el("div", { class: "card" }, [el("h2", {}, ["Task × frequency matrix", el("span", { class: "count" }, [rows.filter(function (r) { return !r.excluded; }).length + " tasks · " + freqs.length + " freqs"])]),
+      el("div", { class: "card-body" }, [el("div", { class: "scroll" }, [table]), addTask, addFreq])]);
+  }
+  function rowAction(st, row) {
+    var wrap = el("div", { class: "rowact" }, []);
+    if (sel === "class" && row.origin === "class") {
+      wrap.appendChild(el("button", { class: "btn" + (row.task.enforced ? " on" : ""), onclick: function () { row.task.enforced = !row.task.enforced; render(); } }, [row.task.enforced ? "🔒" : "Enforce"]));
+      wrap.appendChild(el("button", { class: "x", onclick: function () { pullBy(H.class.tasks, row.task.id); render(); } }, ["✕"]));
+    } else if (row.origin === "class" && sel !== "class") {
+      if (row.enforced) { /* locked */ }
+      else if (st === "overridden") wrap.appendChild(el("button", { class: "btn", onclick: function () { delete H[sel].mapOverrides[row.task.id]; render(); } }, ["Revert"]));
+      else if (!row.excluded) wrap.appendChild(el("button", { class: "btn accent", onclick: function () { H[sel].mapOverrides[row.task.id] = effTicks(sel, row); render(); } }, ["Override"]));
+      if (!row.enforced) wrap.appendChild(el("button", { class: "btn", onclick: function () { var ex = H[sel].exclusions; if (ex.indexOf(row.task.id) >= 0) pull(ex, row.task.id); else ex.push(row.task.id); render(); } }, [row.excluded ? "Include" : "Exclude"]));
+    } else if (row.origin === sel && sel !== "class") {
+      wrap.appendChild(el("button", { class: "x", onclick: function () { pullBy(H[sel].addedTasks, row.task.id); render(); } }, ["✕"]));
+    }
+    return wrap;
+  }
+  function toggleTick(level, row, fid, on) {
+    var arr;
+    if (row.origin === "class") {
+      if (level === "class") arr = row.task.frequencyIds;
+      else arr = H[level].mapOverrides[row.task.id];   // only editable when overridden
+    } else arr = row.task.frequencyIds;
+    if (!arr) return;
+    if (on) { if (arr.indexOf(fid) < 0) arr.push(fid); } else { pull(arr, fid); }
+    // schedule depends on ticks; re-render schedule + data only
+    refreshSchedule(); refreshData();
+  }
+  function addTask2() {
+    var i = document.getElementById("newTaskI"), r = document.getElementById("newTaskR");
+    var text = i.value.trim(); if (!text) return;
+    var task = { id: "n" + (nId++), instruction: text, responseType: r.value, frequencyIds: [] };
+    if (sel === "class") { task.enforced = false; H.class.tasks.push(task); } else H[sel].addedTasks.push(task);
+    render();
+  }
+  function addFreq2() {
+    var iv = Math.max(1, parseInt(document.getElementById("nf_i").value || "1", 10)), u = document.getElementById("nf_u").value;
+    var f = { id: "nf" + (nId++), unit: u, interval: iv, group: "calendar" };
+    if (sel === "class") H.class.freqs.push(f); else H[sel].addedFreqs.push(f);
+    render();
+  }
+  function removeFreq(f) {
+    if (f.origin === "class") pullBy(H.class.freqs, f.id);
+    else pullBy(H[f.origin].addedFreqs, f.id);
+    // clean references
+    H.class.tasks.forEach(function (t) { pull(t.frequencyIds, f.id); });
+    ["model", "instance"].forEach(function (l) {
+      H[l].addedTasks.forEach(function (t) { pull(t.frequencyIds, f.id); });
+      Object.keys(H[l].mapOverrides).forEach(function (k) { pull(H[l].mapOverrides[k], f.id); });
+    });
+    render();
+  }
+
+  function scheduleCard() {
+    var body = el("div", { class: "card-body", id: "schedBody" }, []);
+    var card = el("div", { class: "card" }, [el("h2", {}, ["Resolved 12-month schedule", el("span", { class: "count" }, ["nesting applied"])]), body]);
+    renderSchedule(body);
+    return card;
+  }
+  function refreshSchedule() { var b = document.getElementById("schedBody"); if (b) renderSchedule(b); }
+  function renderSchedule(body) {
+    body.innerHTML = "";
+    var months = [], naiveTotal = 0, mergedTotal = 0;
+    for (var m = 1; m <= 12; m++) {
+      var wos = resolveMonth(sel, m);
+      months.push({ m: m, wos: wos });
+      wos.forEach(function (w) { naiveTotal += w.naive; mergedTotal += 1; });
+    }
+    body.appendChild(el("div", { class: "summary" }, [
+      el("span", { class: "stat" }, [el("span", { class: "k" }, ["Naive (one WO per due frequency) "]), el("b", { style: "color:var(--crit)" }, [String(naiveTotal)])]),
+      el("span", { class: "arrow" }, ["→"]),
+      el("span", { class: "stat" }, [el("span", { class: "k" }, ["Nested (merged) "]), el("b", { style: "color:var(--good)" }, [String(mergedTotal)]), el("span", { class: "k" }, [" work orders / yr"])])
+    ]));
+    var grid = el("div", { class: "months" }, []);
+    months.forEach(function (mo) {
+      mo.wos.forEach(function (w) {
+        var absorb = w.absorbed.length;
+        var btn = el("button", { class: "mo" + (absorb ? " absorb" : "") + (selMonth === mo.m ? " on" : ""), onclick: function () { selMonth = mo.m; refreshSchedule(document.getElementById("schedBody")); } }, [
+          el("div", { class: "mm" }, ["Month " + mo.m]),
+          el("div", { class: "ml" }, [label(w.winner)]),
+          absorb ? el("div", { class: "md" }, ["absorbs " + w.absorbed.map(function (f) { return label(f); }).join(", ")]) : el("div", { class: "md", style: "color:var(--faint)" }, ["no coincidence"]),
+          el("div", { class: "cnt" }, [w.tasks.length + " task" + (w.tasks.length === 1 ? "" : "s") + (absorb ? " · was " + w.naive + " WOs" : "")])
+        ]);
+        grid.appendChild(btn);
+      });
+    });
+    body.appendChild(grid);
+    if (selMonth) {
+      var w2 = resolveMonth(sel, selMonth)[0];
+      if (w2) {
+        var det = el("div", { class: "detail" }, [el("h3", {}, ["Month " + selMonth + " · " + label(w2.winner) + " work order — " + w2.tasks.length + " tasks (de-duplicated)"])]);
+        w2.tasks.forEach(function (t, i) {
+          det.appendChild(el("div", { class: "wtask" }, [
+            el("span", { class: "seq" }, [String(i + 1)]),
+            el("span", {}, [t.instruction]),
+            el("span", { class: "srctags" }, t.from.map(function (fr) { return el("span", { class: "srct" }, [fr]); }))
+          ]));
+        });
+        body.appendChild(det);
+      }
+    }
+    body.appendChild(el("div", { class: "cap" }, ["Longest coincident frequency wins and absorbs the shorter ones; its work order is the de-duplicated union of their tasks (source shown as tags). Month-resolution demo — a day-accurate engine keeps a merge window and separate meter/runtime streams. Click a month for its merged work order."]));
+  }
+
+  function dataCard() {
+    return el("div", { class: "card" }, [el("div", { class: "card-body" }, [
+      el("details", {}, [el("summary", {}, ["Show effective plan for " + H[sel].code + " (JSON)"]),
+        el("pre", { class: "data", style: "margin-top:10px", id: "dataPre" }, [dataText()])])
+    ])]);
+  }
+  function dataText() {
+    var freqs = effFreqs(sel).map(function (f) { return { id: f.id, label: label(f), unit: f.unit, interval: f.interval }; });
+    var tasks = effTasks(sel).filter(function (r) { return !r.excluded; }).map(function (r) {
+      return { instruction: r.task.instruction, responseType: r.task.responseType, state: rowState(sel, r), frequencyIds: effTicks(sel, r) };
+    });
+    return JSON.stringify({ node: H[sel].code, level: H[sel].type,
+      safety: effAttr(sel, "safety").value, estimatedLabourHours: effAttr(sel, "estimatedLabourHours").value,
+      frequencies: freqs, tasks: tasks }, null, 2);
+  }
+  function refreshData() { var p = document.getElementById("dataPre"); if (p) p.textContent = dataText(); }
+
+  function pull(a, id) { var i = a.indexOf(id); if (i >= 0) a.splice(i, 1); }
+  function pullBy(a, id) { for (var i = 0; i < a.length; i++) if (a[i].id === id) { a.splice(i, 1); return; } }
+
+  render();
+})();
+</script>
+</body>
+</html>

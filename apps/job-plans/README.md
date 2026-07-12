@@ -13,6 +13,7 @@ schedules exist.
 | `apps/job-plans/index.html` | Self-contained authoring app — no server, no build step. Open it in a browser. |
 | `apps/job-plans/inheritance-demo.html` | Working demo of **Class → Model → Instance** template inheritance with attribute-level locks (see below). |
 | `apps/job-plans/matrix-demo.html` | Working demo of the **task × frequency matrix** — one plan, every cadence (see below). |
+| `apps/job-plans/pm-model-demo.html` | **Combined** demo: inheritance + matrix + work-order nesting in one view (see below). |
 | `schemas/job-plan.schema.json` | The job-plan document contract (JSON Schema, draft 2020-12). This is the architecture, made executable. |
 | `samples/job-plans/jp_ups_quarterly_inspection.json` | Worked example (Quarterly UPS Inspection) — also a schema fixture. |
 | `samples/job-plans/jp_generator_maintenance.json` | Worked example with a full frequency matrix (generator programme). |
@@ -63,6 +64,28 @@ from the strict plan/schedule separation in
 matrix is a widely-used PM pattern and matches how programmes are built in
 practice. Site-specific timing (anchor dates, calendars) remains an
 instance/schedule concern for later.
+
+## Combined model + work-order nesting (`pm-model-demo.html`)
+
+Brings the two demos together and adds **work-order nesting** ("cannibalism").
+Class → Model → Instance (a generator: GEN → CAT 3512 → GEN-1 @ SYD1), each level
+resolving its **effective matrix** by inheritance (inherited / overridden /
+enforced / added — now applied per task-row's frequency mapping as well as to
+attributes), then a **resolved 12-month schedule** with nesting applied.
+
+Nesting rule: within a *nesting group*, when several frequencies fall due in the
+same period the **longest wins and absorbs the shorter ones**, generating **one**
+work order whose task list is the **de-duplicated union** of their tasks
+(attributed to the longest, e.g. "Annual — absorbs 6-Monthly, Monthly, Weekly").
+So month 12 yields a single Annual work order, not four overlapping ones — the
+seeded generator collapses **27 naive → 12 nested** work orders a year. Click any
+month to see its merged work order and each task's source cadence(s).
+
+Design notes (for when this is formalised): nesting is a **generation-time** rule
+— no change to the stored matrix; the only additions are a `nestingGroup` (+
+anchor) per frequency and a merge-window setting. The demo resolves at
+month granularity; a real engine keeps a day-level merge window and separate
+meter/runtime streams. See the reasoning captured with this build.
 
 ## Run it
 
