@@ -71,6 +71,11 @@ Work reaches the machine two ways:
 This is why the model separates `WorkRequest` from `WorkOrder`: the two entry
 paths have genuinely different front ends.
 
+*When* schedule-generated work appears depends on deployment: with a server it is
+generated on a timer; in the [serverless, file-based deployment](12-deployment.md)
+it is generated **lazily when a user opens the app**, using a per-schedule
+high-water mark to stay idempotent.
+
 ## Transition rules
 
 The default configuration enforces these guards. All are overridable per

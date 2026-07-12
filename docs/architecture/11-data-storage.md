@@ -211,6 +211,15 @@ which also settles the [previously-deferred isolation question](07-cross-cutting
 — tenants are physically separated by default and nothing reads across the
 boundary.
 
+**Target deployment.** In Plantree's [serverless, file-based deployment](12-deployment.md),
+option 1 is realised as a **SharePoint document library** synced with OneDrive —
+the folder tree above becomes library folders, SharePoint's per-file version
+history provides [versioning](#versioning) and its ETags provide the `rev` for
+concurrency. One difference: the append-only logs are written as **one file per
+event** (`logs/inventory/itx_….json`, `logs/audit/….json`) rather than single
+`.jsonl` files, because concurrent appends from synced clients would collide —
+the fold-to-derive semantics are unchanged. See [deployment](12-deployment.md).
+
 **Evolution path:** start at option 1 or 2; move to option 3 when scale or
 concurrency demands it. Because the document schemas never change, this is a data
 copy, not a rewrite — which is the entire point of choosing JSON.

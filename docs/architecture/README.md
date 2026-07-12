@@ -6,10 +6,11 @@ equipment, maintenance strategies, job plans, work orders and asset history.
 
 These documents describe *what* the product is and *how it is structured* — the
 domain model, the module boundaries, the core workflows and the release
-sequence. The **data representation is decided** — storage is
-[JSON-backed](11-data-storage.md), for AI-parseability and portability — but the
-broader application stack (language, runtime, UI framework) is deliberately left
-open so that decision can be made independently later.
+sequence. Two foundations are decided: storage is [JSON-backed](11-data-storage.md)
+(for AI-parseability and portability), and the target deployment is
+[serverless and file-based on SharePoint](12-deployment.md). The remaining
+application-stack choices (language, UI framework) are deliberately left open so
+they can be made independently later.
 
 ## The central idea
 
@@ -40,6 +41,7 @@ explicitly a later-release concern (see the [roadmap](08-roadmap.md)).
 | 09 | [Glossary](09-glossary.md) | Domain vocabulary |
 | 10 | [Maintenance strategy application](10-maintenance-strategy-application.md) | How plans reach assets: class/model application, applicability rules, exceptions, routes, snapshots |
 | 11 | [Data storage](11-data-storage.md) | JSON-backed storage: canonical documents, aggregates, schemas, physical layouts, trade-offs |
+| 12 | [Deployment](12-deployment.md) | Serverless, file-based on SharePoint: file workflow, lazy automation, concurrency, trade-offs, evolution path |
 
 ## Status
 

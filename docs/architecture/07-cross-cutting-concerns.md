@@ -43,6 +43,12 @@ Plantree supports multi-company, multi-site and multi-tenant structures.
 Mobile is a **primary interface**, not a reduced desktop — a defining product
 principle. The architecture must make this true, not aspirational.
 
+> In the [serverless, file-based deployment](12-deployment.md), much of the
+> offline story is provided by the **OneDrive sync client**: the JSON files are
+> available locally and the app works against them without connectivity, with
+> SharePoint reconciling on reconnect. The sync contract below describes the
+> logical guarantees the app must uphold however it is deployed.
+
 - **Offline-first field work.** A technician in a plant room or remote facility
   can view assigned work, asset history, drawings and manuals, complete
   checklists and readings, record time and parts, capture photos/video/voice and

@@ -28,6 +28,15 @@ schemas rather than maintained separately.
 6. **Events, not just polling.** State changes emit **webhooks**; bulk data
    moves through **import/export**; neither requires clients to poll.
 
+> **In the serverless, file-based deployment** ([doc 12](12-deployment.md)) there
+> is no HTTP server: these resource operations are implemented as **client-side
+> reads and writes over the JSON files** — same document shapes, same logical
+> operations. Features that inherently need a server — webhooks, email-to-request,
+> live SSO redirect flows, server-enforced authorization — are not available in
+> that deployment and are the first things a later server/API tier would add.
+> This section describes the logical surface, which holds whichever way Plantree
+> is deployed.
+
 ## REST vs GraphQL
 
 A decision deferred to implementation, but the leanings are recorded so it is
