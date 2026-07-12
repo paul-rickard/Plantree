@@ -1,0 +1,124 @@
+{
+  "id": "jp_ups_quarterly_inspection",
+  "type": "jobPlan",
+  "code": "JP-UPS-QTR",
+  "name": "Quarterly UPS Inspection",
+  "description": "Routine quarterly inspection for static UPS units. Parameterised on battery-string count and acceptable impedance so one plan covers the fleet.",
+  "rev": 4,
+  "createdAt": "2025-11-03T02:00:00Z",
+  "createdBy": null,
+  "updatedAt": "2026-06-18T04:30:00Z",
+  "updatedBy": null,
+  "activeVersion": 4,
+  "versions": [
+    {
+      "version": 4,
+      "lifecycleState": "active",
+      "estimatedLabourHours": 1.5,
+      "safetyInstructions": "Confirm the UPS is on bypass or that redundant path A/B covers the load before any intrusive check. Battery work: insulated tools, face shield, no rings/watches.",
+      "tasks": [
+        {
+          "seq": 1,
+          "instruction": "Record input voltage (each phase).",
+          "responseType": "numeric",
+          "unit": "V",
+          "acceptableRange": [370, 440],
+          "choices": null,
+          "requiredSkills": []
+        },
+        {
+          "seq": 2,
+          "instruction": "Record output voltage (each phase).",
+          "responseType": "numeric",
+          "unit": "V",
+          "acceptableRange": [395, 420],
+          "choices": null,
+          "requiredSkills": []
+        },
+        {
+          "seq": 3,
+          "instruction": "Measure battery impedance per string.",
+          "responseType": "numeric",
+          "unit": "mOhm",
+          "acceptableRange": [0, 4.5],
+          "choices": null,
+          "requiredSkills": ["Battery maintenance"]
+        },
+        {
+          "seq": 4,
+          "instruction": "Check cooling fans and air filters; clean or flag for replacement.",
+          "responseType": "passfail",
+          "unit": null,
+          "acceptableRange": null,
+          "choices": null,
+          "requiredSkills": []
+        },
+        {
+          "seq": 5,
+          "instruction": "Review event log; note any alarms since last visit.",
+          "responseType": "text",
+          "unit": null,
+          "acceptableRange": null,
+          "choices": null,
+          "requiredSkills": []
+        },
+        {
+          "seq": 6,
+          "instruction": "Overall unit condition.",
+          "responseType": "choice",
+          "unit": null,
+          "acceptableRange": null,
+          "choices": ["Good", "Monitor", "Action required"],
+          "requiredSkills": []
+        }
+      ],
+      "plannedParts": [
+        { "partRef": null, "description": "Air filter, G4 panel", "quantity": 1, "unit": "each" }
+      ],
+      "requiredSkills": ["Electrical – LV", "Battery maintenance"],
+      "requiredTools": ["Battery impedance tester", "Insulated tool kit"],
+      "requiredPermits": ["Electrical work permit"],
+      "parameters": [
+        { "key": "batteryStringCount", "label": "Battery strings", "valueType": "number", "defaultValue": 3, "unit": null, "source": "asset" },
+        { "key": "acceptableImpedanceMilliOhm", "label": "Max cell impedance", "valueType": "number", "defaultValue": 4.5, "unit": "mOhm", "source": "model" }
+      ],
+      "approvedBy": "R. Tan",
+      "approvedAt": "2026-06-18T04:25:00Z",
+      "notes": "Tightened impedance ceiling from 5.0 to 4.5 mOhm per manufacturer bulletin."
+    },
+    {
+      "version": 3,
+      "lifecycleState": "superseded",
+      "estimatedLabourHours": 1.5,
+      "safetyInstructions": "Confirm the UPS is on bypass before any intrusive check.",
+      "tasks": [
+        {
+          "seq": 1,
+          "instruction": "Record input voltage (each phase).",
+          "responseType": "numeric",
+          "unit": "V",
+          "acceptableRange": [370, 440],
+          "choices": null,
+          "requiredSkills": []
+        },
+        {
+          "seq": 2,
+          "instruction": "Measure battery impedance per string.",
+          "responseType": "numeric",
+          "unit": "mOhm",
+          "acceptableRange": [0, 5.0],
+          "choices": null,
+          "requiredSkills": ["Battery maintenance"]
+        }
+      ],
+      "plannedParts": [],
+      "requiredSkills": ["Electrical – LV", "Battery maintenance"],
+      "requiredTools": ["Battery impedance tester"],
+      "requiredPermits": ["Electrical work permit"],
+      "parameters": [],
+      "approvedBy": "R. Tan",
+      "approvedAt": "2026-02-10T00:00:00Z",
+      "notes": "Superseded by v4 (impedance ceiling change)."
+    }
+  ]
+}

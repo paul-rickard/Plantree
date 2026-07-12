@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://plantree/schemas/job-plan.json",
+  "title": "JobPlan",
+  "description": "A reusable, version-controlled maintenance job plan — the WHAT of a piece of work (tasks, labour, parts, readings, safety). Standalone: references to assets, parts and skills are held as free text/keys and resolve to real records only if/when those modules exist. One JSON document = one job plan, embedding all its versions.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "type", "code", "name", "versions", "createdAt", "updatedAt", "rev"],
+  "properties": {
+    "id": { "type": "string", "description": "Opaque unique id, e.g. jp_ups_quarterly_inspection." },
+    "type": { "const": "jobPlan" },
+    "code": { "type": "string", "description": "Human-facing unique code, e.g. JP-UPS-QTR." },
+    "name": { "type": "string" },
+    "description": { "type": ["string", "null"] },
+    "rev": { "type": "integer", "minimum": 0, "description": "Optimistic-concurrency revision; bumped on every save." },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "createdBy": { "type": ["string", "null"] },
+    "updatedAt": { "type": "string", "format": "date-time" },
+    "updatedBy": { "type": ["string", "null"] },
+    "activeVersion": {
+      "type": ["integer", "null"],
+      "description": "Version number currently in the 'active' state, if any. At most one version is active."
+    },
+    "versions": {
+      "type": "array",
+      "minItems": 1,
+      "description": "All versions, retained forever. A version is immutable once it leaves 'draft'.",
+      "items": { "$ref": "#/$defs/version" }
+    }
+  },
+  "$defs": {
+    "version": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "lifecycleState", "tasks"],
+      "properties": {
+        "version": { "type": "integer", "minimum": 1 },
+        "lifecycleState": {
+          "enum": ["draft", "approved", "active", "superseded", "retired"],
+          "description": "draft -> approved -> active -> superseded -> retired. Only 'draft' is editable."
+        },
+        "estimatedLabourHours": { "type": ["number", "null"], "minimum": 0 },
+        "safetyInstructions": { "type": ["string", "null"] },
+        "tasks": {
+          "type": "array",
+          "description": "Ordered steps.",
+          "items": { "$ref": "#/$defs/task" }
+        },
+        "plannedParts": { "type": "array", "items": { "$ref": "#/$defs/plannedPart" } },
+        "requiredSkills": { "type": "array", "items": { "type": "string" } },
+        "requiredTools": { "type": "array", "items": { "type": "string" } },
+        "requiredPermits": { "type": "array", "items": { "type": "string" } },
+        "parameters": {
+          "type": "array",
+          "description": "Named values the plan is parameterised on (e.g. operating voltage). Resolve from an asset/model template in future; entered manually for now.",
+          "items": { "$ref": "#/$defs/parameter" }
+        },
+        "approvedBy": { "type": ["string", "null"] },
+        "approvedAt": { "type": ["string", "null"] },
+        "notes": { "type": ["string", "null"] }
+      }
+    },
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["seq", "instruction", "responseType"],
+      "properties": {
+        "seq": { "type": "integer", "minimum": 1 },
+        "instruction": { "type": "string" },
+        "responseType": {
+          "enum": ["none", "passfail", "numeric", "text", "choice"],
+          "description": "Expected response captured when the task is performed."
+        },
+        "unit": { "type": ["string", "null"], "description": "Unit for a numeric reading, e.g. V, A, mOhm." },
+        "acceptableRange": {
+          "type": ["array", "null"],
+          "items": { "type": "number" },
+          "minItems": 2,
+          "maxItems": 2,
+          "description": "[low, high] acceptance bounds for a numeric reading."
+        },
+        "choices": {
+          "type": ["array", "null"],
+          "items": { "type": "string" },
+          "description": "Options for a 'choice' response."
+        },
+        "requiredSkills": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "plannedPart": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["description", "quantity"],
+      "properties": {
+        "partRef": { "type": ["string", "null"], "description": "Future reference to a Part; free text for now." },
+        "description": { "type": "string" },
+        "quantity": { "type": "number", "minimum": 0 },
+        "unit": { "type": ["string", "null"] }
+      }
+    },
+    "parameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "label", "valueType"],
+      "properties": {
+        "key": { "type": "string" },
+        "label": { "type": "string" },
+        "valueType": { "enum": ["number", "text", "boolean"] },
+        "defaultValue": {},
+        "unit": { "type": ["string", "null"] },
+        "source": {
+          "enum": ["asset", "model", "manual"],
+          "default": "manual",
+          "description": "Where the value resolves from once assets/models exist."
+        }
+      }
+    }
+  }
+}
