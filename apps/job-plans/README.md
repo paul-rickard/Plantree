@@ -11,8 +11,34 @@ schedules exist.
 | File | Purpose |
 |------|---------|
 | `apps/job-plans/index.html` | Self-contained authoring app — no server, no build step. Open it in a browser. |
+| `apps/job-plans/inheritance-demo.html` | Working demo of **Class → Model → Instance** template inheritance with attribute-level locks (see below). |
 | `schemas/job-plan.schema.json` | The job-plan document contract (JSON Schema, draft 2020-12). This is the architecture, made executable. |
 | `samples/job-plans/jp_ups_quarterly_inspection.json` | A worked example (the Quarterly UPS Inspection) — also a schema fixture. |
+
+## Template inheritance (`inheritance-demo.html`)
+
+An interactive prototype of how a job plan is maintained once and scoped
+downward — modelled on AVEVA System Platform's template/instance locks.
+
+Three levels: **Asset class** (UPS) → **Model** (Vertiv EXL-S1, brand folds in
+here) → **Instance** (UPS-A1 @ SYD1 — site is a property of the instance).
+Every attribute (frequency, labour, thresholds, safety, and each task) resolves
+by walking the tree, in one of three states:
+
+- **Inherited** — follows the parent; a class change flows down automatically
+  (instances *derive* from the class at read time, so there is no batch "push"
+  and no drift).
+- **Overridden** — a model or instance has taken local ownership; it is now
+  frozen and ignores parent changes.
+- **Enforced** — the class has locked the attribute so descendants *cannot*
+  override it (for safety-critical items). Enforcing clears any existing
+  overrides below.
+
+The side panel shows each node's **effective plan** — the resolved snapshot a
+work order would freeze at creation, so upstream edits never rewrite history.
+This model is a candidate to formalise in
+[`docs/architecture/10-maintenance-strategy-application.md`](../../docs/architecture/10-maintenance-strategy-application.md)
+once it's settled; it is not yet in the architecture docs.
 
 ## Run it
 
