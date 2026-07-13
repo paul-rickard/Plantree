@@ -127,6 +127,12 @@
   .seq { font-family:var(--mono); font-weight:700; color:var(--accent); background:var(--accent-soft); border-radius:6px; padding:2px 8px; font-size:12px; }
   .rowline { display:flex; gap:8px; align-items:center; } .rowline input { flex:1; }
   .empty-inline { color:var(--faint); font-size:13px; font-style:italic; } .chip-hint { font-size:11.5px; color:var(--faint); }
+  .addbar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .freqtag { display:inline-flex; align-items:center; gap:3px; font-family:var(--mono); font-size:11px; color:var(--accent); background:var(--accent-soft); border-radius:6px; padding:3px 4px 3px 9px; }
+  .fqchips { display:flex; gap:6px; flex-wrap:wrap; }
+  .fqchip { font:inherit; font-size:11.5px; font-weight:600; padding:3px 10px; border-radius:999px; border:1px solid var(--line-strong); background:var(--surface); color:var(--muted); cursor:pointer; }
+  .fqchip.on { background:var(--accent-soft); color:var(--accent); border-color:color-mix(in srgb,var(--accent) 40%,transparent); }
+  .fqchip:disabled { opacity:.55; cursor:not-allowed; }
   @media (max-width:900px){ .elayout { grid-template-columns:1fr; } .eside { position:static; height:auto; border-left:0; border-top:1px solid var(--line);} .grid2,.grid3 { grid-template-columns:1fr; } }
 </style>
 </head>
@@ -195,6 +201,7 @@
   var store = [], folderHandle = null, view = "gallery";
   var G = { q: "", viewMode: "grouped", collapsed: {}, stateFilter: "all", sort: "name", usingSamples: true };
   var E = { doc: null, entry: null, sel: 0, sideTab: "json" };
+  var freqSeq = 1;
 
   function el(t, p, k) {
     var n = document.createElement(t);
@@ -372,12 +379,12 @@
   }
 
   /* ============ EDITOR (doc model) ============ */
-  function emptyVersion(v) { return { version: v, lifecycleState: "draft", estimatedLabourHours: null, safetyInstructions: "", tasks: [], plannedParts: [], requiredSkills: [], requiredTools: [], requiredPermits: [], parameters: [], approvedBy: null, approvedAt: null, notes: "" }; }
+  function emptyVersion(v) { return { version: v, lifecycleState: "draft", estimatedLabourHours: null, safetyInstructions: "", frequencies: [], tasks: [], plannedParts: [], requiredSkills: [], requiredTools: [], requiredPermits: [], parameters: [], approvedBy: null, approvedAt: null, notes: "" }; }
   function newDoc() { var t = nowIso(); return { id: "", type: "jobPlan", code: "", name: "", description: "", assetClass: "", assetModel: "", rev: 0, createdAt: t, createdBy: null, updatedAt: t, updatedBy: null, activeVersion: null, versions: [emptyVersion(1)] }; }
   function loadDoc(obj) {
     var d = newDoc(); Object.assign(d, obj);
     if (!Array.isArray(d.versions) || !d.versions.length) d.versions = [emptyVersion(1)];
-    d.versions.forEach(function (v) { ["tasks", "plannedParts", "requiredSkills", "requiredTools", "requiredPermits", "parameters"].forEach(function (k) { if (!Array.isArray(v[k])) v[k] = []; }); });
+    d.versions.forEach(function (v) { ["frequencies", "tasks", "plannedParts", "requiredSkills", "requiredTools", "requiredPermits", "parameters"].forEach(function (k) { if (!Array.isArray(v[k])) v[k] = []; }); });
     return d;
   }
   function cur() { return E.doc.versions[E.sel]; }
@@ -421,6 +428,7 @@
     main.appendChild(versionCard());
     if (!editable()) main.appendChild(lockNote());
     main.appendChild(detailsCard());
+    main.appendChild(freqCard());
     main.appendChild(tasksCard());
     main.appendChild(partsCard());
     main.appendChild(requirementsCard());
@@ -464,6 +472,26 @@
       el("label", { class: "field" }, [el("span", { class: "lbl" }, ["Notes (this version)"]), bind(v, "notes", { tag: "textarea", placeholder: "What changed…", disabled: dis })])
     ]);
   }
+  function addFreq(unit, interval) { var v = cur(); if (v.frequencies.some(function (f) { return f.unit === unit && f.interval === interval; })) return; v.frequencies.push({ id: "f_" + (freqSeq++), unit: unit, interval: interval, basis: "calendar" }); renderEditor(); }
+  function removeFreq(id) { var v = cur(); v.frequencies = v.frequencies.filter(function (f) { return f.id !== id; }); v.tasks.forEach(function (t) { if (t.frequencyIds) t.frequencyIds = t.frequencyIds.filter(function (x) { return x !== id; }); }); renderEditor(); }
+  function freqCard() {
+    var v = cur(), dis = !editable(), body = [];
+    if (!v.frequencies.length) body.push(el("div", { class: "empty-inline" }, ["No frequencies — tasks run ad hoc until you add one."]));
+    else body.push(el("div", { class: "freqs" }, v.frequencies.map(function (f) {
+      return el("span", { class: "freqtag" }, [freqLabel(f), dis ? null : el("button", { class: "x", title: "Remove", onclick: function () { removeFreq(f.id); } }, ["✕"])]);
+    })));
+    if (!dis) {
+      var quick = [["day", 1], ["week", 1], ["month", 1], ["month", 3], ["month", 6], ["year", 1]];
+      body.push(el("div", { class: "addbar" }, [el("span", { class: "lbl" }, ["Quick add"])].concat(quick.map(function (q) {
+        var exists = v.frequencies.some(function (f) { return f.unit === q[0] && f.interval === q[1]; });
+        return el("button", { class: "btn small", disabled: exists, onclick: function () { addFreq(q[0], q[1]); } }, ["+ " + freqLabel({ unit: q[0], interval: q[1] })]);
+      }))));
+      var ci = el("input", { type: "number", value: "2", min: "1", style: "width:64px" });
+      var cu = el("select", { style: "width:auto" }, [["day", "day(s)"], ["week", "week(s)"], ["month", "month(s)"], ["year", "year(s)"]].map(function (x) { return el("option", { value: x[0], selected: x[0] === "month" }, [x[1]]); }));
+      body.push(el("div", { class: "addbar" }, [el("span", { class: "lbl" }, ["Custom"]), el("span", {}, ["every"]), ci, cu, el("button", { class: "btn small accent", onclick: function () { addFreq(cu.value, Math.max(1, parseInt(ci.value || "1", 10))); } }, ["Add column"])]));
+    }
+    return panel("Frequencies", v.frequencies.length + "", body);
+  }
   function tasksCard() {
     var v = cur(), dis = !editable(), body = [];
     if (!v.tasks.length) body.push(el("div", { class: "empty-inline" }, ["No tasks yet."]));
@@ -487,6 +515,16 @@
     if (t.responseType === "choice") { var ci = el("input", { type: "text", value: csv(t.choices), placeholder: "Good, Monitor, Action", disabled: dis }); ci.addEventListener("input", function () { t.choices = parseCsv(ci.value); updateSide(); }); kids.push(el("label", { class: "field" }, [el("span", { class: "lbl" }, ["Choices"]), ci])); }
     var si = el("input", { type: "text", value: csv(t.requiredSkills), placeholder: "e.g. Battery maintenance", disabled: dis }); si.addEventListener("input", function () { t.requiredSkills = parseCsv(si.value); updateSide(); });
     kids.push(el("label", { class: "field" }, [el("span", { class: "lbl" }, ["Required skills"]), si]));
+    var freqs = cur().frequencies;
+    if (freqs.length) {
+      var chips = freqs.map(function (f) {
+        var on = (t.frequencyIds || []).indexOf(f.id) >= 0;
+        var b = el("button", { class: "fqchip" + (on ? " on" : ""), disabled: dis }, [freqLabel(f)]);
+        b.addEventListener("click", function () { if (!t.frequencyIds) t.frequencyIds = []; var ix = t.frequencyIds.indexOf(f.id); if (ix >= 0) { t.frequencyIds.splice(ix, 1); b.classList.remove("on"); } else { t.frequencyIds.push(f.id); b.classList.add("on"); } updateSide(); });
+        return b;
+      });
+      kids.push(el("label", { class: "field" }, [el("span", { class: "lbl" }, ["Drops at (frequency)"]), el("div", { class: "fqchips" }, chips)]));
+    } else kids.push(el("div", { class: "chip-hint" }, ["Add a frequency above to schedule when this task drops."]));
     return el("div", { class: "task" }, kids);
   }
   function partsCard() {
