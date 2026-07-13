@@ -129,6 +129,23 @@
   .drag .detail { outline:2px dashed var(--accent); outline-offset:-10px; }
   .back-mobile { display:none; }
 
+  .seg { display:flex; background:var(--panel-2); border:1px solid var(--line); border-radius:9px; padding:3px; gap:3px; }
+  .seg button { flex:1; border:0; background:transparent; font:inherit; font-size:12.5px; font-weight:600; color:var(--muted); padding:6px 10px; border-radius:7px; cursor:pointer; }
+  .seg button.on { background:var(--panel); color:var(--accent); box-shadow:var(--sh); }
+  .node .kind { flex:none; color:var(--faint); display:flex; align-items:center; }
+  .atable { width:100%; border-collapse:collapse; }
+  .atable th { text-align:left; font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--faint); font-family:var(--mono); font-weight:700; padding:8px 10px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  .atable td { padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  .atable tbody tr:last-child td { border-bottom:0; }
+  .atable tbody tr.click { cursor:pointer; } .atable tbody tr.click:hover { background:var(--panel-2); }
+  .atable .acode { font-family:var(--mono); font-size:12px; color:var(--muted); } .atable .aname { font-weight:600; }
+  .loc-vec { font-family:var(--mono); font-size:11px; color:var(--faint); }
+  .cls-chip { display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:600; color:var(--accent); background:var(--accent-soft); border-radius:999px; padding:2px 9px; }
+  .chk { width:17px; height:17px; accent-color:var(--accent); cursor:pointer; vertical-align:middle; }
+  .bulkbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:10px 14px; background:var(--accent-soft); border:1px solid color-mix(in srgb,var(--accent) 30%,transparent); border-radius:11px; }
+  .bulkbar .n { font-weight:700; color:var(--accent); }
+  .scroll-y { overflow-x:auto; }
+
   @media (max-width:860px){ .rail { width:248px; } }
   @media (max-width:680px){
     /* single-column: rail is the list screen, detail slides in */
@@ -163,9 +180,9 @@
   <div class="app" id="app">
     <aside class="rail">
       <div class="rail-top">
-        <div class="rail-actions"><button class="btn primary" id="newClass">+ New class</button></div>
-        <div class="rail-load"><button class="btn" id="openFolder">Open folder</button><button class="btn" id="chooseFiles">Files</button><button class="btn" id="loadSamples">Samples</button></div>
-        <div class="search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--faint)"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2" stroke-linecap="round"/></svg><input id="q" placeholder="Search classes, models, instances…" /></div>
+        <div class="seg" id="modeToggle"><button data-mode="classes" class="on">Asset classes</button><button data-mode="assets">Assets</button></div>
+        <div id="railTopExtra"></div>
+        <div class="search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--faint)"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2" stroke-linecap="round"/></svg><input id="q" placeholder="Search…" /></div>
       </div>
       <div class="rail-list" id="railList"></div>
     </aside>
@@ -182,6 +199,10 @@
   var G = { q: "", collapsed: {} };
   var E = { fam: -1, mi: -1, ii: -1, tab: "tasks" }; // selection: fam idx, model idx (-1=class level), instance idx (-1)
   var idSeq = 1;
+  var mode = "classes", assetsView = "location";
+  var locations = [], assets = [];
+  var Asel = null;      // asset-library selection: { kind:'loc'|'class'|'asset', id }
+  var bulkSel = {};     // asset id -> true
 
   function el(t, p, k) { var n = document.createElement(t); if (p) Object.keys(p).forEach(function (key) { if (key === "class") n.className = p[key]; else if (key === "html") n.innerHTML = p[key]; else if (key.slice(0, 2) === "on") n.addEventListener(key.slice(2), p[key]); else if (key in n) { try { n[key] = p[key]; } catch (e) { n.setAttribute(key, p[key]); } } else n.setAttribute(key, p[key]); }); (k || []).forEach(function (c) { if (c != null) n.appendChild(typeof c === "string" ? document.createTextNode(c) : c); }); return n; }
   function nid(pfx) { return pfx + "_" + (idSeq++); }
@@ -212,6 +233,23 @@
     ];
   }
 
+  function seedLocations() {
+    return [ { id: "reg_apac", kind: "folder", name: "APAC", code: "APAC", children: [
+      { id: "ctry_au", kind: "folder", name: "Australia", code: "AU", children: [
+        { id: "site_syd1", kind: "site", name: "Sydney DC1", code: "SYD1", children: [] },
+        { id: "site_mel1", kind: "site", name: "Melbourne DC1", code: "MEL1", children: [] } ] },
+      { id: "ctry_sg", kind: "folder", name: "Singapore", code: "SG", children: [
+        { id: "site_sin1", kind: "site", name: "Singapore DC1", code: "SIN1", children: [] } ] } ] } ];
+  }
+  function A(id, code, name, classId, modelId, locationId, over) { return { id: id, code: code, name: name, classId: classId, modelId: modelId || null, locationId: locationId, attrOverrides: {}, paramOverrides: over || {}, ownParameters: [], addedFreqs: [], addedTasks: [], exclusions: [], mapOverrides: {} }; }
+  function seedAssets() {
+    return [ A("ast_gen1", "GEN-1", "Generator 1", "gen", "gm1", "site_syd1"),
+      A("ast_gen2", "GEN-2", "Generator 2", "gen", "gm1", "site_syd1", { p_oil: "Shell Rimula" }),
+      A("ast_ups_a1", "UPS-A1", "UPS A1", "ups", "um1", "site_syd1"),
+      A("ast_ups_b1", "UPS-B1", "UPS B1", "ups", "um1", "site_mel1"),
+      A("ast_gen3", "GEN-3", "Generator 3", "gen", "gm1", "site_sin1") ];
+  }
+
   /* ---------- selection & chain ---------- */
   function selFamily() { return families[E.fam]; }
   function selModel() { return E.mi >= 0 ? selFamily().models[E.mi] : null; }
@@ -231,11 +269,23 @@
   function levelName(i) { return i === 0 ? "class" : i === 1 ? "model" : "instance"; }
 
   /* ---------- rail ---------- */
-  function setSamples() { families = seed(); folderHandle = null; E = { fam: -1, mi: -1, ii: -1, tab: "tasks" }; renderAll(); }
+  function setSamples() { families = seed(); locations = seedLocations(); assets = seedAssets(); folderHandle = null; E = { fam: -1, mi: -1, ii: -1, tab: "tasks" }; Asel = null; bulkSel = {}; renderAll(); }
   function renderAll() { renderRail(); renderDetail(); }
   function caret(o) { return el("svg", { class: "caret" + (o ? " open" : ""), width: "11", height: "11", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2.5", html: '<path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/>' }); }
   function matchFam(f) { var q = G.q.toLowerCase(); if (!q) return true; var hay = f.code + " " + f.name; f.models.forEach(function (m) { hay += " " + m.code + " " + m.name; m.instances.forEach(function (i) { hay += " " + i.code + " " + i.name + " " + (i.site || ""); }); }); return hay.toLowerCase().indexOf(q) >= 0; }
-  function renderRail() {
+  function renderRail() { renderRailExtra(); if (mode === "classes") renderRailClasses(); else renderRailAssets(); }
+  function renderRailExtra() {
+    var host = document.getElementById("railTopExtra"); host.innerHTML = "";
+    if (mode === "classes") host.appendChild(el("div", { style: "display:flex;flex-direction:column;gap:8px" }, [
+      el("button", { class: "btn primary", style: "width:100%;justify-content:center", onclick: newClass }, ["+ New class"]),
+      el("div", { style: "display:flex;gap:4px" }, [el("button", { class: "btn", style: "flex:1;justify-content:center;font-size:11.5px;color:var(--muted)", onclick: openFolder }, ["Open folder"]), el("button", { class: "btn", style: "flex:1;justify-content:center;font-size:11.5px;color:var(--muted)", onclick: function () { document.getElementById("fileInput").click(); } }, ["Files"]), el("button", { class: "btn", style: "flex:1;justify-content:center;font-size:11.5px;color:var(--muted)", onclick: setSamples }, ["Samples"])])
+    ]));
+    else host.appendChild(el("div", { class: "seg" }, [
+      el("button", { class: assetsView === "location" ? "on" : "", onclick: function () { assetsView = "location"; Asel = null; renderAll(); } }, ["By location"]),
+      el("button", { class: assetsView === "class" ? "on" : "", onclick: function () { assetsView = "class"; Asel = null; renderAll(); } }, ["By class"])
+    ]));
+  }
+  function renderRailClasses() {
     var host = document.getElementById("railList"); host.innerHTML = "";
     families.filter(matchFam).sort(function (a, b) { return a.name.localeCompare(b.name); }).forEach(function (f) {
       var fi = families.indexOf(f), key = "f" + fi, open = !G.collapsed[key];
@@ -262,7 +312,8 @@
   function mobileBack() { document.getElementById("app").classList.remove("show-detail"); }
 
   /* ---------- detail ---------- */
-  function renderDetail() {
+  function renderDetail() { if (mode === "classes") renderDetailClasses(); else renderDetailAssets(); }
+  function renderDetailClasses() {
     var host = document.getElementById("detail"); host.innerHTML = "";
     if (E.fam < 0) { document.getElementById("app").classList.remove("show-detail"); host.appendChild(el("div", { class: "empty" }, [el("svg", { width: "42", height: "42", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "1.5", html: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/>' }), el("div", { class: "big" }, ["Select a class, model or instance"]), el("div", {}, ["The left tree is the asset hierarchy. Pick a node to see its resolved plan."])])); return; }
     host.appendChild(detailHead()); host.appendChild(detailTabs());
@@ -449,6 +500,142 @@
   function openInspect() { renderInspect(); } function closeInspect() { var o = document.getElementById("ovl"); if (o) o.remove(); } function refreshInspect() { if (document.getElementById("ovl")) renderInspect(); }
   function renderInspect() { closeInspect(); var modal = el("div", { class: "modal", onclick: function (e) { e.stopPropagation(); } }, [el("header", {}, [el("h3", {}, ["Effective plan · " + selNode().code]), el("button", { class: "btn sm ghost", style: "margin-left:auto", onclick: closeInspect }, ["Close"])]), el("div", { class: "mbody" }, [el("pre", { class: "json" }, [JSON.stringify(effectivePlan(), null, 2)]), el("div", { class: "hint", style: "margin-top:10px" }, ["This is the resolved snapshot a work order would freeze for this node."])])]); document.body.appendChild(el("div", { class: "ovl", id: "ovl", onclick: closeInspect }, [modal])); }
 
+  /* ================= ASSET LIBRARY ================= */
+  function flattenLoc(nodes, out, path) { (nodes || []).forEach(function (n) { var p = path.concat([n]); out.push({ node: n, path: p }); flattenLoc(n.children, out, p); }); return out; }
+  function allLoc() { return flattenLoc(locations, [], []); }
+  function locById(id) { var f = allLoc().filter(function (x) { return x.node.id === id; })[0]; return f ? f.node : null; }
+  function locPath(id) { var f = allLoc().filter(function (x) { return x.node.id === id; })[0]; return f ? f.path : []; }
+  function locVector(id) { return locPath(id).map(function (n) { return n.code || n.name; }).join(" / "); }
+  function assetsIn(locId) { return assets.filter(function (a) { return a.locationId === locId; }); }
+  function classById(id) { return families.filter(function (f) { return f.id === id; })[0]; }
+  function modelById(f, id) { return (f && f.models ? f.models : []).filter(function (m) { return m.id === id; })[0]; }
+  function locIcon(kind) { return el("svg", { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "1.7", html: kind === "site" ? '<path d="M12 21s-7-5-7-11a7 7 0 1114 0c0 6-7 11-7 11z"/><circle cx="12" cy="10" r="2.3"/>' : '<path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/>' }); }
+  function assetChain(a) { var f = classById(a.classId); if (!f) return [a]; var ch = [f]; if (a.modelId) { var m = modelById(f, a.modelId); if (m) ch.push(m); } ch.push(a); return ch; }
+
+  function selAsset(sel) { Asel = sel; bulkSel = {}; renderRail(); renderDetail(); document.getElementById("app").classList.add("show-detail"); }
+  function assetBack() { document.getElementById("app").classList.remove("show-detail"); }
+
+  function renderRailAssets() {
+    var host = document.getElementById("railList"); host.innerHTML = ""; var q = G.q.toLowerCase();
+    if (assetsView === "location") {
+      (function walk(nodes, depth) { (nodes || []).forEach(function (n) {
+        var site = n.kind === "site";
+        host.appendChild(el("button", { class: "node" + (Asel && Asel.kind === "loc" && Asel.id === n.id ? " sel" : ""), style: "padding-left:" + (8 + depth * 16) + "px", onclick: function () { selAsset({ kind: "loc", id: n.id }); } }, [
+          el("span", { class: "kind" }, [locIcon(n.kind)]),
+          el("span", { class: "col" }, [el("div", { class: "nm" }, [n.name]), el("div", { class: "mt" }, [(n.code || "") + (site ? " · " + assetsIn(n.id).length + " assets" : "")])]),
+          el("span", { class: "tag" }, [site ? "Site" : "Folder"])
+        ]));
+        if (n.children) walk(n.children, depth + 1);
+      }); })(locations, 0);
+    } else {
+      var byC = {}; assets.forEach(function (a) { (byC[a.classId] = byC[a.classId] || []).push(a); });
+      families.slice().sort(function (a, b) { return a.name.localeCompare(b.name); }).forEach(function (f) {
+        var list = byC[f.id] || [];
+        host.appendChild(el("button", { class: "node" + (Asel && Asel.kind === "class" && Asel.id === f.id ? " sel" : ""), onclick: function () { selAsset({ kind: "class", id: f.id }); } }, [
+          el("span", { class: "col" }, [el("div", { class: "nm" }, [f.name]), el("div", { class: "mt" }, [f.code + " · " + list.length + " assets"])]), el("span", { class: "tag" }, ["Class"])
+        ]));
+      });
+    }
+  }
+
+  function alHead(title, sub, right) { return el("div", { class: "dhead" }, [el("div", { style: "display:flex;align-items:center;gap:10px;min-width:0" }, [el("button", { class: "btn sm ghost back-mobile", onclick: assetBack }, ["‹ Back"]), el("div", { style: "min-width:0" }, [el("div", { class: "dtitle" }, [title]), sub || null])]), el("div", { class: "dhead-right" }, right || [])]); }
+  function renderDetailAssets() {
+    var host = document.getElementById("detail"); host.innerHTML = "";
+    if (!Asel) { document.getElementById("app").classList.remove("show-detail"); host.appendChild(el("div", { class: "empty" }, [el("svg", { width: "42", height: "42", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "1.5", html: '<path d="M12 21s-7-5-7-11a7 7 0 1114 0c0 6-7 11-7 11z"/><circle cx="12" cy="10" r="2.3"/>' }), el("div", { class: "big" }, ["Asset library"]), el("div", {}, ["Pick a site or class on the left. Assets live in sites and take parameters from their class."])])); return; }
+    if (Asel.kind === "asset") return renderAssetDetail(host);
+    if (Asel.kind === "class") { var f = classById(Asel.id); if (!f) { Asel = null; return renderDetailAssets(); } return renderAssetList(host, f.name, el("div", { class: "dsub" }, [el("span", { class: "nbadge nb-class" }, ["class"]), el("span", { class: "code" }, [f.code]), "assets of this class"]), assets.filter(function (a) { return a.classId === f.id; }), null); }
+    var n = locById(Asel.id); if (!n) { Asel = null; return renderDetailAssets(); }
+    if (n.kind === "site") return renderAssetList(host, n.name, el("span", { class: "loc-vec" }, [locVector(n.id)]), assetsIn(n.id), n);
+    return renderFolder(host, n);
+  }
+  function renderFolder(host, n) {
+    host.appendChild(alHead(n.name, el("span", { class: "loc-vec" }, [locVector(n.id)]), [el("button", { class: "btn sm", onclick: function () { addChild(n, "folder"); } }, ["+ Folder"]), el("button", { class: "btn sm", onclick: function () { addChild(n, "site"); } }, ["+ Site"])]));
+    var kids = (n.children || []).map(function (c) { return el("button", { class: "node", style: "width:100%", onclick: function () { selAsset({ kind: "loc", id: c.id }); } }, [el("span", { class: "kind" }, [locIcon(c.kind)]), el("span", { class: "col" }, [el("div", { class: "nm" }, [c.name]), el("div", { class: "mt" }, [(c.code || "") + (c.kind === "site" ? " · " + assetsIn(c.id).length + " assets" : "")])]), el("span", { class: "tag" }, [c.kind === "site" ? "Site" : "Folder"])]); });
+    host.appendChild(el("div", { class: "dbody" }, [el("div", { class: "wrap" }, [
+      sec("Location", null, null, [el("div", { class: "g2" }, [labeled("Name", bindInput(n, "name", { after: renderRail })), labeled("Code", bindInput(n, "code", { after: renderRail }))])]),
+      sec("Contents", (n.children || []).length + "", null, kids.length ? kids : [el("div", { class: "empty-in" }, ["Empty — add a folder or site."])])
+    ])]));
+  }
+  function renderAssetList(host, title, sub, list, site) {
+    host.appendChild(alHead(title, sub, site ? [el("button", { class: "btn primary", onclick: function () { addAssetModal(site.id); } }, ["+ Add asset"])] : []));
+    var w = el("div", { class: "wrap" }, []);
+    if (site) w.appendChild(sec("Site", null, null, [el("div", { class: "g2" }, [labeled("Name", bindInput(site, "name", { after: renderRail })), labeled("Code", bindInput(site, "code", { after: renderRail }))])]));
+    var selN = Object.keys(bulkSel).filter(function (k) { return bulkSel[k]; }).length;
+    if (selN) w.appendChild(bulkBar(selN));
+    if (!list.length) w.appendChild(sec("Assets", "0", null, [el("div", { class: "empty-in" }, [site ? "No assets in this site yet — add one." : "No assets of this class."])]));
+    else {
+      var head = el("tr", {}, [el("th", { style: "width:30px" }, [(function () { var cb = el("input", { type: "checkbox", class: "chk" }); cb.addEventListener("change", function () { list.forEach(function (a) { bulkSel[a.id] = cb.checked; }); renderDetail(); }); return cb; })()]), el("th", {}, ["Code"]), el("th", {}, ["Name"]), el("th", {}, ["Class"]), el("th", {}, ["Model"]), el("th", {}, ["Location"]), el("th", {}, ["Plans"])]);
+      var tb = el("tbody", {}, []);
+      list.forEach(function (a) { var f = classById(a.classId), m = f && a.modelId ? modelById(f, a.modelId) : null;
+        var cb = el("input", { type: "checkbox", class: "chk", checked: !!bulkSel[a.id] }); cb.addEventListener("click", function (e) { e.stopPropagation(); }); cb.addEventListener("change", function () { bulkSel[a.id] = cb.checked; renderDetail(); });
+        tb.appendChild(el("tr", { class: "click", onclick: function () { selAsset({ kind: "asset", id: a.id }); } }, [el("td", {}, [cb]), el("td", { class: "acode" }, [a.code]), el("td", { class: "aname" }, [a.name]), el("td", {}, [f ? el("span", { class: "cls-chip" }, [f.name]) : "—"]), el("td", {}, [m ? m.name : "—"]), el("td", { class: "loc-vec" }, [locVector(a.locationId)]), el("td", { class: "num" }, [String((a.appliedPlans || []).length)])]));
+      });
+      w.appendChild(el("div", { class: "sec" }, [el("div", { style: "overflow-x:auto" }, [el("table", { class: "atable" }, [el("thead", {}, [head]), tb])])]));
+    }
+    host.appendChild(el("div", { class: "dbody" }, [w]));
+  }
+  function bulkBar(n) {
+    var ps = el("select", { style: "width:auto" }, [el("option", { value: "" }, ["Apply job plan…"])].concat(families.map(function (f) { return el("option", { value: f.id }, [f.name]); })));
+    return el("div", { class: "bulkbar" }, [el("span", {}, [el("span", { class: "n" }, [String(n)]), " selected"]), ps,
+      el("button", { class: "btn sm primary", onclick: function () { if (!ps.value) return; assets.forEach(function (a) { if (bulkSel[a.id]) { a.appliedPlans = a.appliedPlans || []; if (a.appliedPlans.indexOf(ps.value) < 0) a.appliedPlans.push(ps.value); } }); bulkSel = {}; renderDetail(); } }, ["Apply to selected"]),
+      el("button", { class: "btn sm", onclick: function () { bulkSel = {}; renderDetail(); } }, ["Clear"])]);
+  }
+  function addChild(n, kind) { n.children = n.children || []; var c = { id: nid(kind === "site" ? "site" : "loc"), kind: kind, name: kind === "site" ? "New site" : "New folder", code: "", children: [] }; n.children.push(c); selAsset({ kind: "loc", id: c.id }); }
+  function addAssetModal(siteId) {
+    var code = el("input", { type: "text", placeholder: "GEN-9" }), name = el("input", { type: "text", placeholder: "Generator 9" });
+    var cls = el("select", {}, [el("option", { value: "" }, ["Select class…"])].concat(families.map(function (f) { return el("option", { value: f.id }, [f.name]); })));
+    var mdl = el("select", {}, []); function fillM() { mdl.innerHTML = ""; mdl.appendChild(el("option", { value: "" }, ["(no model)"])); var f = classById(cls.value); (f ? f.models : []).forEach(function (m) { mdl.appendChild(el("option", { value: m.id }, [m.name])); }); }
+    cls.addEventListener("change", fillM); fillM();
+    confirmModal({ title: "New asset", confirmLabel: "Create asset", onConfirm: function () { if (!cls.value) { alert("Pick a class."); return; } var a = A(nid("ast"), code.value || "NEW", name.value || "New asset", cls.value, mdl.value || null, siteId); assets.push(a); selAsset({ kind: "asset", id: a.id }); },
+      message: el("div", { style: "display:flex;flex-direction:column;gap:12px" }, [el("div", { class: "g2" }, [labeled("Code", code), labeled("Name", name)]), labeled("Asset class", cls), labeled("Model (optional)", mdl)]) });
+  }
+  function renderAssetDetail(host) {
+    var a = assets.filter(function (x) { return x.id === Asel.id; })[0]; if (!a) { Asel = null; return renderDetailAssets(); }
+    var f = classById(a.classId), ch = assetChain(a);
+    host.appendChild(alHead(a.name, el("div", { class: "dsub" }, [el("span", { class: "nbadge nb-instance" }, ["asset"]), el("span", { class: "code" }, [a.code]), el("span", { class: "loc-vec" }, [locVector(a.locationId)])]), [el("button", { class: "btn sm ghost", onclick: function () { openAssetInspect(a); } }, ["Effective { }"]), el("button", { class: "btn sm danger", onclick: function () { confirmModal({ title: "Delete asset?", confirmLabel: "Delete", onConfirm: function () { assets = assets.filter(function (x) { return x.id !== a.id; }); Asel = null; renderRail(); renderDetail(); } }); } }, ["Delete"])]));
+    host.appendChild(el("div", { class: "dbody" }, [el("div", { class: "wrap", id: "awrap" }, [])]));
+    renderAssetBody(a);
+  }
+  function renderAssetBody(a) {
+    var f = classById(a.classId), ch = assetChain(a), w = document.getElementById("awrap"); w.innerHTML = "";
+    var cls = el("select", {}, families.map(function (x) { return el("option", { value: x.id, selected: x.id === a.classId }, [x.name]); }));
+    cls.addEventListener("change", function () { a.classId = cls.value; a.modelId = null; a.paramOverrides = {}; renderDetail(); renderRail(); });
+    var mdl = el("select", {}, [el("option", { value: "", selected: !a.modelId }, ["(no model)"])].concat((f ? f.models : []).map(function (m) { return el("option", { value: m.id, selected: m.id === a.modelId }, [m.name]); })));
+    mdl.addEventListener("change", function () { a.modelId = mdl.value || null; renderDetail(); });
+    w.appendChild(sec("Asset", null, null, [el("div", { class: "g2" }, [labeled("Code", bindInput(a, "code", { after: renderRail })), labeled("Name", bindInput(a, "name", { after: renderRail }))]), el("div", { class: "g2" }, [labeled("Asset class", cls), labeled("Model (optional)", mdl)])]));
+    var pb = []; if (!f || !f.parameters.length) pb.push(el("div", { class: "empty-in" }, ["This class has no parameters."]));
+    (f ? f.parameters : []).forEach(function (p) { pb.push(assetParamRow(a, ch, p)); });
+    w.appendChild(sec("Class parameters", (f ? f.parameters.length : 0) + "", null, pb.concat([el("div", { class: "hint" }, ["Inherited from the " + (f ? f.name : "class") + " class. Override a value, or reset to inherited; enforced params are locked."])])));
+    var ob = []; if (!a.ownParameters.length) ob.push(el("div", { class: "empty-in" }, ["No asset-specific parameters."]));
+    a.ownParameters.forEach(function (p, i) { ob.push(ownParamRow(a, p, i)); });
+    w.appendChild(sec("Own parameters", a.ownParameters.length + "", [el("button", { class: "btn sm", onclick: function () { a.ownParameters.push({ id: nid("op"), key: "", label: "", valueType: "number", defaultValue: "", unit: null }); renderDetail(); } }, ["+ Add parameter"])], ob));
+    var applied = a.appliedPlans || [], jb = [];
+    if (!applied.length) jb.push(el("div", { class: "empty-in" }, ["No job plans applied. Apply one explicitly from the library →"]));
+    applied.forEach(function (pid) { var pf = classById(pid); jb.push(el("div", { class: "rowline" }, [el("span", { class: "cls-chip" }, [pf ? pf.name : pid]), el("span", { class: "hint" }, [pf ? pf.tasks.length + " tasks · " + pf.frequencies.length + " freq" : ""]), el("button", { class: "x", style: "margin-left:auto", onclick: function () { a.appliedPlans = applied.filter(function (x) { return x !== pid; }); renderDetail(); } }, ["✕"])])); });
+    var as = el("select", { style: "width:auto" }, [el("option", { value: "" }, ["Apply job plan…"])].concat(families.map(function (x) { return el("option", { value: x.id }, [x.name]); })));
+    as.addEventListener("change", function () { if (!as.value) return; a.appliedPlans = (a.appliedPlans || []); if (a.appliedPlans.indexOf(as.value) < 0) a.appliedPlans.push(as.value); renderDetail(); });
+    w.appendChild(sec("Applied job plans", applied.length + "", [as], jb));
+  }
+  function assetParamRow(a, ch, p) {
+    var eff = effParam(ch, p);
+    var nm = el("div", { class: "an" }, [p.label || p.key || "(param)", el("div", { class: "sub" }, [p.key + (p.unit ? " (" + p.unit + ")" : "")])]);
+    var val, act, prov;
+    if (p.enforced) { val = el("span", { class: "ro" }, [String(eff.value), p.unit ? el("span", { class: "u" }, [" " + p.unit]) : null]); act = el("div", { class: "aa" }, [el("span", { class: "lbl" }, ["locked"])]); prov = chip("enforced"); }
+    else if (eff.state === "overridden") { val = bindMap(a.paramOverrides, p.id, p.valueType === "number" ? "number" : "text"); act = el("div", { class: "aa" }, [el("button", { class: "btn sm", onclick: function () { resetAssetParam(a, ch, p); } }, ["Reset"])]); prov = chip("overridden"); prov.style.cursor = "pointer"; prov.title = "Reset to inherited"; prov.addEventListener("click", function () { resetAssetParam(a, ch, p); }); }
+    else { val = el("span", { class: "ro" }, [String(eff.value), p.unit ? el("span", { class: "u" }, [" " + p.unit]) : null]); act = el("div", { class: "aa" }, [el("button", { class: "btn sm", onclick: function () { a.paramOverrides[p.id] = eff.value; renderDetail(); } }, ["Override"])]); prov = chip("inherited"); }
+    return el("div", { class: "arow" }, [nm, el("div", { class: "av" }, [val]), prov, act]);
+  }
+  function resetAssetParam(a, ch, p) { resetPrompt(a.name, p.label || p.key, effParam(ch, p).value, inheritedParam(ch, p), function () { delete a.paramOverrides[p.id]; renderDetail(); }); }
+  function ownParamRow(a, p, i) {
+    var k = el("input", { type: "text", value: p.key || "", placeholder: "key" }), l = el("input", { type: "text", value: p.label || "", placeholder: "Label" });
+    var vt = el("select", { style: "width:auto" }, ["number", "text", "boolean"].map(function (x) { return el("option", { value: x, selected: x === p.valueType }, [x]); }));
+    var df = el("input", { type: "text", value: p.defaultValue == null ? "" : p.defaultValue, placeholder: "value", style: "max-width:120px" });
+    k.addEventListener("input", function () { p.key = k.value; }); l.addEventListener("input", function () { p.label = l.value; }); vt.addEventListener("change", function () { p.valueType = vt.value; }); df.addEventListener("input", function () { p.defaultValue = df.value; });
+    return el("div", { class: "task", style: "padding:12px;background:var(--panel-2)" }, [el("div", { class: "g2" }, [labeled("Key", k), labeled("Label", l)]), el("div", { class: "rowline", style: "margin-top:10px" }, [vt, df, el("button", { class: "x", onclick: function () { a.ownParameters.splice(i, 1); renderDetail(); } }, ["✕"])])]);
+  }
+  function assetEffective(a) { var f = classById(a.classId), ch = assetChain(a), params = {}; (f ? f.parameters : []).forEach(function (p) { params[p.key] = effParam(ch, p).value; }); a.ownParameters.forEach(function (p) { params[p.key] = p.defaultValue; }); return { asset: a.code, name: a.name, class: f ? f.name : null, model: a.modelId && f ? (modelById(f, a.modelId) || {}).name : null, location: locVector(a.locationId), parameters: params, appliedPlans: (a.appliedPlans || []).map(function (pid) { var pf = classById(pid); return pf ? { plan: pf.name, tasks: pf.tasks.length, frequencies: pf.frequencies.length } : pid; }) }; }
+  function openAssetInspect(a) { closeInspect(); var modal = el("div", { class: "modal", onclick: function (e) { e.stopPropagation(); } }, [el("header", {}, [el("h3", {}, ["Effective · " + a.code]), el("button", { class: "btn sm ghost", style: "margin-left:auto", onclick: closeInspect }, ["Close"])]), el("div", { class: "mbody" }, [el("pre", { class: "json" }, [JSON.stringify(assetEffective(a), null, 2)]), el("div", { class: "hint", style: "margin-top:10px" }, ["Resolved parameters (class inheritance + own) and the job plans explicitly applied to this asset."])])]); document.body.appendChild(el("div", { class: "ovl", id: "ovl", onclick: closeInspect }, [modal])); }
+
   /* ---------- confirm + reset-to-inherited ---------- */
   function closeConfirm() { var o = document.getElementById("cfm"); if (o) o.remove(); }
   function confirmModal(opts) {
@@ -466,21 +653,21 @@
   }
   function inheritedAttr(ch, key) { var n = ch[ch.length - 1], had = key in n.attrOverrides, s = n.attrOverrides[key]; if (had) delete n.attrOverrides[key]; var v = effAttr(ch, key).value; if (had) n.attrOverrides[key] = s; return v; }
   function inheritedParam(ch, p) { var n = ch[ch.length - 1], had = p.id in n.paramOverrides, s = n.paramOverrides[p.id]; if (had) delete n.paramOverrides[p.id]; var v = effParam(ch, p).value; if (had) n.paramOverrides[p.id] = s; return v; }
-  function resetPrompt(name, curVal, inhVal, onConfirm) {
+  function resetPrompt(nodeName, name, curVal, inhVal, onConfirm) {
     confirmModal({ title: "Reset to inherited?", confirmLabel: "Reset to inherited", onConfirm: onConfirm,
       message: el("div", {}, [
-        el("div", { style: "font-size:13.5px;line-height:1.5" }, ["Remove the override on ", el("b", {}, [selNode().name]), " so ", el("b", {}, [name]), " follows its parent again."]),
+        el("div", { style: "font-size:13.5px;line-height:1.5" }, ["Remove the override on ", el("b", {}, [nodeName]), " so ", el("b", {}, [name]), " follows its parent again."]),
         el("div", { style: "margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap" }, [
           el("span", { class: "prov p-overridden" }, [String(curVal)]), el("span", { style: "color:var(--faint)" }, ["→"]),
           el("span", { class: "prov p-inherited" }, [String(inhVal)]), el("span", { class: "hint" }, ["inherited from parent"])
         ])
       ]) });
   }
-  function resetAttr(ch, key, name) { resetPrompt(name, effAttr(ch, key).value, inheritedAttr(ch, key), function () { delete selNode().attrOverrides[key]; renderBody(); }); }
-  function resetParam(ch, p) { resetPrompt(p.label || p.key, effParam(ch, p).value, inheritedParam(ch, p), function () { delete selNode().paramOverrides[p.id]; renderBody(); }); }
+  function resetAttr(ch, key, name) { resetPrompt(selNode().name, name, effAttr(ch, key).value, inheritedAttr(ch, key), function () { delete selNode().attrOverrides[key]; renderBody(); }); }
+  function resetParam(ch, p) { resetPrompt(selNode().name, p.label || p.key, effParam(ch, p).value, inheritedParam(ch, p), function () { delete selNode().paramOverrides[p.id]; renderBody(); }); }
   function labelIds(ch, ids) { var fs = effFreqs(ch); return ids.map(function (id) { var f = fs.filter(function (x) { return x.id === id; })[0]; return f ? freqLabel(f) : id; }).join(", ") || "(none)"; }
   function inheritedTaskTicks(ch, row) { var n = ch[ch.length - 1], id = row.task.id, had = !!n.mapOverrides[id], s = n.mapOverrides[id]; if (had) delete n.mapOverrides[id]; var v = effTicks(ch, row); if (had) n.mapOverrides[id] = s; return v; }
-  function resetTaskMap(ch, row) { resetPrompt("the schedule for “" + (row.task.instruction || "this task") + "”", labelIds(ch, effTicks(ch, row)), labelIds(ch, inheritedTaskTicks(ch, row)), function () { delete selNode().mapOverrides[row.task.id]; renderBody(); }); }
+  function resetTaskMap(ch, row) { resetPrompt(selNode().name, "the schedule for “" + (row.task.instruction || "this task") + "”", labelIds(ch, effTicks(ch, row)), labelIds(ch, inheritedTaskTicks(ch, row)), function () { delete selNode().mapOverrides[row.task.id]; renderBody(); }); }
 
   /* ---------- file I/O (one file per class family) ---------- */
   async function verify(h) { if (!h.queryPermission) return true; if ((await h.queryPermission({ mode: "readwrite" })) === "granted") return true; return (await h.requestPermission({ mode: "readwrite" })) === "granted"; }
@@ -494,10 +681,15 @@
   function newClass() { var f = { id: nid("class"), code: "NEW", name: "New class", description: "", attrs: { estimatedLabourHours: { value: null, enforced: false }, safety: { value: "", enforced: false } }, parameters: [], frequencies: [], tasks: [], plannedParts: [], requiredSkills: [], requiredTools: [], requiredPermits: [], models: [] }; families.push(f); select(families.length - 1, -1, -1); }
 
   /* ---------- wire ---------- */
-  document.getElementById("newClass").addEventListener("click", newClass);
-  document.getElementById("openFolder").addEventListener("click", openFolder);
-  document.getElementById("chooseFiles").addEventListener("click", function () { document.getElementById("fileInput").click(); });
-  document.getElementById("loadSamples").addEventListener("click", setSamples);
+  Array.prototype.forEach.call(document.getElementById("modeToggle").querySelectorAll("button"), function (bt) {
+    bt.addEventListener("click", function () {
+      mode = bt.getAttribute("data-mode");
+      Array.prototype.forEach.call(document.getElementById("modeToggle").querySelectorAll("button"), function (x) { x.classList.toggle("on", x.getAttribute("data-mode") === mode); });
+      G.q = ""; document.getElementById("q").value = "";
+      document.getElementById("app").classList.remove("show-detail");
+      renderAll();
+    });
+  });
   document.getElementById("fileInput").addEventListener("change", function (e) { readFiles(e.target.files); e.target.value = ""; });
   document.getElementById("q").addEventListener("input", function (e) { G.q = e.target.value; renderRail(); });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") { closeInspect(); closeConfirm(); } });

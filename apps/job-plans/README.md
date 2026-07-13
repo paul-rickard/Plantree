@@ -20,11 +20,22 @@ schedules exist.
 
 ## The app (`app.html`)
 
-A single self-contained app — no server, no build — built around the **asset
-hierarchy with inheritance and locking** (the AVEVA-style model). The left
-**rail is the Class → Model → Instance tree**; the right **detail** shows the
-selected node's *resolved* plan, with every field carrying its inheritance state.
+A single self-contained app — no server, no build — with two modes, switched
+from the toggle at the top of the rail:
+
+- **Asset classes** — the **template library**: the Class → Model → Instance
+  tree with inheritance and locking (the AVEVA-style model).
+- **Assets** — the **asset library**: a location hierarchy of folders and
+  sites, with real assets living in sites, each taking its parameters from a
+  class and able to add its own.
+
 Ships pre-seeded with samples; loads files with `"type": "assetClassPlan"`.
+
+### Asset classes (template library)
+
+The left **rail is the Class → Model → Instance tree**; the right **detail**
+shows the selected node's *resolved* plan, with every field carrying its
+inheritance state.
 
 **Rail (left)** — the asset tree:
 
@@ -60,6 +71,41 @@ never scrolls sideways.
 freeze for that node — inherited values, applied overrides, enforced locks, the
 merged task list. Instances *derive* from their parents at read time, so a class
 change flows down automatically except where a descendant has overridden it.
+
+### Assets (asset library)
+
+The second mode is the real-world register: **locations** and **assets**.
+
+**Rail** — the location hierarchy, viewable **By location** or **By class**:
+
+- **Folders** (regions, countries — e.g. APAC → Australia) nest to any depth,
+  and **sites** (Sydney DC1) can sit at any level. Add a **+ Folder** or
+  **+ Site** from any folder.
+- **By class** flips the same assets into a class-grouped list, so you can see
+  every Generator across every site at once.
+
+**Detail** — depends on what's selected:
+
+- a **folder** shows its identity and its contents (sub-folders / sites);
+- a **site** shows its assets in a table (Code / Name / Class / Model /
+  Location / Plans), with **+ Add asset** (pick a class and optional model);
+- an **asset** shows its identity, its **Class parameters** (inherited from its
+  class, each **Inherited / Overridden / Enforced** — override an unlocked value
+  or **Reset** it to inherited after a warning), its own **asset-specific
+  parameters**, and the **job plans applied** to it.
+
+**Class list is shared.** Classes and models are the *same list* the template
+library edits — creating a class in either place adds it to the one register.
+Assets and job plans live in parallel but share the class names.
+
+**Job plans are applied explicitly** — from the asset (Applied job plans →
+*Apply job plan…*) or in **bulk**: tick assets in a site or class table and
+**Apply to selected**. Nothing is auto-assigned by class; application is always
+a deliberate act, individually or in bulk.
+
+**Effective { }** (asset header) resolves the asset's parameters (class
+inheritance + its own) and lists the plans applied to it — the snapshot a work
+order would freeze.
 
 > This app models the **class-family inheritance** (`assetClassPlan`), which
 > extends the single-plan `job-plan.schema.json`. Formalising the family schema
@@ -138,9 +184,11 @@ meter/runtime streams. See the reasoning captured with this build.
 ## Run it
 
 Open `apps/job-plans/app.html` in **Microsoft Edge** or **Google Chrome** on
-desktop. It opens on the gallery (seeded with samples); **Open folder…** loads a
-library of plan JSON, and clicking a plan opens it in the editor. **Save** writes
-the `.json` back to disk (ideally a OneDrive-synced SharePoint library folder).
+desktop. It opens on the **Asset classes** template library (seeded with
+samples); the rail toggle switches to the **Assets** library. **Open folder…**
+loads a library of class-plan JSON, and clicking a node opens it in the detail
+pane. **Save** writes the `.json` back to disk (ideally a OneDrive-synced
+SharePoint library folder).
 
 Other browsers (Firefox/Safari) and mobile fall back to **download mode**: Save
 downloads a file you re-upload to SharePoint, and folder-open becomes choose-files
