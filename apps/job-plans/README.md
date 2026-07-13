@@ -42,10 +42,14 @@ recognised.
 
 - Full authoring: code/name/class/model, description; version lifecycle
   (`draft → approved → active → superseded → retired`, approved history locked —
-  fork a new version to change it); **frequencies** (add/remove columns) with a
-  per-task **"drops at"** matrix (tick which cadences each task generates at);
-  tasks with response types and acceptable ranges; planned parts; required
-  skills/tools/permits; parameters; live JSON preview and schema validation.
+  fork a new version to change it); tasks with response types and acceptable
+  ranges; planned parts; required skills/tools/permits; parameters; live JSON
+  preview and schema validation.
+- A **Details / Matrix** tab toggle. **Matrix** is the grid view (rows = tasks,
+  columns = frequencies, tick where each task drops) with add/remove columns, a
+  **what-generates** card per frequency, and a **12-month drop timeline** — the
+  old `matrix-demo`, now editing the opened plan. Editable on draft versions,
+  read-only when locked.
 - **Save** writes back to the plan's file handle if it was opened from a folder,
   creates a file in the opened folder for a new plan, otherwise falls back to
   Save-As / download. Edits are reflected in the gallery immediately (**← Gallery**

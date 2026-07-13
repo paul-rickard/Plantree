@@ -129,10 +129,36 @@
   .empty-inline { color:var(--faint); font-size:13px; font-style:italic; } .chip-hint { font-size:11.5px; color:var(--faint); }
   .addbar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
   .freqtag { display:inline-flex; align-items:center; gap:3px; font-family:var(--mono); font-size:11px; color:var(--accent); background:var(--accent-soft); border-radius:6px; padding:3px 4px 3px 9px; }
-  .fqchips { display:flex; gap:6px; flex-wrap:wrap; }
-  .fqchip { font:inherit; font-size:11.5px; font-weight:600; padding:3px 10px; border-radius:999px; border:1px solid var(--line-strong); background:var(--surface); color:var(--muted); cursor:pointer; }
-  .fqchip.on { background:var(--accent-soft); color:var(--accent); border-color:color-mix(in srgb,var(--accent) 40%,transparent); }
-  .fqchip:disabled { opacity:.55; cursor:not-allowed; }
+  .seg { display:inline-flex; background:var(--surface-2); border:1px solid var(--line); border-radius:8px; padding:2px; }
+  .seg button { border:0; background:transparent; font:inherit; font-size:12.5px; font-weight:600; color:var(--muted); padding:5px 12px; border-radius:6px; cursor:pointer; }
+  .seg button.on { background:var(--surface); color:var(--ink); box-shadow:0 1px 2px rgba(16,32,28,.05); }
+  .scroll { overflow-x:auto; }
+  table.matrix { border-collapse:separate; border-spacing:0; width:100%; min-width:520px; }
+  table.matrix th, table.matrix td { padding:8px 7px; border-bottom:1px solid var(--line); }
+  table.matrix thead th { text-align:center; vertical-align:bottom; }
+  table.matrix th.tcol, table.matrix td.tcol { text-align:left; min-width:220px; }
+  .freqhead { display:flex; flex-direction:column; align-items:center; gap:2px; }
+  .freqhead .fl { font-weight:650; font-size:12px; white-space:nowrap; } .freqhead .fs { font-family:var(--mono); font-size:9px; color:var(--faint); }
+  table.matrix td.cell { text-align:center; }
+  .cbx { appearance:none; -webkit-appearance:none; width:19px; height:19px; border:1.5px solid var(--line-strong); border-radius:5px; cursor:pointer; position:relative; vertical-align:middle; background:var(--bg); }
+  .cbx:hover:not(:disabled) { border-color:var(--accent); }
+  .cbx:checked { background:var(--accent); border-color:var(--accent); }
+  .cbx:checked::after { content:""; position:absolute; left:5.5px; top:2px; width:5px; height:9px; border:solid #fff; border-width:0 2px 2px 0; transform:rotate(45deg); }
+  .cbx:disabled { cursor:not-allowed; opacity:.85; } .cbx:disabled:checked { background:var(--faint); border-color:var(--faint); }
+  .ti { font-weight:540; font-size:13px; } .tm { font-family:var(--mono); font-size:10px; color:var(--faint); }
+  tr.totals td { border-bottom:0; font-family:var(--mono); font-size:11px; color:var(--muted); text-align:center; padding-top:8px; }
+  tr.totals td.tcol { text-align:right; color:var(--faint); }
+  .drops { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px; }
+  .drop { border:1px solid var(--line); border-radius:10px; padding:11px 12px; background:var(--surface-2); }
+  .drop h3 { font-size:12.5px; display:flex; align-items:baseline; gap:8px; }
+  .drop h3 .n { margin-left:auto; font-family:var(--mono); font-size:10.5px; color:var(--accent); background:var(--accent-soft); padding:1px 7px; border-radius:999px; }
+  .drop ul { margin:8px 0 0; padding-left:16px; font-size:12px; color:var(--muted); } .drop li { margin:2px 0; } .drop.empty { opacity:.6; }
+  table.tl { border-collapse:collapse; width:100%; min-width:520px; font-size:12px; }
+  table.tl th, table.tl td { padding:6px 4px; text-align:center; border-bottom:1px solid var(--line); }
+  table.tl th.rl, table.tl td.rl { text-align:left; white-space:nowrap; font-weight:560; padding-right:12px; }
+  table.tl th { font-family:var(--mono); font-size:10px; color:var(--faint); font-weight:600; }
+  .dot { width:9px; height:9px; border-radius:50%; background:var(--accent); display:inline-block; }
+  .cap { font-size:11.5px; color:var(--faint); margin-top:8px; }
   @media (max-width:900px){ .elayout { grid-template-columns:1fr; } .eside { position:static; height:auto; border-left:0; border-top:1px solid var(--line);} .grid2,.grid3 { grid-template-columns:1fr; } }
 </style>
 </head>
@@ -175,6 +201,7 @@
       <button class="btn" id="backBtn">← Gallery</button>
       <button class="btn primary" id="saveBtn">Save</button>
       <button class="btn" id="validateBtn">Validate</button>
+      <div class="seg" id="editorTabs"><button data-tab="details" class="on">Details</button><button data-tab="matrix">Matrix</button></div>
       <span class="toast" id="toast"></span>
       <div class="right"><span id="fileName" class="fn">Unsaved</span></div>
     </div>
@@ -200,7 +227,7 @@
   // shared
   var store = [], folderHandle = null, view = "gallery";
   var G = { q: "", viewMode: "grouped", collapsed: {}, stateFilter: "all", sort: "name", usingSamples: true };
-  var E = { doc: null, entry: null, sel: 0, sideTab: "json" };
+  var E = { doc: null, entry: null, sel: 0, sideTab: "json", editorTab: "details" };
   var freqSeq = 1;
 
   function el(t, p, k) {
@@ -424,15 +451,21 @@
   /* ============ EDITOR render ============ */
   function renderEditor() {
     var main = document.getElementById("emain"); main.innerHTML = "";
+    Array.prototype.forEach.call(document.getElementById("editorTabs").querySelectorAll("button"), function (b) { b.classList.toggle("on", b.getAttribute("data-tab") === E.editorTab); });
     main.appendChild(headerCard());
     main.appendChild(versionCard());
     if (!editable()) main.appendChild(lockNote());
-    main.appendChild(detailsCard());
-    main.appendChild(freqCard());
-    main.appendChild(tasksCard());
-    main.appendChild(partsCard());
-    main.appendChild(requirementsCard());
-    main.appendChild(parametersCard());
+    if (E.editorTab === "matrix") {
+      main.appendChild(freqCard());
+      main.appendChild(matrixGridCard());
+      if (cur().frequencies.length) { main.appendChild(generatesCard()); main.appendChild(timelineCard()); }
+    } else {
+      main.appendChild(detailsCard());
+      main.appendChild(tasksCard());
+      main.appendChild(partsCard());
+      main.appendChild(requirementsCard());
+      main.appendChild(parametersCard());
+    }
     updateSide(); updateFileName();
   }
   function bind(obj, key, opts) {
@@ -492,6 +525,44 @@
     }
     return panel("Frequencies", v.frequencies.length + "", body);
   }
+  function fsub(f) { return "every " + f.interval + " " + f.unit + (f.interval > 1 ? "s" : ""); }
+  function countFor(fid) { return cur().tasks.filter(function (t) { return (t.frequencyIds || []).indexOf(fid) >= 0; }).length; }
+  function matrixGridCard() {
+    var v = cur(), dis = !editable();
+    if (!v.frequencies.length) return panel("Matrix — tasks × frequencies", null, [el("div", { class: "empty-inline" }, ["Add a frequency column above to build the matrix."])]);
+    if (!v.tasks.length) return panel("Matrix — tasks × frequencies", null, [el("div", { class: "empty-inline" }, ["Add tasks in the Details tab first."])]);
+    var head = [el("th", { class: "tcol" }, [el("span", { class: "lbl" }, ["Task"])])];
+    v.frequencies.forEach(function (f) { head.push(el("th", {}, [el("div", { class: "freqhead" }, [el("span", { class: "fl" }, [freqLabel(f)]), el("span", { class: "fs" }, [fsub(f)])])])); });
+    var body = el("tbody", {}, []);
+    v.tasks.forEach(function (t) {
+      var cells = [el("td", { class: "tcol" }, [el("div", { class: "ti" }, [t.instruction || "(untitled task)"]), el("div", { class: "tm" }, [t.responseType])])];
+      v.frequencies.forEach(function (f) {
+        var cb = el("input", { type: "checkbox", class: "cbx", checked: (t.frequencyIds || []).indexOf(f.id) >= 0, disabled: dis });
+        cb.addEventListener("change", function () { if (!t.frequencyIds) t.frequencyIds = []; if (cb.checked) { if (t.frequencyIds.indexOf(f.id) < 0) t.frequencyIds.push(f.id); } else t.frequencyIds = t.frequencyIds.filter(function (x) { return x !== f.id; }); renderEditor(); });
+        cells.push(el("td", { class: "cell" }, [cb]));
+      });
+      body.appendChild(el("tr", {}, cells));
+    });
+    var totals = [el("td", { class: "tcol lbl" }, ["tasks per drop"])];
+    v.frequencies.forEach(function (f) { totals.push(el("td", { class: "cell num" }, [String(countFor(f.id))])); });
+    body.appendChild(el("tr", { class: "totals" }, totals));
+    return panel("Matrix — tasks × frequencies", v.tasks.length + " × " + v.frequencies.length, [el("div", { class: "scroll" }, [el("table", { class: "matrix" }, [el("thead", {}, [el("tr", {}, head)]), body])])]);
+  }
+  function generatesCard() {
+    var v = cur();
+    return panel("What generates when a frequency drops", null, [el("div", { class: "drops" }, v.frequencies.map(function (f) {
+      var ts = v.tasks.filter(function (t) { return (t.frequencyIds || []).indexOf(f.id) >= 0; });
+      return el("div", { class: "drop" + (ts.length ? "" : " empty") }, [el("h3", {}, [freqLabel(f), el("span", { class: "n" }, [ts.length + " task" + (ts.length === 1 ? "" : "s")])]), ts.length ? el("ul", {}, ts.map(function (t) { return el("li", {}, [t.instruction || "(untitled task)"]); })) : el("div", { style: "font-size:12px;color:var(--faint);margin-top:6px" }, ["Generates nothing."])]);
+    }))]);
+  }
+  function fires(f, m) { if (f.unit === "day" || f.unit === "week") return true; if (f.unit === "month") return m % f.interval === 0; if (f.unit === "year") return m % (12 * f.interval) === 0; return false; }
+  function timelineCard() {
+    var v = cur(), head = [el("th", { class: "rl" }, ["Frequency"])];
+    for (var m = 1; m <= 12; m++) head.push(el("th", {}, ["M" + m]));
+    var body = el("tbody", {}, []);
+    v.frequencies.forEach(function (f) { var row = [el("td", { class: "rl" }, [freqLabel(f)])]; for (var m = 1; m <= 12; m++) row.push(el("td", {}, [fires(f, m) ? el("span", { class: "dot" }) : null])); body.appendChild(el("tr", {}, row)); });
+    return panel("Drop timeline · next 12 months", null, [el("div", { class: "scroll" }, [el("table", { class: "tl" }, [el("thead", {}, [el("tr", {}, head)]), body])]), el("div", { class: "cap" }, ["Daily/weekly shown as firing each month. Coincident drops each generate a work order; a scheduling layer can nest them into one (see the pm-model demo)."])]);
+  }
   function tasksCard() {
     var v = cur(), dis = !editable(), body = [];
     if (!v.tasks.length) body.push(el("div", { class: "empty-inline" }, ["No tasks yet."]));
@@ -515,16 +586,6 @@
     if (t.responseType === "choice") { var ci = el("input", { type: "text", value: csv(t.choices), placeholder: "Good, Monitor, Action", disabled: dis }); ci.addEventListener("input", function () { t.choices = parseCsv(ci.value); updateSide(); }); kids.push(el("label", { class: "field" }, [el("span", { class: "lbl" }, ["Choices"]), ci])); }
     var si = el("input", { type: "text", value: csv(t.requiredSkills), placeholder: "e.g. Battery maintenance", disabled: dis }); si.addEventListener("input", function () { t.requiredSkills = parseCsv(si.value); updateSide(); });
     kids.push(el("label", { class: "field" }, [el("span", { class: "lbl" }, ["Required skills"]), si]));
-    var freqs = cur().frequencies;
-    if (freqs.length) {
-      var chips = freqs.map(function (f) {
-        var on = (t.frequencyIds || []).indexOf(f.id) >= 0;
-        var b = el("button", { class: "fqchip" + (on ? " on" : ""), disabled: dis }, [freqLabel(f)]);
-        b.addEventListener("click", function () { if (!t.frequencyIds) t.frequencyIds = []; var ix = t.frequencyIds.indexOf(f.id); if (ix >= 0) { t.frequencyIds.splice(ix, 1); b.classList.remove("on"); } else { t.frequencyIds.push(f.id); b.classList.add("on"); } updateSide(); });
-        return b;
-      });
-      kids.push(el("label", { class: "field" }, [el("span", { class: "lbl" }, ["Drops at (frequency)"]), el("div", { class: "fqchips" }, chips)]));
-    } else kids.push(el("div", { class: "chip-hint" }, ["Add a frequency above to schedule when this task drops."]));
     return el("div", { class: "task" }, kids);
   }
   function partsCard() {
@@ -619,6 +680,7 @@
   document.getElementById("validateBtn").addEventListener("click", function () { E.sideTab = "valid"; updateSide(); });
   document.getElementById("tabJson").addEventListener("click", function () { E.sideTab = "json"; updateSide(); });
   document.getElementById("tabValid").addEventListener("click", function () { E.sideTab = "valid"; updateSide(); });
+  Array.prototype.forEach.call(document.getElementById("editorTabs").querySelectorAll("button"), function (b) { b.addEventListener("click", function () { E.editorTab = b.getAttribute("data-tab"); renderEditor(); }); });
   var body = document.body;
   ["dragenter", "dragover"].forEach(function (ev) { body.addEventListener(ev, function (e) { if (view === "gallery") { e.preventDefault(); body.classList.add("drag"); } }); });
   ["dragleave", "drop"].forEach(function (ev) { body.addEventListener(ev, function (e) { e.preventDefault(); if (ev === "dragleave" && e.relatedTarget) return; body.classList.remove("drag"); }); });
