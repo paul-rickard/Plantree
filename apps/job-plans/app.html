@@ -9,7 +9,7 @@
     --bg:#eef1ef; --panel:#fff; --panel-2:#f7f9f7; --ink:#15201d; --muted:#5a6a65; --faint:#8a9a94;
     --line:#e2e7e4; --line-2:#d2dad6; --accent:#0f6f66; --accent-h:#148a7e; --accent-soft:#e4f1ee;
     --good:#1e8e5a; --good-soft:color-mix(in srgb,#1e8e5a 14%,transparent);
-    --warn:#b3760f; --warn-soft:color-mix(in srgb,#b3760f 14%,transparent);
+    --warn:#b3760f; --warn-soft:color-mix(in srgb,#b3760f 15%,transparent);
     --crit:#c0453b; --crit-soft:color-mix(in srgb,#c0453b 12%,transparent);
     --info:#3a6ea5; --info-soft:color-mix(in srgb,#3a6ea5 13%,transparent);
     --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace; --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
@@ -26,519 +26,425 @@
   * { box-sizing:border-box; }
   html,body { height:100%; }
   body { margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans); font-size:14px; line-height:1.5; overflow:hidden; -webkit-font-smoothing:antialiased; }
-  h1,h2,h3 { margin:0; } .mono { font-family:var(--mono); } .num { font-variant-numeric:tabular-nums; }
+  h1,h2,h3,h4 { margin:0; } .mono { font-family:var(--mono); } .num { font-variant-numeric:tabular-nums; }
   .lbl { font-size:10px; letter-spacing:.07em; text-transform:uppercase; color:var(--faint); font-weight:700; font-family:var(--mono); }
 
   button { font:inherit; cursor:pointer; }
   .btn { font-weight:600; font-size:13px; padding:7px 13px; border-radius:9px; border:1px solid var(--line-2); background:var(--panel); color:var(--ink); display:inline-flex; align-items:center; gap:7px; transition:border-color .12s, background .12s, color .12s; white-space:nowrap; }
-  .btn:hover { border-color:var(--faint); }
-  .btn.primary { background:var(--accent); color:#fff; border-color:transparent; } .btn.primary:hover { background:var(--accent-h); }
+  .btn:hover { border-color:var(--faint); } .btn.primary { background:var(--accent); color:#fff; border-color:transparent; } .btn.primary:hover { background:var(--accent-h); }
   .btn.ghost { border-color:transparent; background:transparent; color:var(--muted); } .btn.ghost:hover { background:var(--panel-2); color:var(--ink); }
-  .btn.sm { padding:5px 10px; font-size:12px; border-radius:8px; }
-  .btn.danger { color:var(--crit); } .btn:disabled { opacity:.4; cursor:not-allowed; }
-  .icon { width:34px; height:34px; padding:0; justify-content:center; }
+  .btn.sm { padding:5px 10px; font-size:12px; border-radius:8px; } .btn.danger { color:var(--crit); } .btn:disabled { opacity:.4; cursor:not-allowed; }
+  .btn.on { background:var(--warn-soft); color:var(--warn); border-color:color-mix(in srgb,var(--warn) 35%,transparent); }
   .x { border:0; background:transparent; color:var(--faint); padding:2px 5px; border-radius:6px; font-size:13px; } .x:hover { color:var(--crit); background:var(--crit-soft); }
 
   input[type=text],input[type=number],textarea,select { font:inherit; padding:8px 10px; border:1px solid var(--line-2); border-radius:8px; background:var(--bg); color:var(--ink); outline:none; width:100%; }
   :where(input,textarea,select):focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
-  textarea { resize:vertical; min-height:52px; } :where(input,textarea,select):disabled { opacity:.6; cursor:not-allowed; }
+  textarea { resize:vertical; min-height:50px; } :where(input,textarea,select):disabled { opacity:.6; cursor:not-allowed; }
 
-  .badge { font-family:var(--mono); font-size:9.5px; letter-spacing:.05em; text-transform:uppercase; font-weight:700; padding:2px 8px; border-radius:5px; white-space:nowrap; }
-  .b-draft { color:var(--muted); background:var(--panel-2); border:1px solid var(--line-2); }
-  .b-approved { color:var(--info); background:var(--info-soft); }
-  .b-active { color:var(--good); background:var(--good-soft); }
-  .b-superseded { color:var(--faint); background:var(--panel-2); }
-  .b-retired { color:var(--crit); background:var(--crit-soft); }
-  .dot { width:8px; height:8px; border-radius:50%; flex:none; }
-  .d-draft { background:var(--faint); } .d-approved { background:var(--info); } .d-active { background:var(--good); } .d-superseded { background:var(--line-2); } .d-retired { background:var(--crit); }
+  .nbadge { font-family:var(--mono); font-size:9px; letter-spacing:.06em; text-transform:uppercase; font-weight:700; padding:2px 7px; border-radius:5px; }
+  .nb-class { color:var(--accent); background:var(--accent-soft); } .nb-model { color:var(--info); background:var(--info-soft); } .nb-instance { color:var(--good); background:var(--good-soft); }
+  .prov { display:inline-flex; align-items:center; gap:4px; font-family:var(--mono); font-size:9px; letter-spacing:.03em; text-transform:uppercase; font-weight:700; padding:2px 7px; border-radius:5px; white-space:nowrap; }
+  .p-class { color:var(--muted); background:var(--panel-2); border:1px solid var(--line-2); } .p-inherited { color:var(--info); background:var(--info-soft); }
+  .p-overridden { color:var(--accent); background:var(--accent-soft); } .p-enforced { color:var(--warn); background:var(--warn-soft); }
+  .p-added { color:var(--good); background:var(--good-soft); } .p-excluded { color:var(--faint); background:var(--panel-2); }
   .freq { font-family:var(--mono); font-size:10px; color:var(--accent); background:var(--accent-soft); border-radius:5px; padding:2px 7px; white-space:nowrap; } .freq.none { color:var(--faint); background:var(--panel-2); }
 
-  /* ---------- shell ---------- */
   .topbar { height:52px; display:flex; align-items:center; gap:12px; padding:0 16px; background:var(--panel); border-bottom:1px solid var(--line); }
   .brand { display:flex; align-items:center; gap:9px; font-weight:700; font-size:15.5px; letter-spacing:-.01em; }
   .brand .mark { color:var(--accent); } .brand small { font-weight:500; color:var(--faint); font-family:var(--mono); font-size:11px; }
   .topbar .right { margin-left:auto; display:flex; align-items:center; gap:10px; }
-  .status { display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:600; padding:3px 10px; border-radius:999px; }
-  .status::before { content:""; width:7px; height:7px; border-radius:50%; background:currentColor; }
+  .status { display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:600; padding:3px 10px; border-radius:999px; } .status::before { content:""; width:7px; height:7px; border-radius:50%; background:currentColor; }
   .status.ok { color:var(--good); background:var(--good-soft); } .status.warn { color:var(--warn); background:var(--warn-soft); }
 
   .app { display:flex; height:calc(100vh - 52px); }
-  .rail { width:288px; flex:none; background:var(--panel); border-right:1px solid var(--line); display:flex; flex-direction:column; }
+  .rail { width:296px; flex:none; background:var(--panel); border-right:1px solid var(--line); display:flex; flex-direction:column; }
   .rail-top { padding:14px 14px 10px; display:flex; flex-direction:column; gap:10px; border-bottom:1px solid var(--line); }
   .rail-actions { display:flex; gap:8px; } .rail-actions .btn { flex:1; justify-content:center; }
-  .rail-load { display:flex; gap:4px; }
-  .rail-load .btn { flex:1; justify-content:center; padding:5px 6px; font-size:11.5px; color:var(--muted); }
-  .search { display:flex; align-items:center; gap:8px; background:var(--bg); border:1px solid var(--line-2); border-radius:9px; padding:7px 11px; }
-  .search:focus-within { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
-  .search input { border:0; background:transparent; padding:0; }
+  .rail-load { display:flex; gap:4px; } .rail-load .btn { flex:1; justify-content:center; padding:5px 6px; font-size:11.5px; color:var(--muted); }
+  .search { display:flex; align-items:center; gap:8px; background:var(--bg); border:1px solid var(--line-2); border-radius:9px; padding:7px 11px; } .search:focus-within { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); } .search input { border:0; background:transparent; padding:0; }
   .rail-list { flex:1; overflow-y:auto; padding:8px; }
-  .rail-count { padding:2px 8px 8px; }
 
-  .grp { margin-bottom:2px; }
-  .grp-head { width:100%; display:flex; align-items:center; gap:8px; padding:7px 8px; background:transparent; border:0; border-radius:8px; color:var(--ink); text-align:left; }
-  .grp-head:hover { background:var(--panel-2); }
-  .grp-name { font-weight:670; font-size:13.5px; } .grp-ct { margin-left:auto; font-family:var(--mono); font-size:10.5px; color:var(--faint); }
-  .caret { color:var(--faint); transition:transform .12s; flex:none; } .caret.open { transform:rotate(90deg); }
-  .sub { padding:5px 8px 3px 26px; } .sub .lbl { font-size:9px; }
-  .item { width:100%; display:flex; align-items:center; gap:9px; padding:8px 10px; margin:1px 0; background:transparent; border:0; border-radius:8px; color:var(--ink); text-align:left; position:relative; }
-  .item.ind { padding-left:30px; } .item.ind2 { padding-left:40px; }
-  .item:hover { background:var(--panel-2); }
-  .item.sel { background:var(--accent-soft); }
-  .item.sel::before { content:""; position:absolute; left:2px; top:6px; bottom:6px; width:3px; border-radius:3px; background:var(--accent); }
-  .item .nm { font-weight:560; font-size:13px; line-height:1.25; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .item .mt { font-family:var(--mono); font-size:10px; color:var(--faint); margin-top:1px; }
-  .item .col { min-width:0; flex:1; }
-  .item.sel .nm { color:var(--accent); font-weight:640; }
-  .newmark { font-family:var(--mono); font-size:9px; color:var(--accent); background:var(--accent-soft); padding:1px 6px; border-radius:4px; }
+  .node { width:100%; display:flex; align-items:center; gap:7px; padding:7px 8px; margin:1px 0; background:transparent; border:0; border-radius:8px; color:var(--ink); text-align:left; position:relative; }
+  .node:hover { background:var(--panel-2); } .node.sel { background:var(--accent-soft); }
+  .node.sel::before { content:""; position:absolute; left:1px; top:6px; bottom:6px; width:3px; border-radius:3px; background:var(--accent); }
+  .node.lvl1 { padding-left:22px; } .node.lvl2 { padding-left:40px; }
+  .node .ct { flex:none; width:14px; display:flex; justify-content:center; color:var(--faint); }
+  .caret { transition:transform .12s; } .caret.open { transform:rotate(90deg); }
+  .node .col { min-width:0; flex:1; } .node .nm { font-weight:570; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .node.sel .nm { color:var(--accent); font-weight:640; }
+  .node .mt { font-family:var(--mono); font-size:9.5px; color:var(--faint); }
+  .node .tag { font-family:var(--mono); font-size:8.5px; letter-spacing:.04em; text-transform:uppercase; font-weight:700; color:var(--faint); }
 
-  /* ---------- detail ---------- */
   .detail { flex:1; min-width:0; display:flex; flex-direction:column; background:var(--bg); }
-  .empty { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; color:var(--muted); text-align:center; padding:40px; }
-  .empty .big { font-size:17px; color:var(--ink); font-weight:650; } .empty svg { color:var(--line-2); }
-  .recommend { display:inline-flex; gap:8px; align-items:flex-start; text-align:left; max-width:460px; margin-top:6px; font-size:12.5px; color:var(--warn); background:var(--warn-soft); border:1px solid color-mix(in srgb,var(--warn) 26%,transparent); border-radius:9px; padding:10px 12px; } .recommend b { color:var(--ink); }
-
+  .empty { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; color:var(--muted); text-align:center; padding:40px; } .empty .big { font-size:17px; color:var(--ink); font-weight:650; } .empty svg { color:var(--line-2); }
   .dhead { background:var(--panel); border-bottom:1px solid var(--line); padding:14px 22px; display:flex; align-items:flex-start; gap:16px; flex-wrap:wrap; }
-  .dtitle { font-size:20px; font-weight:700; letter-spacing:-.02em; line-height:1.2; text-wrap:balance; }
-  .dsub { display:flex; align-items:center; gap:8px; margin-top:4px; font-size:12.5px; color:var(--muted); flex-wrap:wrap; }
-  .dsub .code { font-family:var(--mono); } .dsub .clschip { display:inline-flex; align-items:center; gap:5px; background:var(--panel-2); border:1px solid var(--line); border-radius:999px; padding:2px 10px; font-size:11.5px; }
+  .dtitle { font-size:20px; font-weight:700; letter-spacing:-.02em; line-height:1.2; }
+  .dsub { display:flex; align-items:center; gap:8px; margin-top:4px; font-size:12.5px; color:var(--muted); flex-wrap:wrap; } .dsub .code { font-family:var(--mono); }
+  .crumb { color:var(--faint); } .crumb b { color:var(--muted); font-weight:600; }
   .dhead-right { margin-left:auto; display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
-  .vpick { display:inline-flex; align-items:center; gap:7px; background:var(--panel-2); border:1px solid var(--line-2); border-radius:9px; padding:4px 6px 4px 10px; }
-  .vpick .lbl { margin:0; } .vpick select { width:auto; border:0; background:transparent; box-shadow:none; padding:3px 4px; font-weight:600; }
   .dirty { font-size:12px; color:var(--warn); font-weight:600; display:inline-flex; align-items:center; gap:6px; } .dirty::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--warn); }
 
   .dtabs { background:var(--panel); border-bottom:1px solid var(--line); padding:0 22px; display:flex; gap:2px; }
-  .dtab { border:0; background:transparent; color:var(--muted); font-weight:600; font-size:13.5px; padding:11px 14px; border-bottom:2px solid transparent; margin-bottom:-1px; }
-  .dtab:hover { color:var(--ink); } .dtab.on { color:var(--accent); border-bottom-color:var(--accent); }
+  .dtab { border:0; background:transparent; color:var(--muted); font-weight:600; font-size:13.5px; padding:11px 14px; border-bottom:2px solid transparent; margin-bottom:-1px; } .dtab:hover { color:var(--ink); } .dtab.on { color:var(--accent); border-bottom-color:var(--accent); }
   .dtab .pill { font-family:var(--mono); font-size:10px; font-weight:700; margin-left:6px; color:var(--muted); background:var(--panel-2); border:1px solid var(--line); padding:0 6px; border-radius:999px; }
+  .dbody { flex:1; overflow-y:auto; padding:22px; } .wrap { max-width:900px; margin:0 auto; display:flex; flex-direction:column; gap:18px; }
 
-  .dbody { flex:1; overflow-y:auto; padding:22px; }
-  .wrap { max-width:860px; margin:0 auto; display:flex; flex-direction:column; gap:18px; }
-  .lockbar { display:flex; align-items:center; gap:9px; font-size:12.5px; color:var(--warn); background:var(--warn-soft); border:1px solid color-mix(in srgb,var(--warn) 26%,transparent); border-radius:10px; padding:10px 14px; }
-
+  .infobar { display:flex; align-items:flex-start; gap:9px; font-size:12.5px; border-radius:10px; padding:10px 14px; } .infobar.i { color:var(--info); background:var(--info-soft); border:1px solid color-mix(in srgb,var(--info) 22%,transparent); } .infobar b { color:var(--ink); }
   .sec { background:var(--panel); border:1px solid var(--line); border-radius:14px; box-shadow:var(--sh); }
-  .sec > header { padding:13px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px; }
-  .sec > header h3 { font-size:13.5px; font-weight:660; } .sec > header .ct { font-family:var(--mono); font-size:11px; color:var(--faint); }
-  .sec > header .hact { margin-left:auto; display:flex; gap:8px; }
-  .sec-body { padding:16px; display:flex; flex-direction:column; gap:14px; }
+  .sec > header { padding:13px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px; } .sec > header h3 { font-size:13.5px; font-weight:660; } .sec > header .ct { font-family:var(--mono); font-size:11px; color:var(--faint); } .sec > header .hact { margin-left:auto; display:flex; gap:8px; }
+  .sec-body { padding:16px; display:flex; flex-direction:column; gap:12px; }
   .field { display:flex; flex-direction:column; gap:5px; } .g2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; } .g3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
   @media (max-width:680px){ .g2,.g3 { grid-template-columns:1fr; } }
-  .hint { font-size:11.5px; color:var(--faint); } .empty-in { color:var(--faint); font-size:13px; font-style:italic; padding:4px 0; }
-  .addbar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .hint { font-size:11.5px; color:var(--faint); } .empty-in { color:var(--faint); font-size:13px; font-style:italic; padding:4px 0; } .addbar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .rowline { display:flex; gap:8px; align-items:center; }
+
+  /* attribute / parameter rows with locking */
+  .arow { display:flex; align-items:center; gap:12px; padding:9px 0; border-bottom:1px solid var(--line); } .arow:last-child { border-bottom:0; }
+  .arow .an { font-weight:560; min-width:150px; } .arow .an .sub { font-weight:400; color:var(--faint); font-size:11px; font-family:var(--mono); }
+  .arow .av { flex:1; } .arow .av .ro { font-family:var(--mono); font-variant-numeric:tabular-nums; } .arow .av .ro .u { color:var(--faint); }
+  .arow .aa { display:flex; gap:6px; align-items:center; }
 
   /* tasks */
-  .task { border:1px solid var(--line); border-radius:11px; background:var(--panel-2); overflow:hidden; }
-  .task-top { display:flex; align-items:center; gap:10px; padding:9px 11px; }
-  .tseq { font-family:var(--mono); font-weight:700; color:var(--accent); background:var(--accent-soft); border-radius:6px; padding:3px 9px; font-size:12px; flex:none; }
-  .tinstr { flex:1; } .tresp { width:auto; flex:none; }
-  .tmove { display:flex; gap:3px; flex:none; }
-  .task-extra { padding:0 11px 11px 48px; display:flex; flex-direction:column; gap:10px; }
+  .task { border:1px solid var(--line); border-radius:11px; background:var(--panel-2); overflow:hidden; } .task.ex { opacity:.6; }
+  .task-top { display:flex; align-items:center; gap:10px; padding:9px 11px; } .tseq { font-family:var(--mono); font-weight:700; color:var(--accent); background:var(--accent-soft); border-radius:6px; padding:3px 9px; font-size:12px; flex:none; }
+  .tname { flex:1; min-width:0; } .tname .ti { font-weight:560; } .tname .ti.ex { text-decoration:line-through; color:var(--faint); } .tname .tm { font-family:var(--mono); font-size:10px; color:var(--faint); }
+  .task-extra { padding:0 11px 11px 48px; display:flex; flex-direction:column; gap:10px; } .taus { display:flex; gap:6px; align-items:center; }
 
-  /* matrix */
   .scroll { overflow-x:auto; }
-  table.mtx { border-collapse:separate; border-spacing:0; width:100%; min-width:480px; }
-  table.mtx th, table.mtx td { padding:9px 8px; border-bottom:1px solid var(--line); }
+  table.mtx { border-collapse:separate; border-spacing:0; width:100%; min-width:480px; } table.mtx th, table.mtx td { padding:9px 8px; border-bottom:1px solid var(--line); }
   table.mtx thead th { text-align:center; vertical-align:bottom; } table.mtx th.tc, table.mtx td.tc { text-align:left; min-width:220px; }
   .fh { display:flex; flex-direction:column; align-items:center; gap:2px; } .fh .fl { font-weight:660; font-size:12px; white-space:nowrap; } .fh .fs { font-family:var(--mono); font-size:9px; color:var(--faint); }
   table.mtx td.c { text-align:center; }
   .cbx { appearance:none; -webkit-appearance:none; width:20px; height:20px; border:1.5px solid var(--line-2); border-radius:6px; cursor:pointer; position:relative; vertical-align:middle; background:var(--bg); }
-  .cbx:hover:not(:disabled) { border-color:var(--accent); } .cbx:checked { background:var(--accent); border-color:var(--accent); }
-  .cbx:checked::after { content:""; position:absolute; left:6px; top:2px; width:5px; height:10px; border:solid #fff; border-width:0 2px 2px 0; transform:rotate(45deg); }
+  .cbx:hover:not(:disabled) { border-color:var(--accent); } .cbx:checked { background:var(--accent); border-color:var(--accent); } .cbx:checked::after { content:""; position:absolute; left:6px; top:2px; width:5px; height:10px; border:solid #fff; border-width:0 2px 2px 0; transform:rotate(45deg); }
   .cbx:disabled { cursor:not-allowed; opacity:.85; } .cbx:disabled:checked { background:var(--faint); border-color:var(--faint); }
-  .ti { font-weight:550; font-size:13px; } .tmn { font-family:var(--mono); font-size:10px; color:var(--faint); }
+  .ti2 { font-weight:550; font-size:13px; } .tmn { font-family:var(--mono); font-size:10px; color:var(--faint); }
   tr.tot td { border-bottom:0; font-family:var(--mono); font-size:11px; color:var(--muted); text-align:center; padding-top:8px; } tr.tot td.tc { text-align:right; color:var(--faint); }
-  .drops { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:10px; }
-  .drop { border:1px solid var(--line); border-radius:10px; padding:11px 12px; } .drop.empty { opacity:.55; }
-  .drop h4 { font-size:12.5px; display:flex; align-items:baseline; gap:8px; } .drop h4 .n { margin-left:auto; font-family:var(--mono); font-size:10.5px; color:var(--accent); background:var(--accent-soft); padding:1px 7px; border-radius:999px; }
-  .drop ul { margin:8px 0 0; padding-left:16px; font-size:12px; color:var(--muted); } .drop li { margin:2px 0; }
-  table.tl { border-collapse:collapse; width:100%; min-width:480px; font-size:12px; }
-  table.tl th, table.tl td { padding:6px 4px; text-align:center; border-bottom:1px solid var(--line); }
-  table.tl th.rl, table.tl td.rl { text-align:left; white-space:nowrap; font-weight:560; padding-right:12px; } table.tl th { font-family:var(--mono); font-size:10px; color:var(--faint); font-weight:600; }
-  .tldot { width:9px; height:9px; border-radius:50%; background:var(--accent); display:inline-block; } .cap { font-size:11.5px; color:var(--faint); margin-top:8px; }
+  .drops { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:10px; } .drop { border:1px solid var(--line); border-radius:10px; padding:11px 12px; } .drop.empty { opacity:.55; }
+  .drop h4 { font-size:12.5px; display:flex; align-items:baseline; gap:8px; } .drop h4 .n { margin-left:auto; font-family:var(--mono); font-size:10.5px; color:var(--accent); background:var(--accent-soft); padding:1px 7px; border-radius:999px; } .drop ul { margin:8px 0 0; padding-left:16px; font-size:12px; color:var(--muted); } .drop li { margin:2px 0; } .drop .src { color:var(--faint); }
   .freqtags { display:flex; gap:6px; flex-wrap:wrap; } .freqtag { display:inline-flex; align-items:center; gap:3px; font-family:var(--mono); font-size:11px; color:var(--accent); background:var(--accent-soft); border-radius:6px; padding:3px 4px 3px 9px; }
-  .rowline { display:flex; gap:8px; align-items:center; }
+  .months { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; } .mo { border:1px solid var(--line); border-radius:9px; padding:9px 10px; background:var(--panel-2); } .mo.absorb { background:var(--warn-soft); } .mo .mm { font-family:var(--mono); font-size:10px; color:var(--faint); } .mo .ml { font-weight:640; font-size:13px; } .mo .md { font-size:11px; color:var(--muted); } .mo .cn { font-family:var(--mono); font-size:11px; color:var(--accent); }
+  .summary { display:flex; gap:18px; flex-wrap:wrap; align-items:center; margin-bottom:12px; } .stat .k { color:var(--muted); font-size:11.5px; } .stat b { font-family:var(--mono); font-size:18px; } .cap { font-size:11.5px; color:var(--faint); margin-top:8px; }
 
-  /* modal */
-  .ovl { position:fixed; inset:0; background:rgba(12,22,18,.5); display:flex; align-items:flex-start; justify-content:center; padding:44px 16px; z-index:60; overflow:auto; }
-  .modal { background:var(--panel); border:1px solid var(--line); border-radius:16px; width:min(680px,100%); box-shadow:var(--sh-2); }
-  .modal header { display:flex; align-items:center; gap:10px; padding:16px 18px; border-bottom:1px solid var(--line); } .modal header h3 { font-size:15px; }
-  .modal .mbody { padding:16px 18px; }
-  .modal .side-tabs { display:flex; gap:4px; margin-bottom:12px; } .modal .side-tabs button { border:0; background:var(--panel-2); color:var(--muted); padding:5px 11px; border-radius:8px; font-weight:600; } .modal .side-tabs button.on { background:var(--accent-soft); color:var(--accent); }
-  pre.json { font-family:var(--mono); font-size:11.5px; margin:0; white-space:pre-wrap; word-break:break-word; max-height:52vh; overflow:auto; background:var(--bg); border:1px solid var(--line); border-radius:9px; padding:12px; }
-  .issue { display:flex; gap:9px; align-items:flex-start; font-size:12.5px; padding:9px 11px; border-radius:8px; background:var(--crit-soft); border:1px solid color-mix(in srgb,var(--crit) 22%,transparent); margin-bottom:8px; }
-  .issue .p { font-family:var(--mono); font-size:11px; color:var(--crit); flex:none; }
-  .allgood { display:flex; align-items:center; gap:9px; color:var(--good); font-weight:600; }
+  .ovl { position:fixed; inset:0; background:rgba(12,22,18,.5); display:flex; align-items:flex-start; justify-content:center; padding:44px 16px; z-index:60; overflow:auto; } .modal { background:var(--panel); border:1px solid var(--line); border-radius:16px; width:min(680px,100%); box-shadow:var(--sh-2); } .modal header { display:flex; align-items:center; gap:10px; padding:16px 18px; border-bottom:1px solid var(--line); } .modal .mbody { padding:16px 18px; } pre.json { font-family:var(--mono); font-size:11.5px; margin:0; white-space:pre-wrap; word-break:break-word; max-height:60vh; overflow:auto; background:var(--bg); border:1px solid var(--line); border-radius:9px; padding:12px; }
   .drag .detail { outline:2px dashed var(--accent); outline-offset:-10px; }
-  @media (max-width:760px){ .rail { width:230px; } .dbody { padding:16px; } }
+  @media (max-width:760px){ .rail { width:240px; } .dbody { padding:16px; } }
 </style>
 </head>
 <body>
   <div class="topbar">
-    <div class="brand">
-      <svg class="mark" width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 22V12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M12 12L6.5 7.5M12 12l5.5-4.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="6" cy="7" r="2" fill="currentColor"/><circle cx="18" cy="7" r="2" fill="currentColor"/></svg>
-      Plantree <small>· Job Plans</small>
-    </div>
+    <div class="brand"><svg class="mark" width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 22V12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M12 12L6.5 7.5M12 12l5.5-4.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="6" cy="7" r="2" fill="currentColor"/><circle cx="18" cy="7" r="2" fill="currentColor"/></svg>Plantree <small>· Job Plans</small></div>
     <div class="right"><span id="support" class="status warn">checking…</span></div>
   </div>
-
   <div class="app">
     <aside class="rail">
       <div class="rail-top">
-        <div class="rail-actions">
-          <button class="btn primary" id="newPlan">+ New plan</button>
-        </div>
-        <div class="rail-load">
-          <button class="btn" id="openFolder">Open folder</button>
-          <button class="btn" id="chooseFiles">Files</button>
-          <button class="btn" id="loadSamples">Samples</button>
-        </div>
-        <div class="search">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--faint)"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2" stroke-linecap="round"/></svg>
-          <input id="q" placeholder="Search plans…" />
-        </div>
+        <div class="rail-actions"><button class="btn primary" id="newClass">+ New class</button></div>
+        <div class="rail-load"><button class="btn" id="openFolder">Open folder</button><button class="btn" id="chooseFiles">Files</button><button class="btn" id="loadSamples">Samples</button></div>
+        <div class="search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--faint)"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2" stroke-linecap="round"/></svg><input id="q" placeholder="Search classes, models, instances…" /></div>
       </div>
       <div class="rail-list" id="railList"></div>
     </aside>
     <main class="detail" id="detail"></main>
   </div>
   <input type="file" id="fileInput" accept=".json" multiple hidden />
-
 <script>
 (function () {
   "use strict";
   var UNIT = { day: "Daily", week: "Weekly", month: "Monthly", year: "Annual" };
-  var RESPONSE_TYPES = ["none", "passfail", "numeric", "text", "choice"];
+  var RESP = ["none", "passfail", "numeric", "text", "choice"];
   var fsaSupported = typeof window.showDirectoryPicker === "function";
-
-  var store = [], folderHandle = null;
+  var families = [], folderHandle = null;
   var G = { q: "", collapsed: {} };
-  var E = { doc: null, entry: null, sel: 0, tab: "tasks" };
-  var freqSeq = 1;
+  var E = { fam: -1, mi: -1, ii: -1, tab: "tasks" }; // selection: fam idx, model idx (-1=class level), instance idx (-1)
+  var idSeq = 1;
 
-  function el(t, p, k) {
-    var n = document.createElement(t);
-    if (p) Object.keys(p).forEach(function (key) {
-      if (key === "class") n.className = p[key];
-      else if (key === "html") n.innerHTML = p[key];
-      else if (key.slice(0, 2) === "on") n.addEventListener(key.slice(2), p[key]);
-      else if (key in n) { try { n[key] = p[key]; } catch (e) { n.setAttribute(key, p[key]); } }
-      else n.setAttribute(key, p[key]);
-    });
-    (k || []).forEach(function (c) { if (c != null) n.appendChild(typeof c === "string" ? document.createTextNode(c) : c); });
-    return n;
-  }
-  function nowIso() { return new Date().toISOString(); }
-  function slug(s) { return (s || "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, ""); }
-  function csv(a) { return (a || []).join(", "); } function parseCsv(s) { return (s || "").split(",").map(function (x) { return x.trim(); }).filter(Boolean); }
+  function el(t, p, k) { var n = document.createElement(t); if (p) Object.keys(p).forEach(function (key) { if (key === "class") n.className = p[key]; else if (key === "html") n.innerHTML = p[key]; else if (key.slice(0, 2) === "on") n.addEventListener(key.slice(2), p[key]); else if (key in n) { try { n[key] = p[key]; } catch (e) { n.setAttribute(key, p[key]); } } else n.setAttribute(key, p[key]); }); (k || []).forEach(function (c) { if (c != null) n.appendChild(typeof c === "string" ? document.createTextNode(c) : c); }); return n; }
+  function nid(pfx) { return pfx + "_" + (idSeq++); }
   function freqLabel(f) { if (f.label) return f.label; if (f.interval === 1) return UNIT[f.unit]; if (f.unit === "month") return f.interval + "-Monthly"; if (f.unit === "year") return f.interval + "-Yearly"; return "Every " + f.interval + " " + f.unit + "s"; }
   function fsub(f) { return "every " + f.interval + " " + f.unit + (f.interval > 1 ? "s" : ""); }
-  function activeVersion(p) { var vs = p.versions || []; return vs.filter(function (v) { return v.version === p.activeVersion; })[0] || vs.filter(function (v) { return v.lifecycleState === "active"; })[0] || vs.slice().sort(function (a, b) { return (b.version || 0) - (a.version || 0); })[0] || { tasks: [] }; }
+  function csv(a) { return (a || []).join(", "); } function parseCsv(s) { return (s || "").split(",").map(function (x) { return x.trim(); }).filter(Boolean); }
 
-  /* seed samples (compact) */
-  function T(i, r, f) { return { seq: 0, instruction: i, responseType: r, unit: null, acceptableRange: null, choices: null, requiredSkills: [], frequencyIds: f || [] }; }
-  var SAMPLES = [
-    { id: "jp_ups_quarterly_inspection", type: "jobPlan", code: "JP-UPS-QTR", name: "Quarterly UPS Inspection", assetClass: "UPS", assetModel: "Schneider Galaxy VX", description: "Routine quarterly inspection for static UPS units.", updatedAt: "2026-06-18", activeVersion: 4,
-      versions: [{ version: 4, lifecycleState: "active", estimatedLabourHours: 1.5, safetyInstructions: "Confirm bypass before intrusive work.", frequencies: [{ id: "q", label: "Quarterly", unit: "month", interval: 3 }], tasks: [T("Record input voltage.", "numeric", ["q"]), T("Battery impedance per string.", "numeric", ["q"]), T("Check fans & filters.", "passfail", ["q"]), T("Review event log.", "text", ["q"])], plannedParts: [], requiredSkills: ["Electrical – LV"], requiredTools: [], requiredPermits: [], parameters: [] }] },
-    { id: "jp_ups_battery_load", type: "jobPlan", code: "JP-UPS-BAT", name: "Annual UPS Battery Load Test", assetClass: "UPS", description: "Timed discharge / capacity test of the battery string.", updatedAt: "2026-04-11", activeVersion: 1,
-      versions: [{ version: 1, lifecycleState: "active", estimatedLabourHours: 3, frequencies: [{ id: "y", unit: "year", interval: 1 }], tasks: [T("Record float voltage per cell.", "numeric", ["y"]), T("Run timed discharge.", "numeric", ["y"])], plannedParts: [], requiredSkills: [], requiredTools: [], requiredPermits: [], parameters: [] }] },
-    { id: "jp_generator_maintenance", type: "jobPlan", code: "JP-GEN-STD", name: "Standby Generator Maintenance", assetClass: "Generator", assetModel: "Caterpillar 3512", description: "Full programme for standby diesel generators.", updatedAt: "2026-06-01", activeVersion: 1,
-      versions: [{ version: 1, lifecycleState: "active", estimatedLabourHours: 3, frequencies: [{ id: "w", unit: "week", interval: 1 }, { id: "m", unit: "month", interval: 1 }, { id: "s", unit: "month", interval: 6 }, { id: "y", unit: "year", interval: 1 }], tasks: [T("Visual inspection.", "passfail", ["w"]), T("Check coolant & oil.", "passfail", ["w", "m"]), T("No-load test run.", "passfail", ["m"]), T("Change oil & filter.", "passfail", ["s"]), T("Full-load test.", "numeric", ["y"])], plannedParts: [{ partRef: null, description: "Oil filter", quantity: 1, unit: "each" }], requiredSkills: ["Mechanical"], requiredTools: [], requiredPermits: [], parameters: [] }] },
-    { id: "jp_generator_fuel", type: "jobPlan", code: "JP-GEN-FUEL", name: "Generator Fuel System Service", assetClass: "Generator", assetModel: "Caterpillar 3512", description: "Fuel filters, injectors and tank water management.", updatedAt: "2026-03-22", activeVersion: 2,
-      versions: [{ version: 2, lifecycleState: "active", estimatedLabourHours: 2, frequencies: [{ id: "s", label: "6-Monthly", unit: "month", interval: 6 }], tasks: [T("Replace fuel filters.", "passfail", ["s"]), T("Drain tank water trap.", "passfail", ["s"])], plannedParts: [], requiredSkills: [], requiredTools: [], requiredPermits: [], parameters: [] }] },
-    { id: "jp_chiller_annual", type: "jobPlan", code: "JP-CHW-ANN", name: "Chiller Annual Service", assetClass: "Chiller", description: "Annual major service for water-cooled centrifugal chillers.", updatedAt: "2026-05-20", activeVersion: 2,
-      versions: [{ version: 2, lifecycleState: "active", estimatedLabourHours: 8, frequencies: [{ id: "y", unit: "year", interval: 1 }], tasks: [T("Eddy-current tube test.", "passfail", ["y"]), T("Oil analysis.", "numeric", ["y"]), T("Refrigerant charge check.", "numeric", ["y"])], plannedParts: [], requiredSkills: [], requiredTools: [], requiredPermits: [], parameters: [] }] },
-    { id: "jp_chiller_weekly", type: "jobPlan", code: "JP-CHW-WK", name: "Chiller Weekly Log", assetClass: "Chiller", description: "Operator weekly readings and visual check.", updatedAt: "2026-07-05", activeVersion: 1,
-      versions: [{ version: 1, lifecycleState: "active", estimatedLabourHours: 0.25, frequencies: [{ id: "w", unit: "week", interval: 1 }], tasks: [T("Record condenser/evaporator temps.", "numeric", ["w"]), T("Check for leaks/alarms.", "passfail", ["w"])], plannedParts: [], requiredSkills: [], requiredTools: [], requiredPermits: [], parameters: [] }] },
-    { id: "jp_crah_filter", type: "jobPlan", code: "JP-CRAH-FLT", name: "CRAH Filter & Belt Check", assetClass: "CRAH", description: "Monthly filter and belt inspection for CRAH units.", updatedAt: "2026-07-02", activeVersion: 3,
-      versions: [{ version: 3, lifecycleState: "active", estimatedLabourHours: 0.5, frequencies: [{ id: "m", unit: "month", interval: 1 }], tasks: [T("Inspect / replace filters.", "passfail", ["m"]), T("Check belt tension.", "passfail", ["m"])], plannedParts: [], requiredSkills: [], requiredTools: [], requiredPermits: [], parameters: [] }] },
-    { id: "jp_firepump_weekly", type: "jobPlan", code: "JP-FP-WK", name: "Fire Pump Weekly Test", assetClass: "Fire Pump", description: "Statutory weekly no-flow (churn) test.", updatedAt: "2026-07-06", activeVersion: 1,
-      versions: [{ version: 1, lifecycleState: "active", estimatedLabourHours: 0.5, frequencies: [{ id: "w", unit: "week", interval: 1 }], tasks: [T("Start pump, run 10 min.", "passfail", ["w"]), T("Confirm auto-start.", "passfail", ["w"])], plannedParts: [], requiredSkills: [], requiredTools: [], requiredPermits: [], parameters: [] }] },
-    { id: "jp_thermo_survey", type: "jobPlan", code: "JP-THERMO", name: "Thermographic Survey", assetClass: "Switchboard", description: "Infrared survey of switchboards — draft, pending approval.", updatedAt: "2026-07-09", activeVersion: null,
-      versions: [{ version: 1, lifecycleState: "draft", estimatedLabourHours: 4, frequencies: [{ id: "y", unit: "year", interval: 1 }], tasks: [T("Scan main switchboard under load.", "numeric", ["y"]), T("Log hotspots > 60°C.", "text", ["y"])], plannedParts: [], requiredSkills: [], requiredTools: [], requiredPermits: [], parameters: [] }] }
-  ];
+  /* ---------- seed families ---------- */
+  function T(id, i, r, f, opt) { return Object.assign({ id: id, instruction: i, responseType: r, unit: null, acceptableRange: null, choices: null, requiredSkills: [], frequencyIds: f || [], enforced: false }, opt || {}); }
+  function seed() {
+    return [
+      { id: "gen", code: "GEN", name: "Standby Generator", description: "Standby diesel generators.",
+        attrs: { estimatedLabourHours: { value: 3, enforced: false }, safety: { value: "Set control to MANUAL/OFF and lock off before intrusive work.", enforced: true } },
+        parameters: [ { id: "p_exh", key: "maxExhaustTempC", label: "Max exhaust temp", valueType: "number", defaultValue: 600, unit: "°C", enforced: true }, { id: "p_oil", key: "oilGrade", label: "Oil grade", valueType: "text", defaultValue: "15W-40", unit: null, enforced: false } ],
+        frequencies: [ { id: "w", unit: "week", interval: 1 }, { id: "m", unit: "month", interval: 1 }, { id: "s", unit: "month", interval: 6 }, { id: "y", unit: "year", interval: 1 } ],
+        tasks: [ T("t1", "Visual inspection for leaks/damage.", "passfail", ["w"]), T("t2", "Check coolant & oil levels.", "passfail", ["w", "m"]), T("t3", "No-load test run (15 min).", "passfail", ["m"]), T("t4", "Change oil & oil filter.", "passfail", ["s"]), T("t5", "Full-load / building-load test.", "numeric", ["y"], { enforced: true }) ],
+        plannedParts: [ { partRef: null, description: "Oil filter", quantity: 1, unit: "each" } ], requiredSkills: ["Mechanical", "Electrical – LV"], requiredTools: [], requiredPermits: [],
+        models: [ { id: "gm1", code: "CAT-3512", name: "Caterpillar 3512", attrOverrides: {}, paramOverrides: { p_oil: "Cat DEO 15W-40" }, addedFreqs: [], addedTasks: [ T("gm1t1", "Verify ECM firmware ≥ 4.2.", "passfail", ["s"]) ], exclusions: [], mapOverrides: {},
+          instances: [ { id: "gi1", code: "GEN-1", name: "GEN-1", site: "SYD1", attrOverrides: { estimatedLabourHours: 3.5 }, paramOverrides: {}, addedFreqs: [], addedTasks: [ T("gi1t1", "Clean radiator core (dusty site).", "passfail", ["m"]) ], exclusions: [], mapOverrides: { t2: ["m"] } } ] } ] },
+      { id: "ups", code: "UPS", name: "Uninterruptible Power Supply", description: "Static UPS units.",
+        attrs: { estimatedLabourHours: { value: 1.5, enforced: false }, safety: { value: "Confirm bypass or redundant path covers the load before intrusive work.", enforced: true } },
+        parameters: [ { id: "p_imp", key: "maxImpedanceMilliOhm", label: "Max cell impedance", valueType: "number", defaultValue: 5.0, unit: "mΩ", enforced: false } ],
+        frequencies: [ { id: "q", label: "Quarterly", unit: "month", interval: 3 } ],
+        tasks: [ T("u1", "Record input voltage.", "numeric", ["q"]), T("u2", "Battery impedance per string.", "numeric", ["q"]), T("u3", "Check fans & filters.", "passfail", ["q"]) ],
+        plannedParts: [], requiredSkills: ["Electrical – LV"], requiredTools: [], requiredPermits: [],
+        models: [ { id: "um1", code: "GALAXY-VX", name: "Schneider Galaxy VX", attrOverrides: {}, paramOverrides: { p_imp: 4.5 }, addedFreqs: [], addedTasks: [], exclusions: [], mapOverrides: {},
+          instances: [ { id: "ui1", code: "UPS-A1", name: "UPS-A1", site: "SYD1", attrOverrides: {}, paramOverrides: {}, addedFreqs: [], addedTasks: [], exclusions: [], mapOverrides: {} } ] } ] }
+    ];
+  }
 
-  /* ---------- data model ---------- */
-  function emptyVersion(v) { return { version: v, lifecycleState: "draft", estimatedLabourHours: null, safetyInstructions: "", frequencies: [], tasks: [], plannedParts: [], requiredSkills: [], requiredTools: [], requiredPermits: [], parameters: [], approvedBy: null, approvedAt: null, notes: "" }; }
-  function newDoc() { var t = nowIso(); return { id: "", type: "jobPlan", code: "", name: "", description: "", assetClass: "", assetModel: "", rev: 0, createdAt: t, createdBy: null, updatedAt: t, updatedBy: null, activeVersion: null, versions: [emptyVersion(1)] }; }
-  function loadDoc(obj) { var d = newDoc(); Object.assign(d, obj); if (!Array.isArray(d.versions) || !d.versions.length) d.versions = [emptyVersion(1)]; d.versions.forEach(function (v) { ["frequencies", "tasks", "plannedParts", "requiredSkills", "requiredTools", "requiredPermits", "parameters"].forEach(function (k) { if (!Array.isArray(v[k])) v[k] = []; }); }); return d; }
-  function cur() { return E.doc.versions[E.sel]; }
-  function editable() { return cur().lifecycleState === "draft"; }
-  function maxVersion() { return E.doc.versions.reduce(function (m, v) { return Math.max(m, v.version); }, 0); }
-  function activeIndex(d) { var i = (d.versions || []).findIndex(function (v) { return v.version === d.activeVersion; }); if (i >= 0) return i; i = d.versions.findIndex(function (v) { return v.lifecycleState === "active"; }); return i >= 0 ? i : 0; }
-  function validate(d) { var out = []; function add(p, m) { out.push({ path: p, msg: m }); } if (!d.code || !d.code.trim()) add("code", "Code is required."); if (!d.name || !d.name.trim()) add("name", "Name is required."); var seen = {}, act = 0; (d.versions || []).forEach(function (v) { var vp = "v" + v.version; if (seen[v.version]) add(vp, "Duplicate version."); seen[v.version] = true; if (v.lifecycleState === "active") act++; if (!(v.tasks || []).length) add(vp + ".tasks", "No tasks."); (v.tasks || []).forEach(function (t, j) { var tp = vp + ".task[" + (j + 1) + "]"; if (!t.instruction || !t.instruction.trim()) add(tp, "Instruction is empty."); if (t.responseType === "numeric" && Array.isArray(t.acceptableRange) && t.acceptableRange.length === 2 && t.acceptableRange[0] > t.acceptableRange[1]) add(tp, "Range low > high."); if (t.responseType === "choice" && !(t.choices || []).length) add(tp, "Choice needs an option."); }); }); if (act > 1) add("activeVersion", "More than one active version."); return out; }
-  function normDoc(doc) { var d = JSON.parse(JSON.stringify(doc)); if (!d.id) d.id = "jp_" + (slug(d.code) || slug(d.name) || "plan"); (d.versions || []).forEach(function (v) { (v.tasks || []).forEach(function (t, i) { t.seq = i + 1; }); v.estimatedLabourHours = (v.estimatedLabourHours === "" || v.estimatedLabourHours == null) ? null : Number(v.estimatedLabourHours); }); return d; }
-  function normalized() { return normDoc(E.doc); }
-  function forSave() { var d = normalized(); d.updatedAt = nowIso(); d.rev = (d.rev || 0) + 1; E.doc.rev = d.rev; E.doc.updatedAt = d.updatedAt; if (!E.doc.id) E.doc.id = d.id; return d; }
-  function stripVol(d) { var c = JSON.parse(JSON.stringify(d)); ["rev", "updatedAt", "createdAt", "updatedBy", "createdBy"].forEach(function (k) { delete c[k]; }); return c; }
-  // canonicalize through the same loader so key order / default-field presence match on both sides
-  function canon(p) { return JSON.stringify(stripVol(normDoc(loadDoc(JSON.parse(JSON.stringify(p)))))); }
-  function dirty() { if (!E.doc) return false; if (!E.entry) return true; return canon(E.doc) !== canon(E.entry.plan); }
+  /* ---------- selection & chain ---------- */
+  function selFamily() { return families[E.fam]; }
+  function selModel() { return E.mi >= 0 ? selFamily().models[E.mi] : null; }
+  function selInstance() { return E.ii >= 0 ? selModel().instances[E.ii] : null; }
+  function level() { return E.ii >= 0 ? "instance" : E.mi >= 0 ? "model" : "class"; }
+  function chain() { var f = selFamily(); var c = [f]; if (E.mi >= 0) c.push(f.models[E.mi]); if (E.ii >= 0) c.push(f.models[E.mi].instances[E.ii]); return c; }
+  function selNode() { var c = chain(); return c[c.length - 1]; }
+
+  /* ---------- resolution ---------- */
+  function effAttr(ch, key) { var cls = ch[0].attrs[key]; if (cls.enforced) return { value: cls.value, state: ch.length === 1 ? "class-enforced" : "enforced", from: 0 }; var val = cls.value, from = 0; for (var i = 1; i < ch.length; i++) { if (ch[i].attrOverrides && (key in ch[i].attrOverrides)) { val = ch[i].attrOverrides[key]; from = i; } } return { value: val, state: ch.length === 1 ? "class" : (from === ch.length - 1 ? "overridden" : "inherited"), from: from }; }
+  function effParam(ch, p) { if (p.enforced) return { value: p.defaultValue, state: ch.length === 1 ? "class-enforced" : "enforced" }; var val = p.defaultValue, from = 0; for (var i = 1; i < ch.length; i++) { if (ch[i].paramOverrides && (p.id in ch[i].paramOverrides)) { val = ch[i].paramOverrides[p.id]; from = i; } } return { value: val, state: ch.length === 1 ? "class" : (from === ch.length - 1 ? "overridden" : "inherited"), from: from }; }
+  function effFreqs(ch) { var out = ch[0].frequencies.map(function (f) { return Object.assign({ origin: 0 }, f); }); for (var i = 1; i < ch.length; i++) ch[i].addedFreqs.forEach(function (f) { out.push(Object.assign({ origin: i }, f)); }); return out; }
+  function effTasks(ch) { var out = []; ch[0].tasks.forEach(function (t) { var ex = false; if (!t.enforced) for (var i = 1; i < ch.length; i++) if (ch[i].exclusions.indexOf(t.id) >= 0) ex = true; out.push({ task: t, origin: 0, enforced: t.enforced, excluded: ex }); }); for (var i = 1; i < ch.length; i++) ch[i].addedTasks.forEach(function (t) { out.push({ task: t, origin: i }); }); return out; }
+  function effTicks(ch, row) { var t = row.task; if (row.origin !== 0) return (t.frequencyIds || []).slice(); if (t.enforced) return (t.frequencyIds || []).slice(); var ticks = t.frequencyIds || []; for (var i = 1; i < ch.length; i++) if (ch[i].mapOverrides[t.id]) ticks = ch[i].mapOverrides[t.id]; return ticks.slice(); }
+  function rowState(ch, row) { var lvl = ch.length - 1; if (row.origin === 0) { if (row.enforced) return "enforced"; if (row.excluded) return "excluded"; if (lvl > 0 && ch[lvl].mapOverrides[row.task.id]) return "overridden"; return lvl === 0 ? "class" : "inherited"; } return row.origin === lvl ? "added" : "added-up"; }
+  function chip(state, origin) { var m = { "class": ["p-class", "Class base"], "class-enforced": ["p-enforced", "🔒 Enforced ↓"], enforced: ["p-enforced", "🔒 Enforced"], overridden: ["p-overridden", "🔒 Overridden"], inherited: ["p-inherited", "Inherited" + (origin ? "·" + origin : "")], added: ["p-added", "Added here"], "added-up": ["p-inherited", "Added·" + (origin || "")], excluded: ["p-excluded", "Excluded"] }; var c = m[state] || ["p-class", state]; return el("span", { class: "prov " + c[0] }, [c[1]]); }
+  function levelName(i) { return i === 0 ? "class" : i === 1 ? "model" : "instance"; }
 
   /* ---------- rail ---------- */
-  function setSamples() { store = SAMPLES.map(function (p) { return { plan: JSON.parse(JSON.stringify(p)), source: "sample", handle: null }; }); folderHandle = null; E.doc = null; E.entry = null; renderAll(); }
-  function setLoaded(list, fh) { if (!list.length) { alert("No job-plan JSON found (files need \"type\": \"jobPlan\")."); return; } store = list; folderHandle = fh || null; E.doc = null; E.entry = null; renderAll(); }
+  function setSamples() { families = seed(); folderHandle = null; E = { fam: -1, mi: -1, ii: -1, tab: "tasks" }; renderAll(); }
   function renderAll() { renderRail(); renderDetail(); }
-  function groupBy(a, f) { var m = {}; a.forEach(function (e) { var k = f(e); (m[k] = m[k] || []).push(e); }); return m; }
   function caret(o) { return el("svg", { class: "caret" + (o ? " open" : ""), width: "11", height: "11", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2.5", html: '<path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/>' }); }
-  function railFilter() { var q = G.q.toLowerCase(); return store.filter(function (e) { if (!q) return true; var p = e.plan; return (p.name + " " + p.code + " " + (p.assetClass || "") + " " + (p.assetModel || "")).toLowerCase().indexOf(q) >= 0; }); }
+  function matchFam(f) { var q = G.q.toLowerCase(); if (!q) return true; var hay = f.code + " " + f.name; f.models.forEach(function (m) { hay += " " + m.code + " " + m.name; m.instances.forEach(function (i) { hay += " " + i.code + " " + i.name + " " + (i.site || ""); }); }); return hay.toLowerCase().indexOf(q) >= 0; }
   function renderRail() {
     var host = document.getElementById("railList"); host.innerHTML = "";
-    var list = railFilter();
-    host.appendChild(el("div", { class: "rail-count lbl" }, [list.length + (G.q ? " of " + store.length : "") + " plan" + (list.length === 1 ? "" : "s")]));
-    var byClass = groupBy(list, function (e) { return e.plan.assetClass || "Unclassified"; });
-    Object.keys(byClass).sort(function (a, b) { return a.localeCompare(b); }).forEach(function (cls) {
-      var entries = byClass[cls], key = "c:" + cls, open = !G.collapsed[key];
-      var grp = el("div", { class: "grp" }, []);
-      grp.appendChild(el("button", { class: "grp-head", onclick: function () { G.collapsed[key] = open; renderRail(); } }, [caret(open), el("span", { class: "grp-name" }, [cls]), el("span", { class: "grp-ct" }, [String(entries.length)])]));
-      if (open) {
-        if (entries.some(function (e) { return e.plan.assetModel; })) {
-          var byModel = groupBy(entries, function (e) { return e.plan.assetModel || "General"; });
-          Object.keys(byModel).sort(function (a, b) { return a.localeCompare(b); }).forEach(function (mdl) {
-            grp.appendChild(el("div", { class: "sub lbl" }, [mdl]));
-            byModel[mdl].slice().sort(byName).forEach(function (e) { grp.appendChild(item(e, "ind2")); });
-          });
-        } else entries.slice().sort(byName).forEach(function (e) { grp.appendChild(item(e, "ind")); });
-      }
-      host.appendChild(grp);
+    families.filter(matchFam).sort(function (a, b) { return a.name.localeCompare(b.name); }).forEach(function (f) {
+      var fi = families.indexOf(f), key = "f" + fi, open = !G.collapsed[key];
+      var taskct = f.tasks.length;
+      host.appendChild(el("button", { class: "node" + (E.fam === fi && E.mi < 0 ? " sel" : ""), onclick: function () { select(fi, -1, -1); } }, [
+        el("span", { class: "ct", onclick: function (ev) { ev.stopPropagation(); G.collapsed[key] = open; renderRail(); } }, [f.models.length ? caret(open) : el("span", {})]),
+        el("span", { class: "col" }, [el("div", { class: "nm" }, [f.name]), el("div", { class: "mt" }, [f.code + " · " + taskct + " tasks"])]), el("span", { class: "tag" }, ["Class"])
+      ]));
+      if (open) f.models.forEach(function (m, mi) {
+        var mkey = key + "m" + mi, mopen = !G.collapsed[mkey];
+        host.appendChild(el("button", { class: "node lvl1" + (E.fam === fi && E.mi === mi && E.ii < 0 ? " sel" : ""), onclick: function () { select(fi, mi, -1); } }, [
+          el("span", { class: "ct", onclick: function (ev) { ev.stopPropagation(); G.collapsed[mkey] = mopen; renderRail(); } }, [m.instances.length ? caret(mopen) : el("span", {})]),
+          el("span", { class: "col" }, [el("div", { class: "nm" }, [m.name]), el("div", { class: "mt" }, [m.code])]), el("span", { class: "tag" }, ["Model"])
+        ]));
+        if (mopen) m.instances.forEach(function (ins, ii) {
+          host.appendChild(el("button", { class: "node lvl2" + (E.fam === fi && E.mi === mi && E.ii === ii ? " sel" : ""), onclick: function () { select(fi, mi, ii); } }, [
+            el("span", { class: "ct" }, [el("span", {})]), el("span", { class: "col" }, [el("div", { class: "nm" }, [ins.name]), el("div", { class: "mt" }, [ins.code + (ins.site ? " @ " + ins.site : "")])]), el("span", { class: "tag" }, ["Inst"])
+          ]));
+        });
+      });
     });
   }
-  function byName(a, b) { return a.plan.name.localeCompare(b.plan.name); }
-  function item(e, ind) {
-    var p = e.plan, av = activeVersion(p), sel = E.entry === e;
-    return el("button", { class: "item " + ind + (sel ? " sel" : ""), onclick: function () { openPlan(e); } }, [
-      el("span", { class: "dot d-" + (av.lifecycleState || "draft") }),
-      el("span", { class: "col" }, [el("div", { class: "nm" }, [p.name || "Untitled"]), el("div", { class: "mt" }, [(av.tasks.length) + " tasks" + ((av.frequencies || []).length ? " · " + av.frequencies.length + " freq" : "")])])
-    ]);
-  }
+  function select(fam, mi, ii) { E.fam = fam; E.mi = mi; E.ii = ii; E.tab = "tasks"; renderRail(); renderDetail(); }
 
   /* ---------- detail ---------- */
-  function openPlan(e) { E.doc = loadDoc(JSON.parse(JSON.stringify(e.plan))); E.entry = e; E.sel = activeIndex(E.doc); E.tab = "tasks"; renderRail(); renderDetail(); }
-  function openNew() { E.doc = newDoc(); E.entry = null; E.sel = 0; E.tab = "details"; renderRail(); renderDetail(); }
-
   function renderDetail() {
     var host = document.getElementById("detail"); host.innerHTML = "";
-    if (!E.doc) { host.appendChild(emptyState()); return; }
-    host.appendChild(detailHead());
-    host.appendChild(detailTabs());
-    var body = el("div", { class: "dbody" }, [el("div", { class: "wrap", id: "wrap" }, [])]);
-    host.appendChild(body);
-    renderBody();
-  }
-  function emptyState() {
-    var kids = [el("svg", { width: "42", height: "42", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "1.5", html: '<path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4" stroke-linecap="round"/>' }),
-      el("div", { class: "big" }, ["Select a job plan"]), el("div", {}, ["Choose one from the left, or create a new plan."])];
-    if (!fsaSupported) kids.push(el("div", { class: "recommend" }, [el("span", { html: "&#9432;" }), el("span", { html: "Folder open needs the File System Access API — use <b>Edge</b> or <b>Chrome</b>. Otherwise use <b>Files</b> or drag JSON onto the window." })]));
-    return el("div", { class: "empty" }, kids);
+    if (E.fam < 0) { host.appendChild(el("div", { class: "empty" }, [el("svg", { width: "42", height: "42", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "1.5", html: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/>' }), el("div", { class: "big" }, ["Select a class, model or instance"]), el("div", {}, ["The left tree is the asset hierarchy. Pick a node to see its resolved plan."])])); return; }
+    host.appendChild(detailHead()); host.appendChild(detailTabs());
+    var body = el("div", { class: "dbody" }, [el("div", { class: "wrap", id: "wrap" }, [])]); host.appendChild(body); renderBody();
   }
   function detailHead() {
-    var d = E.doc, v = cur();
-    var vsel = el("select", { onchange: function (e) { E.sel = Number(e.target.value); renderDetail(); } }, d.versions.map(function (ver, i) { return el("option", { value: i, selected: i === E.sel }, ["v" + ver.version + " · " + ver.lifecycleState]); }));
-    var life = [];
-    if (v.lifecycleState === "draft") life.push(el("button", { class: "btn sm", onclick: function () { setLife("approved"); } }, ["Approve"]));
-    if (v.lifecycleState === "approved" || v.lifecycleState === "superseded") life.push(el("button", { class: "btn sm primary", onclick: function () { setLife("active"); } }, ["Make active"]));
-    if (v.lifecycleState !== "retired" && v.lifecycleState !== "draft") life.push(el("button", { class: "btn sm danger", onclick: function () { setLife("retired"); } }, ["Retire"]));
-    var right = el("div", { class: "dhead-right" }, [
-      el("span", { class: "dirty", id: "dirtyTag", style: dirty() ? "" : "display:none" }, ["Unsaved"]),
-      el("span", { class: "vpick" }, [el("span", { class: "lbl" }, ["Ver"]), vsel]),
-      el("button", { class: "btn sm", onclick: newVersion, title: "Clone into a new draft" }, ["+ Version"])
-    ].concat(life).concat([
-      el("button", { class: "btn sm", id: "validBtn", onclick: function () { openInspect("valid"); } }, [validSummary()]),
-      el("button", { class: "btn sm ghost", onclick: function () { openInspect("json"); } }, ["{ } JSON"]),
-      el("button", { class: "btn primary", onclick: save }, ["Save"])
-    ]));
-    var clschip = d.assetClass ? el("span", { class: "clschip" }, [el("span", { class: "dot d-active", style: "background:var(--accent)" }), d.assetClass + (d.assetModel ? " › " + d.assetModel : "")]) : null;
+    var node = selNode(), lvl = level(), f = selFamily();
+    var crumb = lvl === "class" ? "Class template" : lvl === "model" ? el("span", { class: "crumb" }, [el("b", {}, [f.name]), " › model"]) : el("span", { class: "crumb" }, [el("b", {}, [f.name]), " › ", el("b", {}, [selModel().name]), " › instance" + (node.site ? " @ " + node.site : "")]);
     return el("div", { class: "dhead" }, [
-      el("div", {}, [el("div", { class: "dtitle", id: "dTitle" }, [d.name || "Untitled plan"]), el("div", { class: "dsub" }, [el("span", { class: "code" }, [d.code || "no code"]), clschip, el("span", { class: "badge b-" + v.lifecycleState }, [v.lifecycleState])])]),
-      right
+      el("div", {}, [el("div", { class: "dtitle", id: "dTitle" }, [node.name || "Untitled"]), el("div", { class: "dsub" }, [el("span", { class: "nbadge nb-" + lvl }, [lvl]), el("span", { class: "code" }, [node.code || "—"]), crumb])]),
+      el("div", { class: "dhead-right" }, [ el("span", { class: "dirty", id: "dirtyTag", style: dirty() ? "" : "display:none" }, ["Unsaved"]), lvl !== "class" ? el("button", { class: "btn sm", onclick: addInstanceOrModelHint }, [lvl === "model" ? "+ Instance" : ""]) : el("button", { class: "btn sm", onclick: addModel }, ["+ Model"]), el("button", { class: "btn sm ghost", onclick: function () { openInspect(); } }, ["Effective plan { }"]), el("button", { class: "btn primary", onclick: save }, ["Save"]) ])
     ]);
   }
+  function addInstanceOrModelHint() { if (level() === "model") addInstance(); }
   function detailTabs() {
-    var v = cur();
+    var ch = chain(), nt = effTasks(ch).filter(function (r) { return !r.excluded; }).length, nf = effFreqs(ch).length;
     function tab(id, label, pill) { return el("button", { class: "dtab" + (E.tab === id ? " on" : ""), onclick: function () { E.tab = id; renderDetail(); } }, [label, pill != null ? el("span", { class: "pill" }, [String(pill)]) : null]); }
-    return el("div", { class: "dtabs" }, [tab("tasks", "Tasks", v.tasks.length), tab("schedule", "Schedule", v.frequencies.length), tab("details", "Details")]);
+    return el("div", { class: "dtabs" }, [tab("tasks", "Tasks", nt), tab("schedule", "Schedule", nf), tab("details", "Details")]);
   }
-  function renderBody() {
-    var w = document.getElementById("wrap"); w.innerHTML = "";
-    if (!editable()) w.appendChild(el("div", { class: "lockbar" }, [el("span", { html: "&#128274;" }), el("span", {}, ["This version is " + cur().lifecycleState + " — read-only. Use "]), el("button", { class: "btn sm", onclick: newVersion }, ["+ Version"]), el("span", {}, [" to make changes."])]));
-    if (E.tab === "tasks") tasksTab(w);
-    else if (E.tab === "schedule") scheduleTab(w);
-    else detailsTab(w);
-  }
-
-  function sec(title, ct, hact, bodyKids) { return el("div", { class: "sec" }, [el("header", {}, [el("h3", {}, [title]), ct != null ? el("span", { class: "ct" }, [ct]) : null, hact ? el("div", { class: "hact" }, hact) : null]), el("div", { class: "sec-body" }, bodyKids)]); }
-  function bind(obj, key, opts) {
-    opts = opts || {}; var v = obj[key];
-    var inp = el(opts.tag || "input", { type: opts.type || "text", value: v == null ? "" : v, placeholder: opts.placeholder || "", disabled: opts.disabled || false });
-    if (opts.tag === "textarea") inp.value = v == null ? "" : v;
-    if (opts.attrs) Object.keys(opts.attrs).forEach(function (k) { inp.setAttribute(k, opts.attrs[k]); });
-    inp.addEventListener("input", function () { obj[key] = opts.number ? (inp.value === "" ? null : Number(inp.value)) : inp.value; if (opts.after) opts.after(); onEdit(); });
-    return inp;
-  }
-  function onEdit() { var t = document.getElementById("dirtyTag"); if (t) t.style.display = dirty() ? "" : "none"; var vb = document.getElementById("validBtn"); if (vb) vb.textContent = validSummary(); refreshInspect(); }
+  function renderBody() { var w = document.getElementById("wrap"); w.innerHTML = ""; if (level() !== "class") w.appendChild(el("div", { class: "infobar i" }, [el("span", { html: "&#9432;" }), el("span", { html: "This is " + (level() === "model" ? "a <b>model</b>" : "an <b>instance</b>") + " — it <b>inherits</b> from its parent. Override unlocked fields here; <b>🔒 Enforced</b> fields are locked by the class. The resolved plan is what a work order uses." })])); if (E.tab === "tasks") tasksTab(w); else if (E.tab === "schedule") scheduleTab(w); else detailsTab(w); }
+  function sec(title, ct, hact, kids) { return el("div", { class: "sec" }, [el("header", {}, [el("h3", {}, [title]), ct != null ? el("span", { class: "ct" }, [ct]) : null, hact ? el("div", { class: "hact" }, hact) : null]), el("div", { class: "sec-body" }, kids)]); }
+  function labeled(l, inp) { return el("label", { class: "field" }, [el("span", { class: "lbl" }, [l]), inp]); }
+  function onEdit() { var d = document.getElementById("dirtyTag"); if (d) d.style.display = dirty() ? "" : "none"; refreshInspect(); }
 
   /* ----- Tasks tab ----- */
   function tasksTab(w) {
-    var v = cur(), dis = !editable();
-    var body = [];
-    if (!v.tasks.length) body.push(el("div", { class: "empty-in" }, ["No tasks yet."]));
-    v.tasks.forEach(function (t, i) { body.push(taskCard(t, i, dis)); });
-    var hact = dis ? null : [el("button", { class: "btn sm", onclick: function () { v.tasks.push({ seq: v.tasks.length + 1, instruction: "", responseType: "none", unit: null, acceptableRange: null, choices: null, requiredSkills: [], frequencyIds: [] }); renderBody(); } }, ["+ Add task"])];
-    w.appendChild(sec("Tasks", v.tasks.length + " step" + (v.tasks.length === 1 ? "" : "s"), hact, body));
+    var ch = chain(), lvl = level(), rows = effTasks(ch);
+    var body = []; if (!rows.length) body.push(el("div", { class: "empty-in" }, ["No tasks."]));
+    rows.forEach(function (row, i) { body.push(taskCard(ch, row, i)); });
+    var hact = [el("button", { class: "btn sm", onclick: function () { addTask(); } }, ["+ Add task" + (lvl === "class" ? "" : " here")])];
+    w.appendChild(sec("Tasks", rows.filter(function (r) { return !r.excluded; }).length + " effective", hact, body));
   }
-  function taskCard(t, i, dis) {
-    var v = cur();
-    var top = el("div", { class: "task-top" }, [
-      el("span", { class: "tseq" }, [(i + 1) + ""]),
-      bind(t, "instruction", { placeholder: "Step instruction…", disabled: dis, attrs: { class: "tinstr" } }),
-      el("select", { class: "tresp", disabled: dis, onchange: function (e) { t.responseType = e.target.value; if (t.responseType !== "numeric") { t.acceptableRange = null; t.unit = null; } if (t.responseType !== "choice") t.choices = null; if (t.responseType === "choice" && !t.choices) t.choices = []; renderBody(); } }, RESPONSE_TYPES.map(function (r) { return el("option", { value: r, selected: r === t.responseType }, [r]); })),
-      el("div", { class: "tmove" }, [el("button", { class: "btn sm ghost", disabled: dis || i === 0, onclick: function () { sw(v.tasks, i, i - 1); renderBody(); } }, ["↑"]), el("button", { class: "btn sm ghost", disabled: dis || i === v.tasks.length - 1, onclick: function () { sw(v.tasks, i, i + 1); renderBody(); } }, ["↓"]), el("button", { class: "x", disabled: dis, onclick: function () { v.tasks.splice(i, 1); renderBody(); } }, ["✕"])])
-    ]);
+  function taskCard(ch, row, idx) {
+    var lvl = level(), st = rowState(ch, row), t = row.task, ticks = effTicks(ch, row);
+    var editContent = (row.origin === 0 && lvl === "class") || (row.origin === ch.length - 1 && row.origin !== 0); // class task at class, or added-here task
+    var top = el("div", { class: "task-top" }, [ el("span", { class: "tseq" }, [(idx + 1) + ""]),
+      el("div", { class: "tname" }, [ editContent ? bindInput(t, "instruction", { placeholder: "Instruction…" }) : el("div", { class: "ti" + (row.excluded ? " ex" : "") }, [t.instruction || "(untitled)"]), editContent ? null : el("div", { class: "tm" }, [t.responseType + (ticks.length ? " · " + ticks.map(function (id) { var f = effFreqs(ch).filter(function (x) { return x.id === id; })[0]; return f ? freqLabel(f) : id; }).join(", ") : "") ]) ]),
+      chip(st, row.origin ? levelName(row.origin) : null),
+      el("div", { class: "taus" }, taskActions(ch, row, st)) ]);
     var extra = [];
-    if (t.responseType === "numeric") {
-      var lo = el("input", { type: "number", value: t.acceptableRange ? t.acceptableRange[0] : "", placeholder: "low", disabled: dis, step: "any" });
-      var hi = el("input", { type: "number", value: t.acceptableRange ? t.acceptableRange[1] : "", placeholder: "high", disabled: dis, step: "any" });
-      function up() { if (lo.value === "" && hi.value === "") t.acceptableRange = null; else t.acceptableRange = [Number(lo.value || 0), Number(hi.value || 0)]; onEdit(); }
-      lo.addEventListener("input", up); hi.addEventListener("input", up);
-      extra.push(el("div", { class: "g3" }, [labeled("Unit", bind(t, "unit", { placeholder: "V, mΩ…", disabled: dis })), labeled("Accept low", lo), labeled("Accept high", hi)]));
+    if (editContent) {
+      extra.push(el("div", { class: "g3" }, [ labeled("Response", selInput(t, "responseType", RESP, function () { if (t.responseType !== "numeric") { t.acceptableRange = null; t.unit = null; } if (t.responseType !== "choice") t.choices = null; renderBody(); })), t.responseType === "numeric" ? labeled("Unit", bindInput(t, "unit", { placeholder: "V, mΩ…" })) : el("span"), el("span") ]));
+      if (t.responseType === "numeric") { var lo = el("input", { type: "number", value: t.acceptableRange ? t.acceptableRange[0] : "", placeholder: "low", step: "any" }); var hi = el("input", { type: "number", value: t.acceptableRange ? t.acceptableRange[1] : "", placeholder: "high", step: "any" }); function up() { if (lo.value === "" && hi.value === "") t.acceptableRange = null; else t.acceptableRange = [Number(lo.value || 0), Number(hi.value || 0)]; onEdit(); } lo.addEventListener("input", up); hi.addEventListener("input", up); extra.push(el("div", { class: "g2" }, [labeled("Accept low", lo), labeled("Accept high", hi)])); }
+      if (t.responseType === "choice") { var c = el("input", { type: "text", value: csv(t.choices), placeholder: "Good, Monitor, Action" }); c.addEventListener("input", function () { t.choices = parseCsv(c.value); onEdit(); }); extra.push(labeled("Choices", c)); }
     }
-    if (t.responseType === "choice") { var c = el("input", { type: "text", value: csv(t.choices), placeholder: "Good, Monitor, Action", disabled: dis }); c.addEventListener("input", function () { t.choices = parseCsv(c.value); onEdit(); }); extra.push(labeled("Choices", c)); }
-    var sk = el("input", { type: "text", value: csv(t.requiredSkills), placeholder: "Skills for this step (optional)", disabled: dis }); sk.addEventListener("input", function () { t.requiredSkills = parseCsv(sk.value); onEdit(); });
-    extra.push(labeled("Required skills", sk));
-    return el("div", { class: "task" }, [top, el("div", { class: "task-extra" }, extra)]);
+    return el("div", { class: "task" + (row.excluded ? " ex" : "") }, extra.length ? [top, el("div", { class: "task-extra" }, extra)] : [top]);
   }
-  function labeled(l, inp) { return el("label", { class: "field" }, [el("span", { class: "lbl" }, [l]), inp]); }
-  function sw(a, i, j) { var t = a[i]; a[i] = a[j]; a[j] = t; }
+  function taskActions(ch, row, st) {
+    var lvl = level(), acts = [];
+    if (lvl === "class" && row.origin === 0) { acts.push(el("button", { class: "btn sm" + (row.task.enforced ? " on" : ""), title: "Lock so models/instances can't change or remove it", onclick: function () { row.task.enforced = !row.task.enforced; if (row.task.enforced) walkNodes(function (n) { pull(n.exclusions, row.task.id); delete n.mapOverrides[row.task.id]; }); renderBody(); } }, [row.task.enforced ? "🔒 Enforced" : "Enforce"])); acts.push(el("button", { class: "x", onclick: function () { pullBy(selFamily().tasks, row.task.id); renderBody(); } }, ["✕"])); }
+    else if (row.origin === 0 && !row.enforced && lvl !== "class") { var node = selNode(); acts.push(el("button", { class: "btn sm", onclick: function () { var i = node.exclusions.indexOf(row.task.id); if (i >= 0) node.exclusions.splice(i, 1); else node.exclusions.push(row.task.id); renderBody(); } }, [row.excluded ? "Include" : "Exclude"])); }
+    else if (row.origin === ch.length - 1 && row.origin !== 0) { acts.push(el("button", { class: "x", onclick: function () { pullBy(selNode().addedTasks, row.task.id); renderBody(); } }, ["✕"])); }
+    return acts;
+  }
+  function addTask() { var t = T(nid("t"), "", "none", []); if (level() === "class") selFamily().tasks.push(t); else selNode().addedTasks.push(t); renderBody(); }
 
-  /* ----- Schedule tab (matrix) ----- */
-  function addFreq(u, iv) { var v = cur(); if (v.frequencies.some(function (f) { return f.unit === u && f.interval === iv; })) return; v.frequencies.push({ id: "f_" + (freqSeq++), unit: u, interval: iv, basis: "calendar" }); renderBody(); }
-  function removeFreq(id) { var v = cur(); v.frequencies = v.frequencies.filter(function (f) { return f.id !== id; }); v.tasks.forEach(function (t) { if (t.frequencyIds) t.frequencyIds = t.frequencyIds.filter(function (x) { return x !== id; }); }); renderBody(); }
-  function countFor(id) { return cur().tasks.filter(function (t) { return (t.frequencyIds || []).indexOf(id) >= 0; }).length; }
+  /* ----- Schedule tab ----- */
+  function addFreq(u, iv) { var ch = chain(); if (effFreqs(ch).some(function (f) { return f.unit === u && f.interval === iv; })) return; var f = { id: nid("f"), unit: u, interval: iv }; if (level() === "class") selFamily().frequencies.push(f); else selNode().addedFreqs.push(f); renderBody(); }
+  function removeFreq(f) { if (f.origin === 0) pullBy(selFamily().frequencies, f.id); else pullBy(chain()[f.origin].addedFreqs, f.id); selFamily().tasks.forEach(function (t) { pull(t.frequencyIds, f.id); }); walkNodes(function (n) { (n.addedTasks || []).forEach(function (t) { pull(t.frequencyIds, f.id); }); Object.keys(n.mapOverrides || {}).forEach(function (k) { pull(n.mapOverrides[k], f.id); }); }); renderBody(); }
+  function toggleTick(ch, row, fid) {
+    var t = row.task, lvl = ch.length - 1;
+    var arr;
+    if (row.origin === 0) { if (lvl === 0) arr = t.frequencyIds; else { if (!ch[lvl].mapOverrides[t.id]) ch[lvl].mapOverrides[t.id] = effTicks(ch, row); arr = ch[lvl].mapOverrides[t.id]; } }
+    else arr = t.frequencyIds;
+    var i = arr.indexOf(fid); if (i >= 0) arr.splice(i, 1); else arr.push(fid); renderBody();
+  }
+  function countFor(ch, fid) { return effTasks(ch).filter(function (r) { return !r.excluded && effTicks(ch, r).indexOf(fid) >= 0; }).length; }
   function fires(f, m) { if (f.unit === "day" || f.unit === "week") return true; if (f.unit === "month") return m % f.interval === 0; if (f.unit === "year") return m % (12 * f.interval) === 0; return false; }
+  function periodDays(f) { return ({ day: 1, week: 7, month: 30, year: 365 })[f.unit] * f.interval; }
   function scheduleTab(w) {
-    var v = cur(), dis = !editable();
-    /* frequency columns */
-    var fbody = [];
-    if (!v.frequencies.length) fbody.push(el("div", { class: "empty-in" }, ["No frequencies — this plan runs ad hoc. Add one to schedule its tasks."]));
-    else fbody.push(el("div", { class: "freqtags" }, v.frequencies.map(function (f) { return el("span", { class: "freqtag" }, [freqLabel(f), dis ? null : el("button", { class: "x", onclick: function () { removeFreq(f.id); } }, ["✕"])]); })));
-    if (!dis) {
-      var quick = [["day", 1], ["week", 1], ["month", 1], ["month", 3], ["month", 6], ["year", 1]];
-      fbody.push(el("div", { class: "addbar" }, [el("span", { class: "lbl" }, ["Add"])].concat(quick.map(function (q) { var ex = v.frequencies.some(function (f) { return f.unit === q[0] && f.interval === q[1]; }); return el("button", { class: "btn sm", disabled: ex, onclick: function () { addFreq(q[0], q[1]); } }, ["+ " + freqLabel({ unit: q[0], interval: q[1] })]); }))));
-      var ci = el("input", { type: "number", value: "2", min: "1", style: "width:62px" });
-      var cu = el("select", { style: "width:auto" }, [["day", "day(s)"], ["week", "week(s)"], ["month", "month(s)"], ["year", "year(s)"]].map(function (x) { return el("option", { value: x[0], selected: x[0] === "month" }, [x[1]]); }));
-      fbody.push(el("div", { class: "addbar" }, [el("span", { class: "lbl" }, ["Custom"]), el("span", { class: "hint" }, ["every"]), ci, cu, el("button", { class: "btn sm", onclick: function () { addFreq(cu.value, Math.max(1, parseInt(ci.value || "1", 10))); } }, ["Add"])]));
-    }
-    w.appendChild(sec("Frequencies", v.frequencies.length + "", null, fbody));
+    var ch = chain(), lvl = level(), freqs = effFreqs(ch);
+    var fb = []; if (!freqs.length) fb.push(el("div", { class: "empty-in" }, ["No frequencies — add one to schedule tasks."]));
+    else fb.push(el("div", { class: "freqtags" }, freqs.map(function (f) { return el("span", { class: "freqtag" }, [freqLabel(f), (f.origin === ch.length - 1 || (f.origin === 0 && lvl === "class")) ? el("button", { class: "x", onclick: function () { removeFreq(f); } }, ["✕"]) : null]); })));
+    var quick = [["day", 1], ["week", 1], ["month", 1], ["month", 3], ["month", 6], ["year", 1]];
+    fb.push(el("div", { class: "addbar" }, [el("span", { class: "lbl" }, ["Add"])].concat(quick.map(function (q) { var ex = freqs.some(function (f) { return f.unit === q[0] && f.interval === q[1]; }); return el("button", { class: "btn sm", disabled: ex, onclick: function () { addFreq(q[0], q[1]); } }, ["+ " + freqLabel({ unit: q[0], interval: q[1] })]); }))));
+    w.appendChild(sec("Frequencies", freqs.length + "", null, fb));
 
-    /* matrix grid */
-    var gridBody;
-    if (!v.frequencies.length) gridBody = [el("div", { class: "empty-in" }, ["Add a frequency to build the matrix."])];
-    else if (!v.tasks.length) gridBody = [el("div", { class: "empty-in" }, ["Add tasks in the Tasks tab first."])];
+    var gb;
+    if (!freqs.length) gb = [el("div", { class: "empty-in" }, ["Add a frequency."])];
+    else if (!effTasks(ch).length) gb = [el("div", { class: "empty-in" }, ["Add tasks first."])];
     else {
       var head = [el("th", { class: "tc" }, [el("span", { class: "lbl" }, ["Task"])])];
-      v.frequencies.forEach(function (f) { head.push(el("th", {}, [el("div", { class: "fh" }, [el("span", { class: "fl" }, [freqLabel(f)]), el("span", { class: "fs" }, [fsub(f)])])])); });
+      freqs.forEach(function (f) { head.push(el("th", {}, [el("div", { class: "fh" }, [el("span", { class: "fl" }, [freqLabel(f)]), el("span", { class: "fs" }, [fsub(f)])])])); });
       var tb = el("tbody", {}, []);
-      v.tasks.forEach(function (t) {
-        var cells = [el("td", { class: "tc" }, [el("div", { class: "ti" }, [t.instruction || "(untitled)"]), el("div", { class: "tmn" }, [t.responseType])])];
-        v.frequencies.forEach(function (f) { var cb = el("input", { type: "checkbox", class: "cbx", checked: (t.frequencyIds || []).indexOf(f.id) >= 0, disabled: dis }); cb.addEventListener("change", function () { if (!t.frequencyIds) t.frequencyIds = []; if (cb.checked) { if (t.frequencyIds.indexOf(f.id) < 0) t.frequencyIds.push(f.id); } else t.frequencyIds = t.frequencyIds.filter(function (x) { return x !== f.id; }); renderBody(); }); cells.push(el("td", { class: "c" }, [cb])); });
+      effTasks(ch).forEach(function (row) { if (row.excluded) return; var st = rowState(ch, row), locked = row.enforced && level() !== "class", ticks = effTicks(ch, row);
+        var cells = [el("td", { class: "tc" }, [el("div", { class: "ti2" }, [row.task.instruction || "(untitled)"]), el("div", { class: "tmn" }, [row.task.responseType + " · " + rowStateLabel(st)])])];
+        freqs.forEach(function (f) { var cb = el("input", { type: "checkbox", class: "cbx", checked: ticks.indexOf(f.id) >= 0, disabled: locked }); cb.addEventListener("change", function () { toggleTick(ch, row, f.id); }); cells.push(el("td", { class: "c" }, [cb])); });
         tb.appendChild(el("tr", {}, cells));
       });
-      var tot = [el("td", { class: "tc" }, ["tasks per drop"])]; v.frequencies.forEach(function (f) { tot.push(el("td", { class: "c num" }, [String(countFor(f.id))])); }); tb.appendChild(el("tr", { class: "tot" }, tot));
-      gridBody = [el("div", { class: "scroll" }, [el("table", { class: "mtx" }, [el("thead", {}, [el("tr", {}, head)]), tb])])];
+      var tot = [el("td", { class: "tc" }, ["tasks per drop"])]; freqs.forEach(function (f) { tot.push(el("td", { class: "c num" }, [String(countFor(ch, f.id))])); }); tb.appendChild(el("tr", { class: "tot" }, tot));
+      gb = [el("div", { class: "scroll" }, [el("table", { class: "mtx" }, [el("thead", {}, [el("tr", {}, head)]), tb])])];
     }
-    w.appendChild(sec("Matrix — tasks × frequencies", v.frequencies.length && v.tasks.length ? v.tasks.length + " × " + v.frequencies.length : null, null, gridBody));
+    w.appendChild(sec("Matrix — tasks × frequencies", freqs.length && effTasks(ch).length ? null : null, null, gb));
 
-    if (v.frequencies.length) {
-      w.appendChild(sec("What generates when a frequency drops", null, null, [el("div", { class: "drops" }, v.frequencies.map(function (f) { var ts = v.tasks.filter(function (t) { return (t.frequencyIds || []).indexOf(f.id) >= 0; }); return el("div", { class: "drop" + (ts.length ? "" : " empty") }, [el("h4", {}, [freqLabel(f), el("span", { class: "n" }, [ts.length + ""])]), ts.length ? el("ul", {}, ts.map(function (t) { return el("li", {}, [t.instruction || "(untitled)"]); })) : el("div", { class: "hint", style: "margin-top:6px" }, ["Generates nothing."])]); }))]));
-      var th = [el("th", { class: "rl" }, ["Frequency"])]; for (var m = 1; m <= 12; m++) th.push(el("th", {}, ["M" + m]));
-      var tlb = el("tbody", {}, []); v.frequencies.forEach(function (f) { var row = [el("td", { class: "rl" }, [freqLabel(f)])]; for (var m = 1; m <= 12; m++) row.push(el("td", {}, [fires(f, m) ? el("span", { class: "tldot" }) : null])); tlb.appendChild(el("tr", {}, row)); });
-      w.appendChild(sec("Drop timeline · next 12 months", null, null, [el("div", { class: "scroll" }, [el("table", { class: "tl" }, [el("thead", {}, [el("tr", {}, th)]), tlb])]), el("div", { class: "cap" }, ["Daily/weekly shown as firing each month. Coincident drops each generate a work order; a scheduling layer can nest them (see the pm-model demo)."])]));
+    if (freqs.length) {
+      w.appendChild(sec("What generates when a frequency drops", null, null, [el("div", { class: "drops" }, freqs.map(function (f) { var ts = effTasks(ch).filter(function (r) { return !r.excluded && effTicks(ch, r).indexOf(f.id) >= 0; }); return el("div", { class: "drop" + (ts.length ? "" : " empty") }, [el("h4", {}, [freqLabel(f), el("span", { class: "n" }, [ts.length + ""])]), ts.length ? el("ul", {}, ts.map(function (r) { return el("li", {}, [r.task.instruction || "(untitled)"]); })) : el("div", { class: "hint", style: "margin-top:6px" }, ["Generates nothing."])]); }))]));
+      /* nested schedule */
+      var naive = 0, merged = 0, grid = el("div", { class: "months" }, []);
+      for (var m = 1; m <= 12; m++) { var due = freqs.filter(function (f) { return fires(f, m); }); if (!due.length) continue; due.sort(function (a, b) { return periodDays(b) - periodDays(a); }); naive += due.length; merged += 1; var winner = due[0], absorbed = due.slice(1); var seen = {}, cnt = 0; effTasks(ch).forEach(function (r) { if (r.excluded) return; var tk = effTicks(ch, r); if (due.some(function (f) { return tk.indexOf(f.id) >= 0; })) cnt++; }); grid.appendChild(el("div", { class: "mo" + (absorbed.length ? " absorb" : "") }, [el("div", { class: "mm" }, ["Month " + m]), el("div", { class: "ml" }, [freqLabel(winner)]), absorbed.length ? el("div", { class: "md" }, ["absorbs " + absorbed.map(freqLabel).join(", ")]) : el("div", { class: "md", style: "color:var(--faint)" }, ["—"]), el("div", { class: "cn" }, [cnt + " tasks" + (absorbed.length ? " · was " + due.length + " WOs" : "")])])); }
+      w.appendChild(sec("Nested 12-month schedule", null, null, [el("div", { class: "summary" }, [el("span", { class: "stat" }, [el("span", { class: "k" }, ["Naive "]), el("b", { style: "color:var(--crit)" }, [String(naive)])]), el("span", { style: "color:var(--faint)" }, ["→"]), el("span", { class: "stat" }, [el("span", { class: "k" }, ["Nested "]), el("b", { style: "color:var(--good)" }, [String(merged)]), el("span", { class: "k" }, [" work orders/yr"])])]), grid, el("div", { class: "cap" }, ["Coincident drops merge into one work order (longest absorbs the shorter); tasks de-duplicated. Month-resolution demo."])]));
     }
   }
+  function rowStateLabel(s) { return ({ "class": "class", "class-enforced": "enforced", enforced: "enforced", overridden: "overridden here", inherited: "inherited", added: "added here", "added-up": "added above", excluded: "excluded" })[s] || s; }
 
-  /* ----- Details tab ----- */
+  /* ----- Details tab (identity + attributes + PARAMETERS + parts) ----- */
   function detailsTab(w) {
-    var d = E.doc, v = cur(), dis = !editable();
-    w.appendChild(sec("Identity", null, null, [
-      el("div", { class: "g2" }, [labeled("Code", bind(d, "code", { placeholder: "JP-UPS-QTR", after: syncHead })), labeled("Name", bind(d, "name", { placeholder: "Quarterly UPS Inspection", after: syncHead }))]),
-      el("div", { class: "g2" }, [labeled("Asset class", bind(d, "assetClass", { placeholder: "UPS", after: syncHead })), labeled("Asset model (optional)", bind(d, "assetModel", { placeholder: "Schneider Galaxy VX", after: syncHead }))]),
-      labeled("Description", bind(d, "description", { tag: "textarea", placeholder: "Optional summary…" }))
-    ]));
-    w.appendChild(sec("This version", "v" + v.version, null, [
-      el("div", { class: "g2" }, [labeled("Estimated labour (h)", bind(v, "estimatedLabourHours", { type: "number", number: true, placeholder: "1.5", disabled: dis, attrs: { step: "0.25", min: "0" } })), labeled("Approved by", bind(v, "approvedBy", { placeholder: "—", disabled: true }))]),
-      labeled("Safety instructions", bind(v, "safetyInstructions", { tag: "textarea", placeholder: "Isolation, PPE, permits…", disabled: dis })),
-      labeled("Notes (this version)", bind(v, "notes", { tag: "textarea", placeholder: "What changed…", disabled: dis }))
-    ]));
-    /* parts */
-    var pbody = []; if (!v.plannedParts.length) pbody.push(el("div", { class: "empty-in" }, ["No planned parts."]));
-    v.plannedParts.forEach(function (p, i) { var d1 = el("input", { type: "text", value: p.description || "", placeholder: "Air filter, G4", disabled: dis }); var q1 = el("input", { type: "number", value: p.quantity == null ? "" : p.quantity, placeholder: "1", disabled: dis, step: "any", min: "0", style: "max-width:88px" }); var u1 = el("input", { type: "text", value: p.unit || "", placeholder: "each", disabled: dis, style: "max-width:100px" }); d1.addEventListener("input", function () { p.description = d1.value; onEdit(); }); q1.addEventListener("input", function () { p.quantity = q1.value === "" ? 0 : Number(q1.value); onEdit(); }); u1.addEventListener("input", function () { p.unit = u1.value || null; onEdit(); }); pbody.push(el("div", { class: "rowline" }, [d1, q1, u1, el("button", { class: "x", disabled: dis, onclick: function () { v.plannedParts.splice(i, 1); renderBody(); } }, ["✕"])])); });
-    w.appendChild(sec("Planned parts", v.plannedParts.length + "", dis ? null : [el("button", { class: "btn sm", onclick: function () { v.plannedParts.push({ partRef: null, description: "", quantity: 1, unit: "each" }); renderBody(); } }, ["+ Add part"])], pbody));
-    /* requirements */
-    function lf(l, key, ph) { var inp = el("input", { type: "text", value: csv(v[key]), placeholder: ph, disabled: dis }); inp.addEventListener("input", function () { v[key] = parseCsv(inp.value); onEdit(); }); return labeled(l, inp); }
-    w.appendChild(sec("Requirements", null, null, [lf("Required skills", "requiredSkills", "Electrical – LV, Battery"), lf("Required tools", "requiredTools", "Impedance tester"), lf("Required permits", "requiredPermits", "Electrical work permit"), el("div", { class: "hint" }, ["Comma-separated; free text until the People & Parts modules exist."])]));
-    /* parameters */
-    var prbody = []; if (!v.parameters.length) prbody.push(el("div", { class: "empty-in" }, ["No parameters."]));
-    v.parameters.forEach(function (p, i) { var k = el("input", { type: "text", value: p.key || "", placeholder: "acceptableImpedance", disabled: dis }); var l = el("input", { type: "text", value: p.label || "", placeholder: "Max impedance", disabled: dis }); var vt = el("select", { disabled: dis, style: "width:auto" }, ["number", "text", "boolean"].map(function (x) { return el("option", { value: x, selected: x === p.valueType }, [x]); })); var df = el("input", { type: "text", value: p.defaultValue == null ? "" : p.defaultValue, placeholder: "default", disabled: dis, style: "max-width:120px" }); k.addEventListener("input", function () { p.key = k.value; onEdit(); }); l.addEventListener("input", function () { p.label = l.value; onEdit(); }); vt.addEventListener("change", function () { p.valueType = vt.value; onEdit(); }); df.addEventListener("input", function () { p.defaultValue = df.value; onEdit(); }); prbody.push(el("div", { class: "task", style: "padding:12px;background:var(--panel-2)" }, [el("div", { class: "g2" }, [labeled("Key", k), labeled("Label", l)]), el("div", { class: "rowline", style: "margin-top:10px" }, [vt, df, el("button", { class: "x", disabled: dis, onclick: function () { v.parameters.splice(i, 1); renderBody(); } }, ["✕"])])])); });
-    w.appendChild(sec("Parameters", v.parameters.length + "", dis ? null : [el("button", { class: "btn sm", onclick: function () { v.parameters.push({ key: "", label: "", valueType: "number", defaultValue: "", unit: null, source: "manual" }); renderBody(); } }, ["+ Add parameter"])], prbody));
-  }
-  function syncHead() { var t = document.getElementById("dTitle"); if (t) t.textContent = E.doc.name || "Untitled plan"; }
+    var ch = chain(), lvl = level(), node = selNode(), f = selFamily();
+    /* identity */
+    var idf = [el("div", { class: "g2" }, [labeled(lvl === "class" ? "Class code" : lvl === "model" ? "Model code" : "Instance code", bindInput(node, "code", { placeholder: "CODE", after: syncHead })), labeled("Name", bindInput(node, "name", { placeholder: "Name", after: syncHead }))])];
+    if (lvl === "instance") idf.push(labeled("Site", bindInput(node, "site", { placeholder: "SYD1" })));
+    if (lvl === "class") idf.push(labeled("Description", bindInput(node, "description", { tag: "textarea", placeholder: "Optional…" })));
+    w.appendChild(sec(lvl === "class" ? "Class identity" : lvl === "model" ? "Model identity" : "Instance identity", null, null, idf));
 
-  /* ---------- lifecycle / versions ---------- */
-  function newVersion() { var c = JSON.parse(JSON.stringify(cur())); c.version = maxVersion() + 1; c.lifecycleState = "draft"; c.approvedBy = null; c.approvedAt = null; E.doc.versions.unshift(c); E.sel = 0; renderDetail(); }
-  function setLife(target) { var v = cur(); if (target === "approved") { v.lifecycleState = "approved"; v.approvedAt = nowIso(); } else if (target === "active") { E.doc.versions.forEach(function (o) { if (o.lifecycleState === "active") o.lifecycleState = "superseded"; }); v.lifecycleState = "active"; if (!v.approvedAt) v.approvedAt = nowIso(); E.doc.activeVersion = v.version; } else if (target === "retired") { if (E.doc.activeVersion === v.version) E.doc.activeVersion = null; v.lifecycleState = "retired"; } renderDetail(); }
+    /* attributes with locking */
+    w.appendChild(sec("Attributes", null, null, [
+      attrRow(ch, "estimatedLabourHours", "Estimated labour", "number", "h"),
+      attrRow(ch, "safety", "Safety instruction", "text", "")
+    ]));
+
+    /* PARAMETERS with locking — the headline feature */
+    var pbody = []; if (!f.parameters.length) pbody.push(el("div", { class: "empty-in" }, ["No parameters."]));
+    f.parameters.forEach(function (p) { pbody.push(paramRow(ch, p)); });
+    var phact = lvl === "class" ? [el("button", { class: "btn sm", onclick: function () { f.parameters.push({ id: nid("p"), key: "", label: "", valueType: "number", defaultValue: "", unit: null, enforced: false }); renderBody(); } }, ["+ Add parameter"])] : null;
+    w.appendChild(sec("Parameters", f.parameters.length + "", phact, pbody.concat([el("div", { class: "hint" }, ["Parameters resolve from the asset/model. Lock (🔒 Enforce) at the class to stop models/instances overriding a value."])])));
+
+    /* parts / requirements (class-level) */
+    if (lvl === "class") {
+      var partsB = []; if (!f.plannedParts.length) partsB.push(el("div", { class: "empty-in" }, ["No planned parts."]));
+      f.plannedParts.forEach(function (p, i) { var d1 = el("input", { type: "text", value: p.description || "", placeholder: "Air filter" }); var q1 = el("input", { type: "number", value: p.quantity == null ? "" : p.quantity, placeholder: "1", step: "any", style: "max-width:86px" }); var u1 = el("input", { type: "text", value: p.unit || "", placeholder: "each", style: "max-width:96px" }); d1.addEventListener("input", function () { p.description = d1.value; onEdit(); }); q1.addEventListener("input", function () { p.quantity = q1.value === "" ? 0 : Number(q1.value); onEdit(); }); u1.addEventListener("input", function () { p.unit = u1.value || null; onEdit(); }); partsB.push(el("div", { class: "rowline" }, [d1, q1, u1, el("button", { class: "x", onclick: function () { f.plannedParts.splice(i, 1); renderBody(); } }, ["✕"])])); });
+      w.appendChild(sec("Planned parts", f.plannedParts.length + "", [el("button", { class: "btn sm", onclick: function () { f.plannedParts.push({ partRef: null, description: "", quantity: 1, unit: "each" }); renderBody(); } }, ["+ Add part"])], partsB));
+      function lf(l, key, ph) { var inp = el("input", { type: "text", value: csv(f[key]), placeholder: ph }); inp.addEventListener("input", function () { f[key] = parseCsv(inp.value); onEdit(); }); return labeled(l, inp); }
+      w.appendChild(sec("Requirements", null, null, [lf("Required skills", "requiredSkills", "Electrical – LV"), lf("Required tools", "requiredTools", "Impedance tester"), lf("Required permits", "requiredPermits", "Electrical work permit")]));
+    } else {
+      w.appendChild(sec("Parts & requirements", null, null, [el("div", { class: "hint" }, ["Inherited from the class: " + (f.plannedParts.length + " part(s), " + f.requiredSkills.length + " skill(s). Parts/requirements are defined at the class in this version.")])]));
+    }
+  }
+  function attrRow(ch, key, name, type, unit) {
+    var eff = effAttr(ch, key), cls = selFamily().attrs[key], lvl = level();
+    var val, act;
+    if (lvl === "class") { val = bindObj(cls, "value", type, unit); act = el("button", { class: "btn sm" + (cls.enforced ? " on" : ""), title: "Lock so models/instances can't override", onclick: function () { cls.enforced = !cls.enforced; if (cls.enforced) walkNodes(function (n) { delete n.attrOverrides[key]; }); renderBody(); } }, [cls.enforced ? "🔒 Enforced" : "Enforce"]); }
+    else if (cls.enforced) { val = el("span", { class: "ro" }, [String(eff.value), unit ? el("span", { class: "u" }, [" " + unit]) : null]); act = el("span", { class: "lbl" }, ["locked"]); }
+    else if (eff.state === "overridden") { val = bindObj(selNode().attrOverrides, key, type, unit); act = el("button", { class: "btn sm", onclick: function () { delete selNode().attrOverrides[key]; renderBody(); } }, ["Revert"]); }
+    else { val = el("span", { class: "ro" }, [String(eff.value), unit ? el("span", { class: "u" }, [" " + unit]) : null]); act = el("button", { class: "btn sm", onclick: function () { selNode().attrOverrides[key] = eff.value; renderBody(); } }, ["Override"]); }
+    return el("div", { class: "arow" }, [el("div", { class: "an" }, [name]), el("div", { class: "av" }, [val]), chip(eff.state), el("div", { class: "aa" }, [act])]);
+  }
+  function paramRow(ch, p) {
+    var eff = effParam(ch, p), lvl = level();
+    var nmeta = el("div", { class: "an" }, [p.label || p.key || "(param)", el("div", { class: "sub" }, [p.key + (p.unit ? " (" + p.unit + ")" : "")])]);
+    var val, act;
+    if (lvl === "class") { val = el("div", { class: "rowline" }, [bindObj(p, "defaultValue", p.valueType === "number" ? "number" : "text", null)]); act = el("div", { class: "aa" }, [el("button", { class: "btn sm" + (p.enforced ? " on" : ""), title: "Lock the value for all models/instances", onclick: function () { p.enforced = !p.enforced; if (p.enforced) walkNodes(function (n) { delete n.paramOverrides[p.id]; }); renderBody(); } }, [p.enforced ? "🔒 Enforced" : "Enforce"]), el("button", { class: "x", onclick: function () { pullBy(selFamily().parameters, p.id); renderBody(); } }, ["✕"])]); }
+    else if (p.enforced) { val = el("span", { class: "ro" }, [String(eff.value), p.unit ? el("span", { class: "u" }, [" " + p.unit]) : null]); act = el("div", { class: "aa" }, [el("span", { class: "lbl" }, ["locked"])]); }
+    else if (eff.state === "overridden") { var node = selNode(); val = bindMap(node.paramOverrides, p.id, p.valueType === "number" ? "number" : "text"); act = el("div", { class: "aa" }, [el("button", { class: "btn sm", onclick: function () { delete selNode().paramOverrides[p.id]; renderBody(); } }, ["Revert"])]); }
+    else { val = el("span", { class: "ro" }, [String(eff.value), p.unit ? el("span", { class: "u" }, [" " + p.unit]) : null]); act = el("div", { class: "aa" }, [el("button", { class: "btn sm", onclick: function () { selNode().paramOverrides[p.id] = eff.value; renderBody(); } }, ["Override"])]); }
+    return el("div", { class: "arow" }, [nmeta_wrap(nmeta), el("div", { class: "av" }, [val]), chip(eff.state), act]);
+  }
+  function nmeta_wrap(x) { return x; }
+  function syncHead() { var t = document.getElementById("dTitle"); if (t) t.textContent = selNode().name || "Untitled"; renderRail(); }
+
+  /* ---------- input helpers ---------- */
+  function bindInput(obj, key, opts) { opts = opts || {}; var v = obj[key]; var inp = el(opts.tag || "input", { type: "text", value: v == null ? "" : v, placeholder: opts.placeholder || "" }); if (opts.tag === "textarea") inp.value = v == null ? "" : v; inp.addEventListener("input", function () { obj[key] = inp.value; if (opts.after) opts.after(); onEdit(); }); return inp; }
+  function bindObj(obj, key, type, unit) { var v = obj[key]; var inp = el("input", { type: type === "number" ? "number" : "text", value: v == null ? "" : v, step: "any", style: type === "number" ? "max-width:140px" : "" }); inp.addEventListener("input", function () { obj[key] = type === "number" ? (inp.value === "" ? null : Number(inp.value)) : inp.value; onEdit(); }); return inp; }
+  function bindMap(map, key, type) { var v = map[key]; var inp = el("input", { type: type === "number" ? "number" : "text", value: v == null ? "" : v, step: "any", style: type === "number" ? "max-width:140px" : "" }); inp.addEventListener("input", function () { map[key] = type === "number" ? (inp.value === "" ? null : Number(inp.value)) : inp.value; onEdit(); }); return inp; }
+  function selInput(obj, key, opts, after) { var s = el("select", {}, opts.map(function (o) { return el("option", { value: o, selected: o === obj[key] }, [o]); })); s.addEventListener("change", function () { obj[key] = s.value; if (after) after(); onEdit(); }); return s; }
+
+  /* ---------- structure edits ---------- */
+  function addModel() { selFamily().models.push({ id: nid("m"), code: "NEW-MODEL", name: "New model", attrOverrides: {}, paramOverrides: {}, addedFreqs: [], addedTasks: [], exclusions: [], mapOverrides: {}, instances: [] }); E.mi = selFamily().models.length - 1; E.ii = -1; renderAll(); }
+  function addInstance() { var m = selModel(); m.instances.push({ id: nid("i"), code: "NEW-INST", name: "New instance", site: "", attrOverrides: {}, paramOverrides: {}, addedFreqs: [], addedTasks: [], exclusions: [], mapOverrides: {} }); E.ii = m.instances.length - 1; renderAll(); }
+  function walkNodes(fn) { selFamily().models.forEach(function (m) { fn(m); m.instances.forEach(fn); }); }
+  function pull(a, id) { var i = a.indexOf(id); if (i >= 0) a.splice(i, 1); } function pullBy(a, id) { for (var i = 0; i < a.length; i++) if (a[i].id === id) { a.splice(i, 1); return; } }
+
+  /* ---------- effective plan + dirty ---------- */
+  function effectivePlan() { var ch = chain(), a = {}; ["estimatedLabourHours", "safety"].forEach(function (k) { a[k] = effAttr(ch, k).value; }); var params = {}; selFamily().parameters.forEach(function (p) { params[p.key] = effParam(ch, p).value; }); var tasks = effTasks(ch).filter(function (r) { return !r.excluded; }).map(function (r, i) { return { seq: i + 1, instruction: r.task.instruction, responseType: r.task.responseType, frequencyIds: effTicks(ch, r) }; }); return { node: selNode().code, level: level(), estimatedLabourHours: a.estimatedLabourHours, safetyInstructions: a.safety, parameters: params, frequencies: effFreqs(ch).map(function (f) { return { id: f.id, label: freqLabel(f), unit: f.unit, interval: f.interval }; }), tasks: tasks }; }
+  var _clean = {};
+  function famKey() { return E.fam < 0 ? "" : selFamily().id; }
+  function snapshotClean() { _clean[famKey()] = JSON.stringify(selFamily()); }
+  function dirty() { if (E.fam < 0) return false; return _clean[famKey()] !== JSON.stringify(selFamily()); }
 
   /* ---------- inspect modal ---------- */
-  var inspectTab = "json";
-  function validSummary() { var n = validate(normalized()).length; return n ? "⚠ " + n + " issue" + (n === 1 ? "" : "s") : "✓ Valid"; }
-  function openInspect(which) { inspectTab = which; renderInspect(); }
-  function closeInspect() { var o = document.getElementById("ovl"); if (o) o.remove(); }
-  function refreshInspect() { if (document.getElementById("ovl")) renderInspect(); }
-  function renderInspect() {
-    closeInspect();
-    var iss = validate(normalized());
-    var content = inspectTab === "json" ? el("pre", { class: "json" }, [JSON.stringify(normalized(), null, 2)])
-      : (iss.length ? el("div", {}, iss.map(function (x) { return el("div", { class: "issue" }, [el("span", { class: "p" }, [x.path]), el("span", {}, [x.msg])]); })) : el("div", { class: "allgood" }, [el("span", { html: "&#10003;" }), "Valid against the job-plan schema."]));
-    var modal = el("div", { class: "modal", onclick: function (e) { e.stopPropagation(); } }, [
-      el("header", {}, [el("div", { class: "side-tabs" }, [el("button", { class: inspectTab === "json" ? "on" : "", onclick: function () { inspectTab = "json"; renderInspect(); } }, ["JSON"]), el("button", { class: inspectTab === "valid" ? "on" : "", onclick: function () { inspectTab = "valid"; renderInspect(); } }, ["Validation" + (iss.length ? " · " + iss.length : "")])]), el("button", { class: "btn sm ghost", style: "margin-left:auto", onclick: closeInspect }, ["Close"])]),
-      el("div", { class: "mbody" }, [content, inspectTab === "json" ? el("div", { style: "margin-top:12px" }, [el("button", { class: "btn sm", onclick: function () { downloadDoc(); } }, ["Download JSON"])]) : null])
-    ]);
-    document.body.appendChild(el("div", { class: "ovl", id: "ovl", onclick: closeInspect }, [modal]));
-  }
-  function downloadDoc() { var out = normalized(); var blob = new Blob([JSON.stringify(out, null, 2)], { type: "application/json" }); var url = URL.createObjectURL(blob); var a = el("a", { href: url, download: (slug(out.code) || out.id || "job-plan") + ".json" }); document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); }
+  function openInspect() { renderInspect(); } function closeInspect() { var o = document.getElementById("ovl"); if (o) o.remove(); } function refreshInspect() { if (document.getElementById("ovl")) renderInspect(); }
+  function renderInspect() { closeInspect(); var modal = el("div", { class: "modal", onclick: function (e) { e.stopPropagation(); } }, [el("header", {}, [el("h3", {}, ["Effective plan · " + selNode().code]), el("button", { class: "btn sm ghost", style: "margin-left:auto", onclick: closeInspect }, ["Close"])]), el("div", { class: "mbody" }, [el("pre", { class: "json" }, [JSON.stringify(effectivePlan(), null, 2)]), el("div", { class: "hint", style: "margin-top:10px" }, ["This is the resolved snapshot a work order would freeze for this node."])])]); document.body.appendChild(el("div", { class: "ovl", id: "ovl", onclick: closeInspect }, [modal])); }
 
-  /* ---------- file I/O ---------- */
+  /* ---------- file I/O (one file per class family) ---------- */
   async function verify(h) { if (!h.queryPermission) return true; if ((await h.queryPermission({ mode: "readwrite" })) === "granted") return true; return (await h.requestPermission({ mode: "readwrite" })) === "granted"; }
-  async function save() {
-    var out = forSave(), text = JSON.stringify(out, null, 2), fname = (slug(out.code) || out.id || "job-plan") + ".json";
-    try {
-      var handle = E.entry && E.entry.handle ? E.entry.handle : null;
-      if (!handle && folderHandle && fsaSupported) handle = await folderHandle.getFileHandle(fname, { create: true });
-      if (!handle && fsaSupported) handle = await window.showSaveFilePicker({ suggestedName: fname, types: [{ description: "JSON", accept: { "application/json": [".json"] } }] });
-      if (handle) { if (!(await verify(handle))) return; var wt = await handle.createWritable(); await wt.write(text); await wt.close(); }
-      else { var blob = new Blob([text], { type: "application/json" }); var url = URL.createObjectURL(blob); var a = el("a", { href: url, download: fname }); document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); }
-      if (E.entry) { E.entry.plan = out; if (handle) E.entry.handle = handle; if (E.entry.source === "sample") E.entry.source = handle ? handle.name : fname; }
-      else { E.entry = { plan: out, source: handle ? handle.name : fname, handle: handle || null }; store.push(E.entry); }
-      renderRail(); renderDetail();
-    } catch (e) { if (e.name !== "AbortError") alert("Save failed: " + e.message); }
-  }
-  async function walk(dir, out, depth) { if (depth > 6) return; for await (var entry of dir.values()) { if (entry.kind === "file" && entry.name.toLowerCase().endsWith(".json")) { try { var f = await entry.getFile(); var o = JSON.parse(await f.text()); if (o && o.type === "jobPlan") out.push({ plan: o, source: entry.name, handle: entry }); } catch (e) {} } else if (entry.kind === "directory") await walk(entry, out, depth + 1); } }
-  async function openFolder() { try { var dir = await window.showDirectoryPicker({ mode: "readwrite" }); var out = []; await walk(dir, out, 0); setLoaded(out, dir); } catch (e) { if (e.name !== "AbortError") alert("Could not open folder: " + e.message); } }
-  function readFiles(fl) { var files = Array.prototype.slice.call(fl).filter(function (f) { return f.name.toLowerCase().endsWith(".json"); }); var out = [], pend = files.length; if (!pend) return; files.forEach(function (f) { var r = new FileReader(); r.onload = function () { try { var o = JSON.parse(r.result); if (o && o.type === "jobPlan") out.push({ plan: o, source: f.name, handle: null }); } catch (e) {} finally { if (--pend === 0) setLoaded(out, null); } }; r.onerror = function () { if (--pend === 0) setLoaded(out, null); }; r.readAsText(f); }); }
+  function famDoc(f) { return Object.assign({ type: "assetClassPlan" }, f); }
+  async function save() { if (E.fam < 0) return; var f = selFamily(); var out = famDoc(f); var text = JSON.stringify(out, null, 2), fname = (f.code || f.id || "class").toLowerCase() + ".json"; try { var handle = f._handle || null; if (!handle && folderHandle && fsaSupported) handle = await folderHandle.getFileHandle(fname, { create: true }); if (!handle && fsaSupported) handle = await window.showSaveFilePicker({ suggestedName: fname, types: [{ description: "JSON", accept: { "application/json": [".json"] } }] }); if (handle) { if (!(await verify(handle))) return; var wt = await handle.createWritable(); await wt.write(text); await wt.close(); f._handle = handle; } else { var blob = new Blob([text], { type: "application/json" }); var url = URL.createObjectURL(blob); var a = el("a", { href: url, download: fname }); document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); } snapshotClean(); renderDetail(); } catch (e) { if (e.name !== "AbortError") alert("Save failed: " + e.message); } }
+  function ingest(list, fh) { var fams = list.filter(function (o) { return o && (o.type === "assetClassPlan" || o.models); }).map(function (o) { normalizeFam(o); return o; }); if (!fams.length) { alert("No asset-class plans found (files need \"type\": \"assetClassPlan\")."); return; } families = fams; folderHandle = fh || null; E = { fam: -1, mi: -1, ii: -1, tab: "tasks" }; _clean = {}; renderAll(); }
+  function normalizeFam(f) { f.models = f.models || []; f.parameters = f.parameters || []; f.frequencies = f.frequencies || []; f.tasks = f.tasks || []; f.attrs = f.attrs || {}; ["plannedParts", "requiredSkills", "requiredTools", "requiredPermits"].forEach(function (k) { f[k] = f[k] || []; }); f.models.forEach(function (m) { ["addedFreqs", "addedTasks", "exclusions", "instances"].forEach(function (k) { m[k] = m[k] || []; }); m.attrOverrides = m.attrOverrides || {}; m.paramOverrides = m.paramOverrides || {}; m.mapOverrides = m.mapOverrides || {}; m.instances.forEach(function (i) { ["addedFreqs", "addedTasks", "exclusions"].forEach(function (k) { i[k] = i[k] || []; }); i.attrOverrides = i.attrOverrides || {}; i.paramOverrides = i.paramOverrides || {}; i.mapOverrides = i.mapOverrides || {}; }); }); }
+  async function walk(dir, out, depth) { if (depth > 6) return; for await (var entry of dir.values()) { if (entry.kind === "file" && entry.name.toLowerCase().endsWith(".json")) { try { var file = await entry.getFile(); var o = JSON.parse(await file.text()); if (o && (o.type === "assetClassPlan" || o.models)) { o._handle = entry; out.push(o); } } catch (e) {} } else if (entry.kind === "directory") await walk(entry, out, depth + 1); } }
+  async function openFolder() { try { var dir = await window.showDirectoryPicker({ mode: "readwrite" }); var out = []; await walk(dir, out, 0); ingest(out, dir); } catch (e) { if (e.name !== "AbortError") alert("Could not open folder: " + e.message); } }
+  function readFiles(fl) { var files = Array.prototype.slice.call(fl).filter(function (f) { return f.name.toLowerCase().endsWith(".json"); }); var out = [], pend = files.length; if (!pend) return; files.forEach(function (f) { var r = new FileReader(); r.onload = function () { try { var o = JSON.parse(r.result); out.push(o); } catch (e) {} finally { if (--pend === 0) ingest(out, null); } }; r.onerror = function () { if (--pend === 0) ingest(out, null); }; r.readAsText(f); }); }
+  function newClass() { var f = { id: nid("class"), code: "NEW", name: "New class", description: "", attrs: { estimatedLabourHours: { value: null, enforced: false }, safety: { value: "", enforced: false } }, parameters: [], frequencies: [], tasks: [], plannedParts: [], requiredSkills: [], requiredTools: [], requiredPermits: [], models: [] }; families.push(f); select(families.length - 1, -1, -1); }
 
   /* ---------- wire ---------- */
-  document.getElementById("newPlan").addEventListener("click", openNew);
+  document.getElementById("newClass").addEventListener("click", newClass);
   document.getElementById("openFolder").addEventListener("click", openFolder);
   document.getElementById("chooseFiles").addEventListener("click", function () { document.getElementById("fileInput").click(); });
   document.getElementById("loadSamples").addEventListener("click", setSamples);
   document.getElementById("fileInput").addEventListener("change", function (e) { readFiles(e.target.files); e.target.value = ""; });
   document.getElementById("q").addEventListener("input", function (e) { G.q = e.target.value; renderRail(); });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeInspect(); });
-  var body = document.body;
-  ["dragenter", "dragover"].forEach(function (ev) { body.addEventListener(ev, function (e) { e.preventDefault(); body.classList.add("drag"); }); });
-  ["dragleave", "drop"].forEach(function (ev) { body.addEventListener(ev, function (e) { e.preventDefault(); if (ev === "dragleave" && e.relatedTarget) return; body.classList.remove("drag"); }); });
-  body.addEventListener("drop", function (e) { if (e.dataTransfer && e.dataTransfer.files.length) readFiles(e.dataTransfer.files); });
+  var b = document.body;
+  ["dragenter", "dragover"].forEach(function (ev) { b.addEventListener(ev, function (e) { e.preventDefault(); b.classList.add("drag"); }); });
+  ["dragleave", "drop"].forEach(function (ev) { b.addEventListener(ev, function (e) { e.preventDefault(); if (ev === "dragleave" && e.relatedTarget) return; b.classList.remove("drag"); }); });
+  b.addEventListener("drop", function (e) { if (e.dataTransfer && e.dataTransfer.files.length) readFiles(e.dataTransfer.files); });
+  var sup = document.getElementById("support"); if (fsaSupported) { sup.className = "status ok"; sup.textContent = "Folder access"; } else { sup.className = "status warn"; sup.textContent = "Files / drag-drop"; }
 
-  var sup = document.getElementById("support");
-  if (fsaSupported) { sup.className = "status ok"; sup.textContent = "Folder access"; } else { sup.className = "status warn"; sup.textContent = "Files / drag-drop"; }
-
+  // wrap select to snapshot clean baseline per family
+  var _select = select; select = function (a, b2, c) { _select(a, b2, c); if (E.fam >= 0 && !(famKey() in _clean)) snapshotClean(); };
   setSamples();
 })();
 </script>

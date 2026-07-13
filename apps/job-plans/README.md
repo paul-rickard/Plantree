@@ -20,40 +20,45 @@ schedules exist.
 
 ## The app (`app.html`)
 
-A single self-contained app — no server, no build — in a **master–detail**
-layout: a persistent left **rail** of plans beside the open plan's **detail**.
-Ships pre-seeded with samples; only files with `"type": "jobPlan"` are recognised.
+A single self-contained app — no server, no build — built around the **asset
+hierarchy with inheritance and locking** (the AVEVA-style model). The left
+**rail is the Class → Model → Instance tree**; the right **detail** shows the
+selected node's *resolved* plan, with every field carrying its inheritance state.
+Ships pre-seeded with samples; loads files with `"type": "assetClassPlan"`.
 
-**Rail (left)** — always-visible navigation:
+**Rail (left)** — the asset tree:
 
-- **+ New plan**, and **Open folder** / **Files** / **Samples** to load data.
-  Open folder (Edge/Chrome) recurses a directory — point it at the OneDrive-synced
-  `job-plans/` library; **Files** and **drag-and-drop** are the fallback.
-- Plans **roll up under their asset class**, alphabetical — Class → (Model) →
-  Plan. A class with models sub-groups by model (model-less plans under
-  *General*). Each item shows a status dot and a task/frequency count; the
-  selected plan is highlighted. **Search** filters the tree.
+- **Class** (e.g. Standby Generator) → **Model** (Caterpillar 3512) → **Instance**
+  (GEN-1 @ SYD1). Expand/collapse, search, live selection. **+ New class**,
+  **+ Model** / **+ Instance** (in the header), and Open folder / Files / Samples
+  to load. One JSON file per class family.
 
-**Detail (right)** — the selected plan (or **+ New plan**):
+**Detail (right)** — the selected node's resolved plan, across three tabs:
 
-- **Header:** plan name, code, class chip, status badge; a **version** picker +
-  lifecycle actions (`draft → approved → active → superseded → retired`, approved
-  history locked — fork **+ Version** to change it); an **Unsaved** indicator, a
-  live **validity** chip and a **{ } JSON** inspector, and **Save**.
-- **Tabs:**
-  - **Tasks** — the step list (instruction, response type, acceptable ranges,
-    per-step skills; reorder/add/remove).
-  - **Schedule** — frequencies (add/remove columns) and the **matrix grid**
-    (tasks × frequencies), with a **what-generates** card per frequency and a
-    **12-month drop timeline**.
-  - **Details** — identity (code/name/class/model/description), this version's
-    labour/safety/notes, planned parts, requirements, parameters.
-- Everything is **read-only on non-draft versions** (shown by an inline lock
-  bar); JSON and validation live in an on-demand inspector modal, not the main
-  surface.
-- **Save** writes back to the plan's file handle if opened from a folder, creates
-  a file in the opened folder for a new plan, else Save-As / download. The rail
-  updates immediately (regrouping if the class changed).
+- **Tasks** — the effective task list. A **class** defines tasks (and can
+  **Enforce** one so descendants can't change/remove it); a **model/instance**
+  can **Exclude** an inherited task or **Add** its own. Each row shows its state:
+  *Inherited / Overridden / Enforced / Added*.
+- **Schedule** — frequencies + the **matrix grid** (ticking a cell at a
+  model/instance auto-creates a local override), a **what-generates** card per
+  frequency, and the **nested 12-month schedule** (coincident drops collapse into
+  one work order — the cannibalism model).
+- **Details** — node identity; **Attributes** (labour, safety) and
+  **Parameters** each shown as **Inherited / Overridden / Enforced**:
+  - at a **class**, edit the value and toggle **🔒 Enforce** (locks it for all
+    models/instances; enforcing clears any existing overrides below);
+  - at a **model/instance**, **Override** an unlocked value or **Revert** to
+    inherited; enforced fields are **locked**.
+
+**Effective plan { }** (header) shows the resolved snapshot a work order would
+freeze for that node — inherited values, applied overrides, enforced locks, the
+merged task list. Instances *derive* from their parents at read time, so a class
+change flows down automatically except where a descendant has overridden it.
+
+> This app models the **class-family inheritance** (`assetClassPlan`), which
+> extends the single-plan `job-plan.schema.json`. Formalising the family schema
+> (and folding version lifecycle back in on top of inheritance) is the next
+> architecture step.
 
 ## Template inheritance (`inheritance-demo.html`)
 
