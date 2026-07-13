@@ -50,6 +50,12 @@ Ships pre-seeded with samples; loads files with `"type": "assetClassPlan"`.
   - at a **model/instance**, **Override** an unlocked value or **Revert** to
     inherited; enforced fields are **locked**.
 
+**Responsive / mobile:** on a phone the layout collapses to a single column — the
+tree is the list screen, tapping a node slides to a full-screen detail with a
+**‹ Tree** back button, and the header, tabs and attribute/parameter rows reflow.
+Wide content (the matrix, timeline) scrolls within its own container, so the page
+never scrolls sideways.
+
 **Effective plan { }** (header) shows the resolved snapshot a work order would
 freeze for that node — inherited values, applied overrides, enforced locks, the
 merged task list. Instances *derive* from their parents at read time, so a class

@@ -127,7 +127,32 @@
 
   .ovl { position:fixed; inset:0; background:rgba(12,22,18,.5); display:flex; align-items:flex-start; justify-content:center; padding:44px 16px; z-index:60; overflow:auto; } .modal { background:var(--panel); border:1px solid var(--line); border-radius:16px; width:min(680px,100%); box-shadow:var(--sh-2); } .modal header { display:flex; align-items:center; gap:10px; padding:16px 18px; border-bottom:1px solid var(--line); } .modal .mbody { padding:16px 18px; } pre.json { font-family:var(--mono); font-size:11.5px; margin:0; white-space:pre-wrap; word-break:break-word; max-height:60vh; overflow:auto; background:var(--bg); border:1px solid var(--line); border-radius:9px; padding:12px; }
   .drag .detail { outline:2px dashed var(--accent); outline-offset:-10px; }
-  @media (max-width:760px){ .rail { width:240px; } .dbody { padding:16px; } }
+  .back-mobile { display:none; }
+
+  @media (max-width:860px){ .rail { width:248px; } }
+  @media (max-width:680px){
+    /* single-column: rail is the list screen, detail slides in */
+    .app { display:block; position:relative; }
+    .rail { width:100%; height:calc(100vh - 52px); }
+    .detail { display:none; position:absolute; inset:0; height:calc(100vh - 52px); }
+    #app.show-detail .rail { display:none; }
+    #app.show-detail .detail { display:flex; }
+    .back-mobile { display:inline-flex; }
+    .dbody { padding:14px; } .wrap { gap:14px; }
+    .dhead { padding:12px 14px; gap:10px; flex-direction:column; align-items:stretch; }
+    .dhead-right { margin-left:0; justify-content:flex-start; }
+    .dtitle { font-size:18px; } .dtabs { padding:0 14px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .dtab { padding:11px 12px; white-space:nowrap; }
+    .sec-body { padding:14px; }
+    /* stack attribute / parameter rows */
+    .arow { flex-wrap:wrap; gap:8px 10px; }
+    .arow .an { width:100%; min-width:0; } .arow .av { width:100%; order:2; }
+    .arow .prov { order:3; } .arow .aa { order:4; margin-left:auto; }
+    .g2, .g3 { grid-template-columns:1fr; }
+    .rail-load .btn { font-size:12px; }
+    .topbar { padding:0 12px; } .topbar .brand small { display:none; }
+    .task-extra { padding:0 11px 11px 14px; }
+  }
 </style>
 </head>
 <body>
@@ -135,7 +160,7 @@
     <div class="brand"><svg class="mark" width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 22V12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M12 12L6.5 7.5M12 12l5.5-4.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="6" cy="7" r="2" fill="currentColor"/><circle cx="18" cy="7" r="2" fill="currentColor"/></svg>Plantree <small>· Job Plans</small></div>
     <div class="right"><span id="support" class="status warn">checking…</span></div>
   </div>
-  <div class="app">
+  <div class="app" id="app">
     <aside class="rail">
       <div class="rail-top">
         <div class="rail-actions"><button class="btn primary" id="newClass">+ New class</button></div>
@@ -233,12 +258,13 @@
       });
     });
   }
-  function select(fam, mi, ii) { E.fam = fam; E.mi = mi; E.ii = ii; E.tab = "tasks"; renderRail(); renderDetail(); }
+  function select(fam, mi, ii) { E.fam = fam; E.mi = mi; E.ii = ii; E.tab = "tasks"; renderRail(); renderDetail(); document.getElementById("app").classList.add("show-detail"); }
+  function mobileBack() { document.getElementById("app").classList.remove("show-detail"); }
 
   /* ---------- detail ---------- */
   function renderDetail() {
     var host = document.getElementById("detail"); host.innerHTML = "";
-    if (E.fam < 0) { host.appendChild(el("div", { class: "empty" }, [el("svg", { width: "42", height: "42", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "1.5", html: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/>' }), el("div", { class: "big" }, ["Select a class, model or instance"]), el("div", {}, ["The left tree is the asset hierarchy. Pick a node to see its resolved plan."])])); return; }
+    if (E.fam < 0) { document.getElementById("app").classList.remove("show-detail"); host.appendChild(el("div", { class: "empty" }, [el("svg", { width: "42", height: "42", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "1.5", html: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/>' }), el("div", { class: "big" }, ["Select a class, model or instance"]), el("div", {}, ["The left tree is the asset hierarchy. Pick a node to see its resolved plan."])])); return; }
     host.appendChild(detailHead()); host.appendChild(detailTabs());
     var body = el("div", { class: "dbody" }, [el("div", { class: "wrap", id: "wrap" }, [])]); host.appendChild(body); renderBody();
   }
@@ -246,7 +272,10 @@
     var node = selNode(), lvl = level(), f = selFamily();
     var crumb = lvl === "class" ? "Class template" : lvl === "model" ? el("span", { class: "crumb" }, [el("b", {}, [f.name]), " › model"]) : el("span", { class: "crumb" }, [el("b", {}, [f.name]), " › ", el("b", {}, [selModel().name]), " › instance" + (node.site ? " @ " + node.site : "")]);
     return el("div", { class: "dhead" }, [
-      el("div", {}, [el("div", { class: "dtitle", id: "dTitle" }, [node.name || "Untitled"]), el("div", { class: "dsub" }, [el("span", { class: "nbadge nb-" + lvl }, [lvl]), el("span", { class: "code" }, [node.code || "—"]), crumb])]),
+      el("div", { style: "display:flex;align-items:center;gap:10px;min-width:0" }, [
+        el("button", { class: "btn sm ghost back-mobile", onclick: mobileBack, title: "Back to tree" }, ["‹ Tree"]),
+        el("div", { style: "min-width:0" }, [el("div", { class: "dtitle", id: "dTitle" }, [node.name || "Untitled"]), el("div", { class: "dsub" }, [el("span", { class: "nbadge nb-" + lvl }, [lvl]), el("span", { class: "code" }, [node.code || "—"]), crumb])])
+      ]),
       el("div", { class: "dhead-right" }, [ el("span", { class: "dirty", id: "dirtyTag", style: dirty() ? "" : "display:none" }, ["Unsaved"]), lvl !== "class" ? el("button", { class: "btn sm", onclick: addInstanceOrModelHint }, [lvl === "model" ? "+ Instance" : ""]) : el("button", { class: "btn sm", onclick: addModel }, ["+ Model"]), el("button", { class: "btn sm ghost", onclick: function () { openInspect(); } }, ["Effective plan { }"]), el("button", { class: "btn primary", onclick: save }, ["Save"]) ])
     ]);
   }
