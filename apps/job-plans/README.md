@@ -10,8 +10,7 @@ schedules exist.
 
 | File | Purpose |
 |------|---------|
-| `apps/job-plans/index.html` | Self-contained authoring app — no server, no build step. Open it in a browser. |
-| `apps/job-plans/gallery.html` | Browse all job plans as cards — opens a folder (or files) of plan JSON (see below). |
+| `apps/job-plans/app.html` | **The app** — gallery + editor in one, no server, no build step. Open it in a browser. |
 | `apps/job-plans/inheritance-demo.html` | Working demo of **Class → Model → Instance** template inheritance with attribute-level locks (see below). |
 | `apps/job-plans/matrix-demo.html` | Working demo of the **task × frequency matrix** — one plan, every cadence (see below). |
 | `apps/job-plans/pm-model-demo.html` | **Combined** demo: inheritance + matrix + work-order nesting in one view (see below). |
@@ -19,28 +18,37 @@ schedules exist.
 | `samples/job-plans/jp_ups_quarterly_inspection.json` | Worked example (Quarterly UPS Inspection) — also a schema fixture. |
 | `samples/job-plans/jp_generator_maintenance.json` | Worked example with a full frequency matrix (generator programme). |
 
-## Gallery (`gallery.html`)
+## The app (`app.html`)
 
-Displays every job plan as a card grid. In the file-based deployment this is
-"read all the plan JSON in a folder and show them":
+Gallery and editor integrated into one self-contained app — no server, no build.
+It ships pre-seeded with sample plans; only files with `"type": "jobPlan"` are
+recognised.
+
+**Gallery** — browse every plan:
 
 - **Open folder…** (Edge/Chrome) recurses a directory — point it at the
   OneDrive-synced `job-plans/` library and every plan appears. **Choose files…**
-  and **drag-and-drop** work everywhere as the fallback.
+  and **drag-and-drop** are the fallback everywhere.
 - **By class (default):** plans **roll up under their asset class**, alphabetical
   — Class → (Model) → Plan. Classes and models sort A–Z; a class with models
-  sub-groups by model (model-less plans fall under *General*); a class with no
-  models lists its plans directly. Groups collapse and show a rolled-up
-  plan/task count. A **Grid** view (flat cards, sortable) is also available.
-- Each card/row shows the active version's **state**, version count, **task
-  count**, **frequency chips** and estimated labour; **search** and **state
-  filter** apply in both views.
-- Rollup uses the new `assetClass` / `assetModel` fields on the job plan (set in
-  the authoring app's header); plans without a class group under *Unclassified*.
-- Click a card for a detail view (per-version tasks with their frequency tags,
-  and a **Download JSON**).
-- Ships pre-seeded with sample plans so it's populated on first open; loading a
-  folder/files replaces them. Only files with `"type": "jobPlan"` are shown.
+  sub-groups by model (model-less plans under *General*); a class with none lists
+  its plans directly. Groups collapse with a rolled-up plan/task count. A **Grid**
+  view (flat cards, sortable) is also available. **Search** and **state filter**
+  apply in both.
+- Rollup uses the `assetClass` / `assetModel` fields on the plan (set in the
+  editor); plans without a class group under *Unclassified*.
+
+**Editor** — click any plan (or **+ New plan**) to open it:
+
+- Full authoring: code/name/class/model, description; version lifecycle
+  (`draft → approved → active → superseded → retired`, approved history locked —
+  fork a new version to change it); tasks with response types and acceptable
+  ranges; planned parts; required skills/tools/permits; parameters; live JSON
+  preview and schema validation.
+- **Save** writes back to the plan's file handle if it was opened from a folder,
+  creates a file in the opened folder for a new plan, otherwise falls back to
+  Save-As / download. Edits are reflected in the gallery immediately (**← Gallery**
+  returns you there).
 
 ## Template inheritance (`inheritance-demo.html`)
 
@@ -113,21 +121,22 @@ meter/runtime streams. See the reasoning captured with this build.
 
 ## Run it
 
-Open `apps/job-plans/index.html` in **Microsoft Edge** or **Google Chrome** on
-desktop. Create a plan, then **Save** — it writes a `.json` file straight to disk
-(ideally into a OneDrive-synced SharePoint library folder). **Open…** loads an
-existing plan file back in.
+Open `apps/job-plans/app.html` in **Microsoft Edge** or **Google Chrome** on
+desktop. It opens on the gallery (seeded with samples); **Open folder…** loads a
+library of plan JSON, and clicking a plan opens it in the editor. **Save** writes
+the `.json` back to disk (ideally a OneDrive-synced SharePoint library folder).
 
 Other browsers (Firefox/Safari) and mobile fall back to **download mode**: Save
-downloads a file you re-upload to SharePoint. The app detects this and says so.
-(See [`docs/architecture/12-deployment.md`](../../docs/architecture/12-deployment.md)
-for why — the in-place save uses the Chromium-only File System Access API.)
+downloads a file you re-upload to SharePoint, and folder-open becomes choose-files
+/ drag-drop. The app detects this and says so. (See
+[`docs/architecture/12-deployment.md`](../../docs/architecture/12-deployment.md)
+— the in-place file access uses the Chromium-only File System Access API.)
 
-If the picker is blocked when opening the file as `file://`, serve the folder
-instead: from the repo root, `python3 -m http.server 8000`, then open
+If the picker is blocked when opening as `file://`, serve the folder instead:
+from the repo root, `python3 -m http.server 8000`, then open
 `http://localhost:8000/apps/job-plans/`.
 
-## What it does
+## Editor capabilities
 
 - **One JSON document per job plan**, embedding **all versions** — matching the
   [storage aggregate model](../../docs/architecture/11-data-storage.md#documents-and-aggregates).
