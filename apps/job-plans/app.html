@@ -6,228 +6,212 @@
 <title>Plantree — Job Plans</title>
 <style>
   :root {
-    --bg:#f4f6f5; --surface:#fff; --surface-2:#fbfcfb; --ink:#16201e; --muted:#5c6b67; --faint:#8a9995;
-    --line:#e0e5e2; --line-strong:#d3dad7; --accent:#0e6e66; --accent-hover:#14877d; --accent-soft:#e4f0ee;
-    --good:#1e8e5a; --good-soft:color-mix(in srgb,#1e8e5a 13%,transparent);
-    --warn:#b77a12; --warn-soft:color-mix(in srgb,#b77a12 13%,transparent);
-    --crit:#c0453b; --info:#3a6ea5; --info-soft:color-mix(in srgb,#3a6ea5 12%,transparent);
+    --bg:#eef1ef; --panel:#fff; --panel-2:#f7f9f7; --ink:#15201d; --muted:#5a6a65; --faint:#8a9a94;
+    --line:#e2e7e4; --line-2:#d2dad6; --accent:#0f6f66; --accent-h:#148a7e; --accent-soft:#e4f1ee;
+    --good:#1e8e5a; --good-soft:color-mix(in srgb,#1e8e5a 14%,transparent);
+    --warn:#b3760f; --warn-soft:color-mix(in srgb,#b3760f 14%,transparent);
+    --crit:#c0453b; --crit-soft:color-mix(in srgb,#c0453b 12%,transparent);
+    --info:#3a6ea5; --info-soft:color-mix(in srgb,#3a6ea5 13%,transparent);
     --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace; --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --sh:0 1px 2px rgba(16,32,28,.05); --sh-2:0 8px 30px rgba(16,32,28,.10);
   }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#0e1613; --surface:#16211d; --surface-2:#131e1a; --ink:#e8eeeb; --muted:#9aaaa4; --faint:#6e7e79;
-      --line:#26332e; --line-strong:#33433d; --accent:#37b3a4; --accent-hover:#55c7b8; --accent-soft:#17322e;
-      --good:#37b37a; --warn:#d69b3a; --crit:#e0685d; --info:#6c9fd6; }
+    :root { --bg:#0d1512; --panel:#141f1b; --panel-2:#111b17; --ink:#e8eeeb; --muted:#9aaaa4; --faint:#6c7d77;
+      --line:#25322d; --line-2:#33433d; --accent:#38b4a4; --accent-h:#54c6b7; --accent-soft:#16302c;
+      --good:#37b37a; --good-soft:color-mix(in srgb,#37b37a 16%,transparent);
+      --warn:#d69b3a; --warn-soft:color-mix(in srgb,#d69b3a 15%,transparent);
+      --crit:#e0685d; --crit-soft:color-mix(in srgb,#e0685d 15%,transparent);
+      --info:#6c9fd6; --info-soft:color-mix(in srgb,#6c9fd6 15%,transparent); --sh-2:0 10px 34px rgba(0,0,0,.4); }
   }
   * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans); font-size:14px; line-height:1.5; }
+  html,body { height:100%; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans); font-size:14px; line-height:1.5; overflow:hidden; -webkit-font-smoothing:antialiased; }
   h1,h2,h3 { margin:0; } .mono { font-family:var(--mono); } .num { font-variant-numeric:tabular-nums; }
-  .lbl { font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); font-weight:600; font-family:var(--mono); }
-  .hidden { display:none !important; }
+  .lbl { font-size:10px; letter-spacing:.07em; text-transform:uppercase; color:var(--faint); font-weight:700; font-family:var(--mono); }
 
-  /* top bar */
-  .top { display:flex; align-items:center; gap:12px; padding:12px 20px; background:var(--surface); border-bottom:1px solid var(--line); position:sticky; top:0; z-index:20; flex-wrap:wrap; }
-  .brand { display:flex; align-items:center; gap:9px; font-weight:680; font-size:16px; }
+  button { font:inherit; cursor:pointer; }
+  .btn { font-weight:600; font-size:13px; padding:7px 13px; border-radius:9px; border:1px solid var(--line-2); background:var(--panel); color:var(--ink); display:inline-flex; align-items:center; gap:7px; transition:border-color .12s, background .12s, color .12s; white-space:nowrap; }
+  .btn:hover { border-color:var(--faint); }
+  .btn.primary { background:var(--accent); color:#fff; border-color:transparent; } .btn.primary:hover { background:var(--accent-h); }
+  .btn.ghost { border-color:transparent; background:transparent; color:var(--muted); } .btn.ghost:hover { background:var(--panel-2); color:var(--ink); }
+  .btn.sm { padding:5px 10px; font-size:12px; border-radius:8px; }
+  .btn.danger { color:var(--crit); } .btn:disabled { opacity:.4; cursor:not-allowed; }
+  .icon { width:34px; height:34px; padding:0; justify-content:center; }
+  .x { border:0; background:transparent; color:var(--faint); padding:2px 5px; border-radius:6px; font-size:13px; } .x:hover { color:var(--crit); background:var(--crit-soft); }
+
+  input[type=text],input[type=number],textarea,select { font:inherit; padding:8px 10px; border:1px solid var(--line-2); border-radius:8px; background:var(--bg); color:var(--ink); outline:none; width:100%; }
+  :where(input,textarea,select):focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+  textarea { resize:vertical; min-height:52px; } :where(input,textarea,select):disabled { opacity:.6; cursor:not-allowed; }
+
+  .badge { font-family:var(--mono); font-size:9.5px; letter-spacing:.05em; text-transform:uppercase; font-weight:700; padding:2px 8px; border-radius:5px; white-space:nowrap; }
+  .b-draft { color:var(--muted); background:var(--panel-2); border:1px solid var(--line-2); }
+  .b-approved { color:var(--info); background:var(--info-soft); }
+  .b-active { color:var(--good); background:var(--good-soft); }
+  .b-superseded { color:var(--faint); background:var(--panel-2); }
+  .b-retired { color:var(--crit); background:var(--crit-soft); }
+  .dot { width:8px; height:8px; border-radius:50%; flex:none; }
+  .d-draft { background:var(--faint); } .d-approved { background:var(--info); } .d-active { background:var(--good); } .d-superseded { background:var(--line-2); } .d-retired { background:var(--crit); }
+  .freq { font-family:var(--mono); font-size:10px; color:var(--accent); background:var(--accent-soft); border-radius:5px; padding:2px 7px; white-space:nowrap; } .freq.none { color:var(--faint); background:var(--panel-2); }
+
+  /* ---------- shell ---------- */
+  .topbar { height:52px; display:flex; align-items:center; gap:12px; padding:0 16px; background:var(--panel); border-bottom:1px solid var(--line); }
+  .brand { display:flex; align-items:center; gap:9px; font-weight:700; font-size:15.5px; letter-spacing:-.01em; }
   .brand .mark { color:var(--accent); } .brand small { font-weight:500; color:var(--faint); font-family:var(--mono); font-size:11px; }
-  .top .actions { display:flex; gap:8px; margin-left:6px; flex-wrap:wrap; }
-  .top .right { margin-left:auto; display:flex; align-items:center; gap:10px; }
+  .topbar .right { margin-left:auto; display:flex; align-items:center; gap:10px; }
   .status { display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:600; padding:3px 10px; border-radius:999px; }
   .status::before { content:""; width:7px; height:7px; border-radius:50%; background:currentColor; }
   .status.ok { color:var(--good); background:var(--good-soft); } .status.warn { color:var(--warn); background:var(--warn-soft); }
 
-  /* buttons */
-  .btn { font:inherit; font-weight:600; font-size:13px; padding:7px 13px; border-radius:8px; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); cursor:pointer; display:inline-flex; align-items:center; gap:7px; transition:border-color .12s, background .12s; }
-  .btn:hover { border-color:var(--faint); }
-  .btn.primary { background:var(--accent); color:#fff; border-color:transparent; } .btn.primary:hover { background:var(--accent-hover); }
-  .btn.small { padding:5px 10px; font-size:12px; }
-  .btn.accent { color:var(--accent); border-color:color-mix(in srgb,var(--accent) 40%,transparent); }
-  .btn.danger { color:var(--crit); } .btn.on { background:var(--warn-soft); color:var(--warn); border-color:color-mix(in srgb,var(--warn) 35%,transparent); }
-  .btn:disabled { opacity:.45; cursor:not-allowed; }
-  .x { border:0; background:transparent; color:var(--faint); cursor:pointer; padding:2px 5px; font-size:13px; } .x:hover { color:var(--crit); }
-
-  input[type=text],input[type=number],textarea,select { font:inherit; padding:8px 10px; border:1px solid var(--line-strong); border-radius:8px; background:var(--bg); color:var(--ink); outline:none; width:100%; }
-  input:focus,textarea:focus,select:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
-  textarea { resize:vertical; min-height:60px; } input:disabled,textarea:disabled,select:disabled { opacity:.6; cursor:not-allowed; }
-
-  .badge { font-family:var(--mono); font-size:9.5px; letter-spacing:.05em; text-transform:uppercase; font-weight:700; padding:2px 8px; border-radius:5px; white-space:nowrap; }
-  .b-draft { color:var(--muted); background:var(--surface-2); border:1px solid var(--line-strong); }
-  .b-approved { color:var(--info); background:var(--info-soft); }
-  .b-active { color:var(--good); background:var(--good-soft); }
-  .b-superseded { color:var(--faint); background:var(--surface-2); }
-  .b-retired { color:var(--crit); background:color-mix(in srgb,var(--crit) 12%,transparent); }
-  .freq { font-family:var(--mono); font-size:10px; color:var(--accent); background:var(--accent-soft); border-radius:5px; padding:2px 7px; } .freq.none { color:var(--faint); background:var(--surface-2); }
-
-  /* ---------- GALLERY ---------- */
-  .controls { display:flex; align-items:center; gap:12px; padding:14px 20px; flex-wrap:wrap; }
-  .search { display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--line-strong); border-radius:9px; padding:7px 11px; width:min(320px,55vw); }
+  .app { display:flex; height:calc(100vh - 52px); }
+  .rail { width:288px; flex:none; background:var(--panel); border-right:1px solid var(--line); display:flex; flex-direction:column; }
+  .rail-top { padding:14px 14px 10px; display:flex; flex-direction:column; gap:10px; border-bottom:1px solid var(--line); }
+  .rail-actions { display:flex; gap:8px; } .rail-actions .btn { flex:1; justify-content:center; }
+  .rail-load { display:flex; gap:4px; }
+  .rail-load .btn { flex:1; justify-content:center; padding:5px 6px; font-size:11.5px; color:var(--muted); }
+  .search { display:flex; align-items:center; gap:8px; background:var(--bg); border:1px solid var(--line-2); border-radius:9px; padding:7px 11px; }
   .search:focus-within { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
   .search input { border:0; background:transparent; padding:0; }
-  .chips { display:flex; gap:6px; flex-wrap:wrap; }
-  .fchip { font:inherit; font-size:12px; font-weight:600; padding:5px 11px; border-radius:999px; border:1px solid var(--line-strong); background:var(--surface); color:var(--muted); cursor:pointer; }
-  .fchip.on { background:var(--accent-soft); color:var(--accent); border-color:color-mix(in srgb,var(--accent) 40%,transparent); }
-  .count { margin-left:auto; color:var(--faint); font-size:12.5px; font-family:var(--mono); }
+  .rail-list { flex:1; overflow-y:auto; padding:8px; }
+  .rail-count { padding:2px 8px 8px; }
 
-  .grid { padding:6px 20px 40px; display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; }
-  .gcard { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:16px; cursor:pointer; display:flex; flex-direction:column; gap:11px; transition:border-color .12s, box-shadow .12s, transform .06s; }
-  .gcard:hover { border-color:var(--line-strong); box-shadow:0 6px 20px rgba(16,32,28,.06); transform:translateY(-1px); }
-  .gcard .title { font-weight:660; font-size:15px; letter-spacing:-.01em; line-height:1.25; }
-  .gcard .code { font-family:var(--mono); font-size:11px; color:var(--faint); margin-top:2px; }
-  .gcard .desc { font-size:12.5px; color:var(--muted); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:34px; }
-  .gcard .cls { font-family:var(--mono); font-size:10.5px; color:var(--muted); }
-  .freqs { display:flex; gap:5px; flex-wrap:wrap; }
-  .meta { display:flex; gap:14px; flex-wrap:wrap; border-top:1px solid var(--line); padding-top:11px; font-size:12px; color:var(--muted); }
-  .meta b { color:var(--ink); font-variant-numeric:tabular-nums; font-family:var(--mono); }
-
-  .tree { padding:6px 20px 40px; display:flex; flex-direction:column; gap:10px; }
-  .grp { border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--surface); }
-  .grp-head { width:100%; display:flex; align-items:center; gap:10px; padding:12px 15px; background:var(--surface-2); border:0; border-bottom:1px solid var(--line); cursor:pointer; font:inherit; color:var(--ink); text-align:left; }
-  .grp-head:hover { background:color-mix(in srgb,var(--accent) 5%,var(--surface-2)); }
-  .grp-name { font-weight:680; font-size:15px; letter-spacing:-.01em; }
-  .grp-meta { margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--faint); }
+  .grp { margin-bottom:2px; }
+  .grp-head { width:100%; display:flex; align-items:center; gap:8px; padding:7px 8px; background:transparent; border:0; border-radius:8px; color:var(--ink); text-align:left; }
+  .grp-head:hover { background:var(--panel-2); }
+  .grp-name { font-weight:670; font-size:13.5px; } .grp-ct { margin-left:auto; font-family:var(--mono); font-size:10.5px; color:var(--faint); }
   .caret { color:var(--faint); transition:transform .12s; flex:none; } .caret.open { transform:rotate(90deg); }
-  .sub-head { width:100%; display:flex; align-items:center; gap:9px; padding:8px 15px 8px 26px; background:transparent; border:0; border-bottom:1px solid var(--line); cursor:pointer; font:inherit; color:var(--muted); text-align:left; }
-  .sub-head:hover { color:var(--ink); } .sub-name { font-weight:620; font-size:12.5px; font-family:var(--mono); color:var(--ink); }
-  .plan-row { width:100%; display:flex; align-items:center; gap:12px; padding:11px 15px; background:transparent; border:0; border-bottom:1px solid var(--line); cursor:pointer; font:inherit; color:var(--ink); text-align:left; }
-  .plan-row.ind { padding-left:44px; } .plan-row:last-child { border-bottom:0; } .plan-row:hover { background:var(--surface-2); }
-  .pr-name { font-weight:600; font-size:13.5px; } .pr-code { font-family:var(--mono); font-size:11px; color:var(--faint); }
-  .pr-freqs { margin-left:auto; display:flex; gap:4px; flex-wrap:wrap; justify-content:flex-end; }
-  .pr-tasks { font-family:var(--mono); font-size:11.5px; color:var(--muted); white-space:nowrap; min-width:60px; text-align:right; }
-  @media (max-width:640px){ .pr-freqs { display:none; } }
-  .empty { padding:60px 20px; text-align:center; color:var(--muted); }
-  .empty .big { font-size:16px; color:var(--ink); font-weight:600; margin-bottom:6px; }
-  .recommend { display:inline-flex; gap:8px; align-items:flex-start; text-align:left; max-width:520px; margin:14px auto 0; font-size:12.5px; color:var(--warn); background:var(--warn-soft); border:1px solid color-mix(in srgb,var(--warn) 26%,transparent); border-radius:9px; padding:10px 12px; }
-  .recommend b { color:var(--ink); }
-  .drag { outline:2px dashed var(--accent); outline-offset:-10px; }
+  .sub { padding:5px 8px 3px 26px; } .sub .lbl { font-size:9px; }
+  .item { width:100%; display:flex; align-items:center; gap:9px; padding:8px 10px; margin:1px 0; background:transparent; border:0; border-radius:8px; color:var(--ink); text-align:left; position:relative; }
+  .item.ind { padding-left:30px; } .item.ind2 { padding-left:40px; }
+  .item:hover { background:var(--panel-2); }
+  .item.sel { background:var(--accent-soft); }
+  .item.sel::before { content:""; position:absolute; left:2px; top:6px; bottom:6px; width:3px; border-radius:3px; background:var(--accent); }
+  .item .nm { font-weight:560; font-size:13px; line-height:1.25; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .item .mt { font-family:var(--mono); font-size:10px; color:var(--faint); margin-top:1px; }
+  .item .col { min-width:0; flex:1; }
+  .item.sel .nm { color:var(--accent); font-weight:640; }
+  .newmark { font-family:var(--mono); font-size:9px; color:var(--accent); background:var(--accent-soft); padding:1px 6px; border-radius:4px; }
 
-  /* ---------- EDITOR ---------- */
-  .etop { display:flex; align-items:center; gap:10px; padding:11px 20px; background:var(--surface); border-bottom:1px solid var(--line); position:sticky; top:0; z-index:15; flex-wrap:wrap; }
-  .etop .fn { font-family:var(--mono); font-size:12px; color:var(--muted); } .etop .fn b { color:var(--ink); }
-  .etop .right { margin-left:auto; display:flex; align-items:center; gap:10px; }
-  .toast { font-size:12.5px; font-weight:600; color:var(--good); min-height:16px; } .toast.err { color:var(--crit); }
-  .elayout { display:grid; grid-template-columns:minmax(0,1fr) 380px; align-items:start; }
-  .emain { padding:18px 20px; display:flex; flex-direction:column; gap:14px; min-width:0; }
-  .eside { position:sticky; top:53px; height:calc(100vh - 53px); border-left:1px solid var(--line); background:var(--surface-2); display:flex; flex-direction:column; }
-  .side-tabs { display:flex; gap:4px; padding:10px 12px; border-bottom:1px solid var(--line); }
-  .side-tabs button { border:0; background:transparent; color:var(--muted); padding:5px 10px; border-radius:7px; font:inherit; cursor:pointer; }
-  .side-tabs button.on { background:var(--surface); color:var(--ink); border:1px solid var(--line); }
-  .side-body { flex:1; overflow:auto; padding:14px; }
-  pre.json { font-family:var(--mono); font-size:11.5px; margin:0; white-space:pre-wrap; word-break:break-word; }
-  .issues { display:flex; flex-direction:column; gap:8px; }
-  .issue { display:flex; gap:9px; align-items:flex-start; font-size:12.5px; padding:9px 11px; border-radius:8px; background:color-mix(in srgb,var(--crit) 9%,transparent); border:1px solid color-mix(in srgb,var(--crit) 22%,transparent); }
-  .issue .path { font-family:var(--mono); font-size:11px; color:var(--crit); flex:none; }
-  .all-good { display:flex; align-items:center; gap:9px; color:var(--good); font-weight:600; font-size:13px; }
-  .epanel { background:var(--surface); border:1px solid var(--line); border-radius:12px; }
-  .epanel > h2 { font-size:13.5px; padding:12px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px; }
-  .epanel > h2 .count { margin-left:0; font-family:var(--mono); font-size:11px; color:var(--muted); font-weight:500; }
-  .epanel-body { padding:16px; display:flex; flex-direction:column; gap:14px; }
-  .field { display:flex; flex-direction:column; gap:5px; } .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; } .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
-  .versionbar { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
-  .lock-note { display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--warn); background:var(--warn-soft); border:1px solid color-mix(in srgb,var(--warn) 26%,transparent); padding:9px 12px; border-radius:9px; }
-  .task { border:1px solid var(--line); border-radius:10px; padding:12px; display:flex; flex-direction:column; gap:10px; background:var(--surface-2); }
-  .task-head { display:flex; align-items:center; gap:10px; } .task-head .move { margin-left:auto; display:flex; gap:4px; }
-  .seq { font-family:var(--mono); font-weight:700; color:var(--accent); background:var(--accent-soft); border-radius:6px; padding:2px 8px; font-size:12px; }
-  .rowline { display:flex; gap:8px; align-items:center; } .rowline input { flex:1; }
-  .empty-inline { color:var(--faint); font-size:13px; font-style:italic; } .chip-hint { font-size:11.5px; color:var(--faint); }
+  /* ---------- detail ---------- */
+  .detail { flex:1; min-width:0; display:flex; flex-direction:column; background:var(--bg); }
+  .empty { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; color:var(--muted); text-align:center; padding:40px; }
+  .empty .big { font-size:17px; color:var(--ink); font-weight:650; } .empty svg { color:var(--line-2); }
+  .recommend { display:inline-flex; gap:8px; align-items:flex-start; text-align:left; max-width:460px; margin-top:6px; font-size:12.5px; color:var(--warn); background:var(--warn-soft); border:1px solid color-mix(in srgb,var(--warn) 26%,transparent); border-radius:9px; padding:10px 12px; } .recommend b { color:var(--ink); }
+
+  .dhead { background:var(--panel); border-bottom:1px solid var(--line); padding:14px 22px; display:flex; align-items:flex-start; gap:16px; flex-wrap:wrap; }
+  .dtitle { font-size:20px; font-weight:700; letter-spacing:-.02em; line-height:1.2; text-wrap:balance; }
+  .dsub { display:flex; align-items:center; gap:8px; margin-top:4px; font-size:12.5px; color:var(--muted); flex-wrap:wrap; }
+  .dsub .code { font-family:var(--mono); } .dsub .clschip { display:inline-flex; align-items:center; gap:5px; background:var(--panel-2); border:1px solid var(--line); border-radius:999px; padding:2px 10px; font-size:11.5px; }
+  .dhead-right { margin-left:auto; display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+  .vpick { display:inline-flex; align-items:center; gap:7px; background:var(--panel-2); border:1px solid var(--line-2); border-radius:9px; padding:4px 6px 4px 10px; }
+  .vpick .lbl { margin:0; } .vpick select { width:auto; border:0; background:transparent; box-shadow:none; padding:3px 4px; font-weight:600; }
+  .dirty { font-size:12px; color:var(--warn); font-weight:600; display:inline-flex; align-items:center; gap:6px; } .dirty::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--warn); }
+
+  .dtabs { background:var(--panel); border-bottom:1px solid var(--line); padding:0 22px; display:flex; gap:2px; }
+  .dtab { border:0; background:transparent; color:var(--muted); font-weight:600; font-size:13.5px; padding:11px 14px; border-bottom:2px solid transparent; margin-bottom:-1px; }
+  .dtab:hover { color:var(--ink); } .dtab.on { color:var(--accent); border-bottom-color:var(--accent); }
+  .dtab .pill { font-family:var(--mono); font-size:10px; font-weight:700; margin-left:6px; color:var(--muted); background:var(--panel-2); border:1px solid var(--line); padding:0 6px; border-radius:999px; }
+
+  .dbody { flex:1; overflow-y:auto; padding:22px; }
+  .wrap { max-width:860px; margin:0 auto; display:flex; flex-direction:column; gap:18px; }
+  .lockbar { display:flex; align-items:center; gap:9px; font-size:12.5px; color:var(--warn); background:var(--warn-soft); border:1px solid color-mix(in srgb,var(--warn) 26%,transparent); border-radius:10px; padding:10px 14px; }
+
+  .sec { background:var(--panel); border:1px solid var(--line); border-radius:14px; box-shadow:var(--sh); }
+  .sec > header { padding:13px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px; }
+  .sec > header h3 { font-size:13.5px; font-weight:660; } .sec > header .ct { font-family:var(--mono); font-size:11px; color:var(--faint); }
+  .sec > header .hact { margin-left:auto; display:flex; gap:8px; }
+  .sec-body { padding:16px; display:flex; flex-direction:column; gap:14px; }
+  .field { display:flex; flex-direction:column; gap:5px; } .g2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; } .g3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+  @media (max-width:680px){ .g2,.g3 { grid-template-columns:1fr; } }
+  .hint { font-size:11.5px; color:var(--faint); } .empty-in { color:var(--faint); font-size:13px; font-style:italic; padding:4px 0; }
   .addbar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-  .freqtag { display:inline-flex; align-items:center; gap:3px; font-family:var(--mono); font-size:11px; color:var(--accent); background:var(--accent-soft); border-radius:6px; padding:3px 4px 3px 9px; }
-  .seg { display:inline-flex; background:var(--surface-2); border:1px solid var(--line); border-radius:8px; padding:2px; }
-  .seg button { border:0; background:transparent; font:inherit; font-size:12.5px; font-weight:600; color:var(--muted); padding:5px 12px; border-radius:6px; cursor:pointer; }
-  .seg button.on { background:var(--surface); color:var(--ink); box-shadow:0 1px 2px rgba(16,32,28,.05); }
+
+  /* tasks */
+  .task { border:1px solid var(--line); border-radius:11px; background:var(--panel-2); overflow:hidden; }
+  .task-top { display:flex; align-items:center; gap:10px; padding:9px 11px; }
+  .tseq { font-family:var(--mono); font-weight:700; color:var(--accent); background:var(--accent-soft); border-radius:6px; padding:3px 9px; font-size:12px; flex:none; }
+  .tinstr { flex:1; } .tresp { width:auto; flex:none; }
+  .tmove { display:flex; gap:3px; flex:none; }
+  .task-extra { padding:0 11px 11px 48px; display:flex; flex-direction:column; gap:10px; }
+
+  /* matrix */
   .scroll { overflow-x:auto; }
-  table.matrix { border-collapse:separate; border-spacing:0; width:100%; min-width:520px; }
-  table.matrix th, table.matrix td { padding:8px 7px; border-bottom:1px solid var(--line); }
-  table.matrix thead th { text-align:center; vertical-align:bottom; }
-  table.matrix th.tcol, table.matrix td.tcol { text-align:left; min-width:220px; }
-  .freqhead { display:flex; flex-direction:column; align-items:center; gap:2px; }
-  .freqhead .fl { font-weight:650; font-size:12px; white-space:nowrap; } .freqhead .fs { font-family:var(--mono); font-size:9px; color:var(--faint); }
-  table.matrix td.cell { text-align:center; }
-  .cbx { appearance:none; -webkit-appearance:none; width:19px; height:19px; border:1.5px solid var(--line-strong); border-radius:5px; cursor:pointer; position:relative; vertical-align:middle; background:var(--bg); }
-  .cbx:hover:not(:disabled) { border-color:var(--accent); }
-  .cbx:checked { background:var(--accent); border-color:var(--accent); }
-  .cbx:checked::after { content:""; position:absolute; left:5.5px; top:2px; width:5px; height:9px; border:solid #fff; border-width:0 2px 2px 0; transform:rotate(45deg); }
+  table.mtx { border-collapse:separate; border-spacing:0; width:100%; min-width:480px; }
+  table.mtx th, table.mtx td { padding:9px 8px; border-bottom:1px solid var(--line); }
+  table.mtx thead th { text-align:center; vertical-align:bottom; } table.mtx th.tc, table.mtx td.tc { text-align:left; min-width:220px; }
+  .fh { display:flex; flex-direction:column; align-items:center; gap:2px; } .fh .fl { font-weight:660; font-size:12px; white-space:nowrap; } .fh .fs { font-family:var(--mono); font-size:9px; color:var(--faint); }
+  table.mtx td.c { text-align:center; }
+  .cbx { appearance:none; -webkit-appearance:none; width:20px; height:20px; border:1.5px solid var(--line-2); border-radius:6px; cursor:pointer; position:relative; vertical-align:middle; background:var(--bg); }
+  .cbx:hover:not(:disabled) { border-color:var(--accent); } .cbx:checked { background:var(--accent); border-color:var(--accent); }
+  .cbx:checked::after { content:""; position:absolute; left:6px; top:2px; width:5px; height:10px; border:solid #fff; border-width:0 2px 2px 0; transform:rotate(45deg); }
   .cbx:disabled { cursor:not-allowed; opacity:.85; } .cbx:disabled:checked { background:var(--faint); border-color:var(--faint); }
-  .ti { font-weight:540; font-size:13px; } .tm { font-family:var(--mono); font-size:10px; color:var(--faint); }
-  tr.totals td { border-bottom:0; font-family:var(--mono); font-size:11px; color:var(--muted); text-align:center; padding-top:8px; }
-  tr.totals td.tcol { text-align:right; color:var(--faint); }
-  .drops { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px; }
-  .drop { border:1px solid var(--line); border-radius:10px; padding:11px 12px; background:var(--surface-2); }
-  .drop h3 { font-size:12.5px; display:flex; align-items:baseline; gap:8px; }
-  .drop h3 .n { margin-left:auto; font-family:var(--mono); font-size:10.5px; color:var(--accent); background:var(--accent-soft); padding:1px 7px; border-radius:999px; }
-  .drop ul { margin:8px 0 0; padding-left:16px; font-size:12px; color:var(--muted); } .drop li { margin:2px 0; } .drop.empty { opacity:.6; }
-  table.tl { border-collapse:collapse; width:100%; min-width:520px; font-size:12px; }
+  .ti { font-weight:550; font-size:13px; } .tmn { font-family:var(--mono); font-size:10px; color:var(--faint); }
+  tr.tot td { border-bottom:0; font-family:var(--mono); font-size:11px; color:var(--muted); text-align:center; padding-top:8px; } tr.tot td.tc { text-align:right; color:var(--faint); }
+  .drops { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:10px; }
+  .drop { border:1px solid var(--line); border-radius:10px; padding:11px 12px; } .drop.empty { opacity:.55; }
+  .drop h4 { font-size:12.5px; display:flex; align-items:baseline; gap:8px; } .drop h4 .n { margin-left:auto; font-family:var(--mono); font-size:10.5px; color:var(--accent); background:var(--accent-soft); padding:1px 7px; border-radius:999px; }
+  .drop ul { margin:8px 0 0; padding-left:16px; font-size:12px; color:var(--muted); } .drop li { margin:2px 0; }
+  table.tl { border-collapse:collapse; width:100%; min-width:480px; font-size:12px; }
   table.tl th, table.tl td { padding:6px 4px; text-align:center; border-bottom:1px solid var(--line); }
-  table.tl th.rl, table.tl td.rl { text-align:left; white-space:nowrap; font-weight:560; padding-right:12px; }
-  table.tl th { font-family:var(--mono); font-size:10px; color:var(--faint); font-weight:600; }
-  .dot { width:9px; height:9px; border-radius:50%; background:var(--accent); display:inline-block; }
-  .cap { font-size:11.5px; color:var(--faint); margin-top:8px; }
-  @media (max-width:900px){ .elayout { grid-template-columns:1fr; } .eside { position:static; height:auto; border-left:0; border-top:1px solid var(--line);} .grid2,.grid3 { grid-template-columns:1fr; } }
+  table.tl th.rl, table.tl td.rl { text-align:left; white-space:nowrap; font-weight:560; padding-right:12px; } table.tl th { font-family:var(--mono); font-size:10px; color:var(--faint); font-weight:600; }
+  .tldot { width:9px; height:9px; border-radius:50%; background:var(--accent); display:inline-block; } .cap { font-size:11.5px; color:var(--faint); margin-top:8px; }
+  .freqtags { display:flex; gap:6px; flex-wrap:wrap; } .freqtag { display:inline-flex; align-items:center; gap:3px; font-family:var(--mono); font-size:11px; color:var(--accent); background:var(--accent-soft); border-radius:6px; padding:3px 4px 3px 9px; }
+  .rowline { display:flex; gap:8px; align-items:center; }
+
+  /* modal */
+  .ovl { position:fixed; inset:0; background:rgba(12,22,18,.5); display:flex; align-items:flex-start; justify-content:center; padding:44px 16px; z-index:60; overflow:auto; }
+  .modal { background:var(--panel); border:1px solid var(--line); border-radius:16px; width:min(680px,100%); box-shadow:var(--sh-2); }
+  .modal header { display:flex; align-items:center; gap:10px; padding:16px 18px; border-bottom:1px solid var(--line); } .modal header h3 { font-size:15px; }
+  .modal .mbody { padding:16px 18px; }
+  .modal .side-tabs { display:flex; gap:4px; margin-bottom:12px; } .modal .side-tabs button { border:0; background:var(--panel-2); color:var(--muted); padding:5px 11px; border-radius:8px; font-weight:600; } .modal .side-tabs button.on { background:var(--accent-soft); color:var(--accent); }
+  pre.json { font-family:var(--mono); font-size:11.5px; margin:0; white-space:pre-wrap; word-break:break-word; max-height:52vh; overflow:auto; background:var(--bg); border:1px solid var(--line); border-radius:9px; padding:12px; }
+  .issue { display:flex; gap:9px; align-items:flex-start; font-size:12.5px; padding:9px 11px; border-radius:8px; background:var(--crit-soft); border:1px solid color-mix(in srgb,var(--crit) 22%,transparent); margin-bottom:8px; }
+  .issue .p { font-family:var(--mono); font-size:11px; color:var(--crit); flex:none; }
+  .allgood { display:flex; align-items:center; gap:9px; color:var(--good); font-weight:600; }
+  .drag .detail { outline:2px dashed var(--accent); outline-offset:-10px; }
+  @media (max-width:760px){ .rail { width:230px; } .dbody { padding:16px; } }
 </style>
 </head>
 <body>
-  <!-- ============ GALLERY VIEW ============ -->
-  <div id="galleryView">
-    <div class="top">
-      <div class="brand">
-        <svg class="mark" width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 22V12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M12 12L6.5 7.5M12 12l5.5-4.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="6" cy="7" r="2" fill="currentColor"/><circle cx="18" cy="7" r="2" fill="currentColor"/></svg>
-        Plantree <small>· Job Plans</small>
-      </div>
-      <div class="actions">
-        <button class="btn primary" id="newPlan">+ New plan</button>
-        <button class="btn" id="openFolder">Open folder…</button>
-        <button class="btn" id="chooseFiles">Choose files…</button>
-        <button class="btn" id="loadSamples">Load samples</button>
-      </div>
-      <div class="right"><span id="support" class="status warn">checking…</span></div>
+  <div class="topbar">
+    <div class="brand">
+      <svg class="mark" width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 22V12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M12 12L6.5 7.5M12 12l5.5-4.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="6" cy="7" r="2" fill="currentColor"/><circle cx="18" cy="7" r="2" fill="currentColor"/></svg>
+      Plantree <small>· Job Plans</small>
     </div>
-    <div class="controls">
-      <div class="search">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--faint)"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2" stroke-linecap="round"/></svg>
-        <input id="q" placeholder="Search name, code, class…" />
-      </div>
-      <div class="chips" id="viewToggle">
-        <button class="fchip on" data-view="grouped">By class</button>
-        <button class="fchip" data-view="grid">Grid</button>
-      </div>
-      <div class="chips" id="stateChips"></div>
-      <span id="sortWrap" style="display:inline-flex;align-items:center;gap:8px"><label class="lbl" for="sort">Sort</label>
-        <select id="sort" style="width:auto"><option value="name">Name</option><option value="code">Code</option><option value="updated">Updated</option><option value="tasks">Tasks</option></select></span>
-      <span class="count" id="count"></span>
-    </div>
-    <div id="view"></div>
+    <div class="right"><span id="support" class="status warn">checking…</span></div>
   </div>
 
-  <!-- ============ EDITOR VIEW ============ -->
-  <div id="editorView" class="hidden">
-    <div class="etop">
-      <button class="btn" id="backBtn">← Gallery</button>
-      <button class="btn primary" id="saveBtn">Save</button>
-      <button class="btn" id="validateBtn">Validate</button>
-      <div class="seg" id="editorTabs"><button data-tab="details" class="on">Details</button><button data-tab="matrix">Matrix</button></div>
-      <span class="toast" id="toast"></span>
-      <div class="right"><span id="fileName" class="fn">Unsaved</span></div>
-    </div>
-    <div class="elayout">
-      <div class="emain" id="emain"></div>
-      <aside class="eside">
-        <div class="side-tabs"><button id="tabJson" class="on">JSON document</button><button id="tabValid">Validation</button></div>
-        <div class="side-body" id="sideBody"></div>
-      </aside>
-    </div>
+  <div class="app">
+    <aside class="rail">
+      <div class="rail-top">
+        <div class="rail-actions">
+          <button class="btn primary" id="newPlan">+ New plan</button>
+        </div>
+        <div class="rail-load">
+          <button class="btn" id="openFolder">Open folder</button>
+          <button class="btn" id="chooseFiles">Files</button>
+          <button class="btn" id="loadSamples">Samples</button>
+        </div>
+        <div class="search">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--faint)"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2" stroke-linecap="round"/></svg>
+          <input id="q" placeholder="Search plans…" />
+        </div>
+      </div>
+      <div class="rail-list" id="railList"></div>
+    </aside>
+    <main class="detail" id="detail"></main>
   </div>
-
   <input type="file" id="fileInput" accept=".json" multiple hidden />
 
 <script>
 (function () {
   "use strict";
-  var UNIT = { day: ["Daily", "d"], week: ["Weekly", "w"], month: ["Monthly", "mo"], year: ["Annual", "y"] };
+  var UNIT = { day: "Daily", week: "Weekly", month: "Monthly", year: "Annual" };
   var RESPONSE_TYPES = ["none", "passfail", "numeric", "text", "choice"];
-  var STATES = ["active", "approved", "draft", "superseded", "retired"];
   var fsaSupported = typeof window.showDirectoryPicker === "function";
 
-  // shared
-  var store = [], folderHandle = null, view = "gallery";
-  var G = { q: "", viewMode: "grouped", collapsed: {}, stateFilter: "all", sort: "name", usingSamples: true };
-  var E = { doc: null, entry: null, sel: 0, sideTab: "json", editorTab: "details" };
+  var store = [], folderHandle = null;
+  var G = { q: "", collapsed: {} };
+  var E = { doc: null, entry: null, sel: 0, tab: "tasks" };
   var freqSeq = 1;
 
   function el(t, p, k) {
@@ -244,399 +228,283 @@
   }
   function nowIso() { return new Date().toISOString(); }
   function slug(s) { return (s || "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, ""); }
-  function csv(a) { return (a || []).join(", "); }
-  function parseCsv(s) { return (s || "").split(",").map(function (x) { return x.trim(); }).filter(Boolean); }
-  function fmtDate(s) { return s ? String(s).slice(0, 10) : "—"; }
-  function freqLabel(f) {
-    if (f.label) return f.label;
-    if (f.interval === 1) return UNIT[f.unit][0];
-    if (f.unit === "month") return f.interval + "-Monthly";
-    if (f.unit === "year") return f.interval + "-Yearly";
-    return "Every " + f.interval + " " + f.unit + "s";
-  }
-  function activeVersion(plan) {
-    var vs = plan.versions || [];
-    return vs.filter(function (v) { return v.version === plan.activeVersion; })[0]
-      || vs.filter(function (v) { return v.lifecycleState === "active"; })[0]
-      || vs.slice().sort(function (x, y) { return (y.version || 0) - (x.version || 0); })[0] || { tasks: [] };
-  }
+  function csv(a) { return (a || []).join(", "); } function parseCsv(s) { return (s || "").split(",").map(function (x) { return x.trim(); }).filter(Boolean); }
+  function freqLabel(f) { if (f.label) return f.label; if (f.interval === 1) return UNIT[f.unit]; if (f.unit === "month") return f.interval + "-Monthly"; if (f.unit === "year") return f.interval + "-Yearly"; return "Every " + f.interval + " " + f.unit + "s"; }
+  function fsub(f) { return "every " + f.interval + " " + f.unit + (f.interval > 1 ? "s" : ""); }
+  function activeVersion(p) { var vs = p.versions || []; return vs.filter(function (v) { return v.version === p.activeVersion; })[0] || vs.filter(function (v) { return v.lifecycleState === "active"; })[0] || vs.slice().sort(function (a, b) { return (b.version || 0) - (a.version || 0); })[0] || { tasks: [] }; }
 
-  /* ============ SEED SAMPLES ============ */
-  function T(instruction, responseType, frequencyIds) { return { seq: 0, instruction: instruction, responseType: responseType, unit: null, acceptableRange: null, choices: null, requiredSkills: [], frequencyIds: frequencyIds || [] }; }
+  /* seed samples (compact) */
+  function T(i, r, f) { return { seq: 0, instruction: i, responseType: r, unit: null, acceptableRange: null, choices: null, requiredSkills: [], frequencyIds: f || [] }; }
   var SAMPLES = [
-    { id: "jp_ups_quarterly_inspection", type: "jobPlan", code: "JP-UPS-QTR", name: "Quarterly UPS Inspection", assetClass: "UPS", assetModel: "Schneider Galaxy VX",
-      description: "Routine quarterly inspection for static UPS units.", updatedAt: "2026-06-18", activeVersion: 4,
-      versions: [{ version: 4, lifecycleState: "active", estimatedLabourHours: 1.5, frequencies: [{ id: "q", label: "Quarterly", unit: "month", interval: 3 }],
-        tasks: [T("Record input voltage.", "numeric", ["q"]), T("Battery impedance per string.", "numeric", ["q"]), T("Check fans & filters.", "passfail", ["q"]), T("Review event log.", "text", ["q"])] }] },
-    { id: "jp_ups_battery_load", type: "jobPlan", code: "JP-UPS-BAT", name: "Annual UPS Battery Load Test", assetClass: "UPS",
-      description: "Timed discharge / capacity test of the UPS battery string.", updatedAt: "2026-04-11", activeVersion: 1,
-      versions: [{ version: 1, lifecycleState: "active", estimatedLabourHours: 3, frequencies: [{ id: "y", unit: "year", interval: 1 }],
-        tasks: [T("Record float voltage per cell.", "numeric", ["y"]), T("Run timed discharge.", "numeric", ["y"])] }] },
-    { id: "jp_generator_maintenance", type: "jobPlan", code: "JP-GEN-STD", name: "Standby Generator Maintenance", assetClass: "Generator", assetModel: "Caterpillar 3512",
-      description: "Full programme for standby diesel generators — every cadence in one plan.", updatedAt: "2026-06-01", activeVersion: 1,
-      versions: [{ version: 1, lifecycleState: "active", estimatedLabourHours: 3, frequencies: [{ id: "w", unit: "week", interval: 1 }, { id: "m", unit: "month", interval: 1 }, { id: "s", unit: "month", interval: 6 }, { id: "y", unit: "year", interval: 1 }],
-        tasks: [T("Visual inspection.", "passfail", ["w"]), T("Check coolant & oil.", "passfail", ["w", "m"]), T("No-load test run.", "passfail", ["m"]), T("Change oil & filter.", "passfail", ["s"]), T("Full-load test.", "numeric", ["y"])] }] },
-    { id: "jp_generator_fuel", type: "jobPlan", code: "JP-GEN-FUEL", name: "Generator Fuel System Service", assetClass: "Generator", assetModel: "Caterpillar 3512",
-      description: "Fuel filters, injectors and tank water management.", updatedAt: "2026-03-22", activeVersion: 2,
-      versions: [{ version: 2, lifecycleState: "active", estimatedLabourHours: 2, frequencies: [{ id: "s", label: "6-Monthly", unit: "month", interval: 6 }],
-        tasks: [T("Replace fuel filters.", "passfail", ["s"]), T("Drain tank water trap.", "passfail", ["s"])] }] },
-    { id: "jp_chiller_annual", type: "jobPlan", code: "JP-CHW-ANN", name: "Chiller Annual Service", assetClass: "Chiller",
-      description: "Annual major service for water-cooled centrifugal chillers.", updatedAt: "2026-05-20", activeVersion: 2,
-      versions: [{ version: 2, lifecycleState: "active", estimatedLabourHours: 8, frequencies: [{ id: "y", unit: "year", interval: 1 }],
-        tasks: [T("Eddy-current tube test.", "passfail", ["y"]), T("Oil analysis.", "numeric", ["y"]), T("Refrigerant charge check.", "numeric", ["y"])] }] },
-    { id: "jp_chiller_weekly", type: "jobPlan", code: "JP-CHW-WK", name: "Chiller Weekly Log", assetClass: "Chiller",
-      description: "Operator weekly readings and visual check.", updatedAt: "2026-07-05", activeVersion: 1,
-      versions: [{ version: 1, lifecycleState: "active", estimatedLabourHours: 0.25, frequencies: [{ id: "w", unit: "week", interval: 1 }],
-        tasks: [T("Record condenser/evaporator temps.", "numeric", ["w"]), T("Check for leaks/alarms.", "passfail", ["w"])] }] },
-    { id: "jp_crah_filter", type: "jobPlan", code: "JP-CRAH-FLT", name: "CRAH Filter & Belt Check", assetClass: "CRAH",
-      description: "Monthly filter and belt inspection for computer-room air handlers.", updatedAt: "2026-07-02", activeVersion: 3,
-      versions: [{ version: 3, lifecycleState: "active", estimatedLabourHours: 0.5, frequencies: [{ id: "m", unit: "month", interval: 1 }],
-        tasks: [T("Inspect / replace filters.", "passfail", ["m"]), T("Check belt tension.", "passfail", ["m"])] }] },
-    { id: "jp_firepump_weekly", type: "jobPlan", code: "JP-FP-WK", name: "Fire Pump Weekly Test", assetClass: "Fire Pump",
-      description: "Statutory weekly no-flow (churn) test for electric fire pumps.", updatedAt: "2026-07-06", activeVersion: 1,
-      versions: [{ version: 1, lifecycleState: "active", estimatedLabourHours: 0.5, frequencies: [{ id: "w", unit: "week", interval: 1 }],
-        tasks: [T("Start pump, run 10 min.", "passfail", ["w"]), T("Confirm auto-start.", "passfail", ["w"])] }] },
-    { id: "jp_thermo_survey", type: "jobPlan", code: "JP-THERMO", name: "Thermographic Survey", assetClass: "Switchboard",
-      description: "Infrared survey of switchboards and distribution — draft.", updatedAt: "2026-07-09", activeVersion: null,
-      versions: [{ version: 1, lifecycleState: "draft", estimatedLabourHours: 4, frequencies: [{ id: "y", unit: "year", interval: 1 }],
-        tasks: [T("Scan main switchboard under load.", "numeric", ["y"]), T("Log hotspots > 60°C.", "text", ["y"])] }] }
+    { id: "jp_ups_quarterly_inspection", type: "jobPlan", code: "JP-UPS-QTR", name: "Quarterly UPS Inspection", assetClass: "UPS", assetModel: "Schneider Galaxy VX", description: "Routine quarterly inspection for static UPS units.", updatedAt: "2026-06-18", activeVersion: 4,
+      versions: [{ version: 4, lifecycleState: "active", estimatedLabourHours: 1.5, safetyInstructions: "Confirm bypass before intrusive work.", frequencies: [{ id: "q", label: "Quarterly", unit: "month", interval: 3 }], tasks: [T("Record input voltage.", "numeric", ["q"]), T("Battery impedance per string.", "numeric", ["q"]), T("Check fans & filters.", "passfail", ["q"]), T("Review event log.", "text", ["q"])], plannedParts: [], requiredSkills: ["Electrical – LV"], requiredTools: [], requiredPermits: [], parameters: [] }] },
+    { id: "jp_ups_battery_load", type: "jobPlan", code: "JP-UPS-BAT", name: "Annual UPS Battery Load Test", assetClass: "UPS", description: "Timed discharge / capacity test of the battery string.", updatedAt: "2026-04-11", activeVersion: 1,
+      versions: [{ version: 1, lifecycleState: "active", estimatedLabourHours: 3, frequencies: [{ id: "y", unit: "year", interval: 1 }], tasks: [T("Record float voltage per cell.", "numeric", ["y"]), T("Run timed discharge.", "numeric", ["y"])], plannedParts: [], requiredSkills: [], requiredTools: [], requiredPermits: [], parameters: [] }] },
+    { id: "jp_generator_maintenance", type: "jobPlan", code: "JP-GEN-STD", name: "Standby Generator Maintenance", assetClass: "Generator", assetModel: "Caterpillar 3512", description: "Full programme for standby diesel generators.", updatedAt: "2026-06-01", activeVersion: 1,
+      versions: [{ version: 1, lifecycleState: "active", estimatedLabourHours: 3, frequencies: [{ id: "w", unit: "week", interval: 1 }, { id: "m", unit: "month", interval: 1 }, { id: "s", unit: "month", interval: 6 }, { id: "y", unit: "year", interval: 1 }], tasks: [T("Visual inspection.", "passfail", ["w"]), T("Check coolant & oil.", "passfail", ["w", "m"]), T("No-load test run.", "passfail", ["m"]), T("Change oil & filter.", "passfail", ["s"]), T("Full-load test.", "numeric", ["y"])], plannedParts: [{ partRef: null, description: "Oil filter", quantity: 1, unit: "each" }], requiredSkills: ["Mechanical"], requiredTools: [], requiredPermits: [], parameters: [] }] },
+    { id: "jp_generator_fuel", type: "jobPlan", code: "JP-GEN-FUEL", name: "Generator Fuel System Service", assetClass: "Generator", assetModel: "Caterpillar 3512", description: "Fuel filters, injectors and tank water management.", updatedAt: "2026-03-22", activeVersion: 2,
+      versions: [{ version: 2, lifecycleState: "active", estimatedLabourHours: 2, frequencies: [{ id: "s", label: "6-Monthly", unit: "month", interval: 6 }], tasks: [T("Replace fuel filters.", "passfail", ["s"]), T("Drain tank water trap.", "passfail", ["s"])], plannedParts: [], requiredSkills: [], requiredTools: [], requiredPermits: [], parameters: [] }] },
+    { id: "jp_chiller_annual", type: "jobPlan", code: "JP-CHW-ANN", name: "Chiller Annual Service", assetClass: "Chiller", description: "Annual major service for water-cooled centrifugal chillers.", updatedAt: "2026-05-20", activeVersion: 2,
+      versions: [{ version: 2, lifecycleState: "active", estimatedLabourHours: 8, frequencies: [{ id: "y", unit: "year", interval: 1 }], tasks: [T("Eddy-current tube test.", "passfail", ["y"]), T("Oil analysis.", "numeric", ["y"]), T("Refrigerant charge check.", "numeric", ["y"])], plannedParts: [], requiredSkills: [], requiredTools: [], requiredPermits: [], parameters: [] }] },
+    { id: "jp_chiller_weekly", type: "jobPlan", code: "JP-CHW-WK", name: "Chiller Weekly Log", assetClass: "Chiller", description: "Operator weekly readings and visual check.", updatedAt: "2026-07-05", activeVersion: 1,
+      versions: [{ version: 1, lifecycleState: "active", estimatedLabourHours: 0.25, frequencies: [{ id: "w", unit: "week", interval: 1 }], tasks: [T("Record condenser/evaporator temps.", "numeric", ["w"]), T("Check for leaks/alarms.", "passfail", ["w"])], plannedParts: [], requiredSkills: [], requiredTools: [], requiredPermits: [], parameters: [] }] },
+    { id: "jp_crah_filter", type: "jobPlan", code: "JP-CRAH-FLT", name: "CRAH Filter & Belt Check", assetClass: "CRAH", description: "Monthly filter and belt inspection for CRAH units.", updatedAt: "2026-07-02", activeVersion: 3,
+      versions: [{ version: 3, lifecycleState: "active", estimatedLabourHours: 0.5, frequencies: [{ id: "m", unit: "month", interval: 1 }], tasks: [T("Inspect / replace filters.", "passfail", ["m"]), T("Check belt tension.", "passfail", ["m"])], plannedParts: [], requiredSkills: [], requiredTools: [], requiredPermits: [], parameters: [] }] },
+    { id: "jp_firepump_weekly", type: "jobPlan", code: "JP-FP-WK", name: "Fire Pump Weekly Test", assetClass: "Fire Pump", description: "Statutory weekly no-flow (churn) test.", updatedAt: "2026-07-06", activeVersion: 1,
+      versions: [{ version: 1, lifecycleState: "active", estimatedLabourHours: 0.5, frequencies: [{ id: "w", unit: "week", interval: 1 }], tasks: [T("Start pump, run 10 min.", "passfail", ["w"]), T("Confirm auto-start.", "passfail", ["w"])], plannedParts: [], requiredSkills: [], requiredTools: [], requiredPermits: [], parameters: [] }] },
+    { id: "jp_thermo_survey", type: "jobPlan", code: "JP-THERMO", name: "Thermographic Survey", assetClass: "Switchboard", description: "Infrared survey of switchboards — draft, pending approval.", updatedAt: "2026-07-09", activeVersion: null,
+      versions: [{ version: 1, lifecycleState: "draft", estimatedLabourHours: 4, frequencies: [{ id: "y", unit: "year", interval: 1 }], tasks: [T("Scan main switchboard under load.", "numeric", ["y"]), T("Log hotspots > 60°C.", "text", ["y"])], plannedParts: [], requiredSkills: [], requiredTools: [], requiredPermits: [], parameters: [] }] }
   ];
 
-  /* ============ NAV ============ */
-  function showView() {
-    document.getElementById("galleryView").classList.toggle("hidden", view !== "gallery");
-    document.getElementById("editorView").classList.toggle("hidden", view !== "editor");
-    if (view === "gallery") renderGallery(); else renderEditor();
-  }
-  function openEditor(plan, entry) { E.doc = loadDoc(JSON.parse(JSON.stringify(plan))); E.entry = entry || null; E.sel = activeIndex(E.doc); E.sideTab = "json"; view = "editor"; showView(); }
-  function openNew() { E.doc = newDoc(); E.entry = null; E.sel = 0; E.sideTab = "json"; view = "editor"; showView(); }
-  function backToGallery() { view = "gallery"; showView(); }
+  /* ---------- data model ---------- */
+  function emptyVersion(v) { return { version: v, lifecycleState: "draft", estimatedLabourHours: null, safetyInstructions: "", frequencies: [], tasks: [], plannedParts: [], requiredSkills: [], requiredTools: [], requiredPermits: [], parameters: [], approvedBy: null, approvedAt: null, notes: "" }; }
+  function newDoc() { var t = nowIso(); return { id: "", type: "jobPlan", code: "", name: "", description: "", assetClass: "", assetModel: "", rev: 0, createdAt: t, createdBy: null, updatedAt: t, updatedBy: null, activeVersion: null, versions: [emptyVersion(1)] }; }
+  function loadDoc(obj) { var d = newDoc(); Object.assign(d, obj); if (!Array.isArray(d.versions) || !d.versions.length) d.versions = [emptyVersion(1)]; d.versions.forEach(function (v) { ["frequencies", "tasks", "plannedParts", "requiredSkills", "requiredTools", "requiredPermits", "parameters"].forEach(function (k) { if (!Array.isArray(v[k])) v[k] = []; }); }); return d; }
+  function cur() { return E.doc.versions[E.sel]; }
+  function editable() { return cur().lifecycleState === "draft"; }
+  function maxVersion() { return E.doc.versions.reduce(function (m, v) { return Math.max(m, v.version); }, 0); }
   function activeIndex(d) { var i = (d.versions || []).findIndex(function (v) { return v.version === d.activeVersion; }); if (i >= 0) return i; i = d.versions.findIndex(function (v) { return v.lifecycleState === "active"; }); return i >= 0 ? i : 0; }
+  function validate(d) { var out = []; function add(p, m) { out.push({ path: p, msg: m }); } if (!d.code || !d.code.trim()) add("code", "Code is required."); if (!d.name || !d.name.trim()) add("name", "Name is required."); var seen = {}, act = 0; (d.versions || []).forEach(function (v) { var vp = "v" + v.version; if (seen[v.version]) add(vp, "Duplicate version."); seen[v.version] = true; if (v.lifecycleState === "active") act++; if (!(v.tasks || []).length) add(vp + ".tasks", "No tasks."); (v.tasks || []).forEach(function (t, j) { var tp = vp + ".task[" + (j + 1) + "]"; if (!t.instruction || !t.instruction.trim()) add(tp, "Instruction is empty."); if (t.responseType === "numeric" && Array.isArray(t.acceptableRange) && t.acceptableRange.length === 2 && t.acceptableRange[0] > t.acceptableRange[1]) add(tp, "Range low > high."); if (t.responseType === "choice" && !(t.choices || []).length) add(tp, "Choice needs an option."); }); }); if (act > 1) add("activeVersion", "More than one active version."); return out; }
+  function normDoc(doc) { var d = JSON.parse(JSON.stringify(doc)); if (!d.id) d.id = "jp_" + (slug(d.code) || slug(d.name) || "plan"); (d.versions || []).forEach(function (v) { (v.tasks || []).forEach(function (t, i) { t.seq = i + 1; }); v.estimatedLabourHours = (v.estimatedLabourHours === "" || v.estimatedLabourHours == null) ? null : Number(v.estimatedLabourHours); }); return d; }
+  function normalized() { return normDoc(E.doc); }
+  function forSave() { var d = normalized(); d.updatedAt = nowIso(); d.rev = (d.rev || 0) + 1; E.doc.rev = d.rev; E.doc.updatedAt = d.updatedAt; if (!E.doc.id) E.doc.id = d.id; return d; }
+  function stripVol(d) { var c = JSON.parse(JSON.stringify(d)); ["rev", "updatedAt", "createdAt", "updatedBy", "createdBy"].forEach(function (k) { delete c[k]; }); return c; }
+  // canonicalize through the same loader so key order / default-field presence match on both sides
+  function canon(p) { return JSON.stringify(stripVol(normDoc(loadDoc(JSON.parse(JSON.stringify(p)))))); }
+  function dirty() { if (!E.doc) return false; if (!E.entry) return true; return canon(E.doc) !== canon(E.entry.plan); }
 
-  /* ============ GALLERY ============ */
-  function setSamples() { store = SAMPLES.map(function (p) { return { plan: JSON.parse(JSON.stringify(p)), source: "sample", handle: null }; }); folderHandle = null; G.usingSamples = true; view = "gallery"; showView(); }
-  function setLoaded(list, fh) {
-    if (!list.length) { alert("No job-plan JSON files found (expects files with \"type\": \"jobPlan\")."); return; }
-    store = list; folderHandle = fh || null; G.usingSamples = false; view = "gallery"; showView();
-  }
-  function filtered() {
-    return store.filter(function (e) {
-      var p = e.plan, av = activeVersion(p);
-      if (G.stateFilter !== "all" && av.lifecycleState !== G.stateFilter) return false;
-      if (!G.q) return true;
-      var hay = (p.name + " " + p.code + " " + (p.description || "") + " " + (p.assetClass || "") + " " + (p.assetModel || "")).toLowerCase();
-      return hay.indexOf(G.q.toLowerCase()) >= 0;
-    });
-  }
-  function byName(a, b) { return a.plan.name.localeCompare(b.plan.name); }
-  function renderGallery() {
-    renderStateChips();
-    Array.prototype.forEach.call(document.getElementById("viewToggle").querySelectorAll("button"), function (b) { b.classList.toggle("on", b.getAttribute("data-view") === G.viewMode); });
-    var list = filtered();
-    document.getElementById("count").textContent = list.length + " of " + store.length + " plan" + (store.length === 1 ? "" : "s") + (G.usingSamples ? " · samples" : "");
-    document.getElementById("sortWrap").style.display = G.viewMode === "grid" ? "" : "none";
-    var host = document.getElementById("view"); host.innerHTML = "";
-    if (!list.length) { host.appendChild(emptyState()); return; }
-    if (G.viewMode === "grouped") host.appendChild(groupedTree(list));
-    else {
-      list.sort(function (a, b) { var pa = a.plan, pb = b.plan;
-        if (G.sort === "name") return pa.name.localeCompare(pb.name);
-        if (G.sort === "code") return pa.code.localeCompare(pb.code);
-        if (G.sort === "updated") return String(pb.updatedAt || "").localeCompare(String(pa.updatedAt || ""));
-        if (G.sort === "tasks") return activeVersion(pb).tasks.length - activeVersion(pa).tasks.length; return 0; });
-      host.appendChild(el("div", { class: "grid" }, list.map(gcard)));
-    }
-  }
-  function renderStateChips() {
-    var host = document.getElementById("stateChips"); host.innerHTML = "";
-    [["all", "All"]].concat(STATES.map(function (s) { return [s, s[0].toUpperCase() + s.slice(1)]; })).forEach(function (o) {
-      var n = o[0] === "all" ? store.length : store.filter(function (e) { return activeVersion(e.plan).lifecycleState === o[0]; }).length;
-      if (o[0] !== "all" && n === 0) return;
-      host.appendChild(el("button", { class: "fchip" + (G.stateFilter === o[0] ? " on" : ""), onclick: function () { G.stateFilter = o[0]; renderGallery(); } }, [o[1] + " · " + n]));
-    });
-  }
-  function groupBy(list, keyFn) { var m = {}; list.forEach(function (e) { var k = keyFn(e); (m[k] = m[k] || []).push(e); }); return m; }
-  function taskTotal(es) { return es.reduce(function (s, e) { return s + activeVersion(e.plan).tasks.length; }, 0); }
-  function caret(open) { return el("svg", { class: "caret" + (open ? " open" : ""), width: "12", height: "12", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2.4", html: '<path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/>' }); }
-  function groupedTree(list) {
-    var wrap = el("div", { class: "tree" }, []);
+  /* ---------- rail ---------- */
+  function setSamples() { store = SAMPLES.map(function (p) { return { plan: JSON.parse(JSON.stringify(p)), source: "sample", handle: null }; }); folderHandle = null; E.doc = null; E.entry = null; renderAll(); }
+  function setLoaded(list, fh) { if (!list.length) { alert("No job-plan JSON found (files need \"type\": \"jobPlan\")."); return; } store = list; folderHandle = fh || null; E.doc = null; E.entry = null; renderAll(); }
+  function renderAll() { renderRail(); renderDetail(); }
+  function groupBy(a, f) { var m = {}; a.forEach(function (e) { var k = f(e); (m[k] = m[k] || []).push(e); }); return m; }
+  function caret(o) { return el("svg", { class: "caret" + (o ? " open" : ""), width: "11", height: "11", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2.5", html: '<path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/>' }); }
+  function railFilter() { var q = G.q.toLowerCase(); return store.filter(function (e) { if (!q) return true; var p = e.plan; return (p.name + " " + p.code + " " + (p.assetClass || "") + " " + (p.assetModel || "")).toLowerCase().indexOf(q) >= 0; }); }
+  function renderRail() {
+    var host = document.getElementById("railList"); host.innerHTML = "";
+    var list = railFilter();
+    host.appendChild(el("div", { class: "rail-count lbl" }, [list.length + (G.q ? " of " + store.length : "") + " plan" + (list.length === 1 ? "" : "s")]));
     var byClass = groupBy(list, function (e) { return e.plan.assetClass || "Unclassified"; });
     Object.keys(byClass).sort(function (a, b) { return a.localeCompare(b); }).forEach(function (cls) {
-      var entries = byClass[cls], key = "class:" + cls, open = !G.collapsed[key];
-      var head = el("button", { class: "grp-head", onclick: function () { G.collapsed[key] = open; renderGallery(); } }, [caret(open), el("span", { class: "grp-name" }, [cls]), el("span", { class: "grp-meta" }, [entries.length + " plan" + (entries.length === 1 ? "" : "s") + " · " + taskTotal(entries) + " tasks"])]);
-      var body = el("div", {}, []);
+      var entries = byClass[cls], key = "c:" + cls, open = !G.collapsed[key];
+      var grp = el("div", { class: "grp" }, []);
+      grp.appendChild(el("button", { class: "grp-head", onclick: function () { G.collapsed[key] = open; renderRail(); } }, [caret(open), el("span", { class: "grp-name" }, [cls]), el("span", { class: "grp-ct" }, [String(entries.length)])]));
       if (open) {
         if (entries.some(function (e) { return e.plan.assetModel; })) {
           var byModel = groupBy(entries, function (e) { return e.plan.assetModel || "General"; });
           Object.keys(byModel).sort(function (a, b) { return a.localeCompare(b); }).forEach(function (mdl) {
-            var me = byModel[mdl].slice().sort(byName), mkey = "model:" + cls + ":" + mdl, mopen = !G.collapsed[mkey];
-            body.appendChild(el("button", { class: "sub-head", onclick: function () { G.collapsed[mkey] = mopen; renderGallery(); } }, [caret(mopen), el("span", { class: "sub-name" }, [mdl]), el("span", { class: "grp-meta" }, [me.length + ""])]));
-            if (mopen) me.forEach(function (e) { body.appendChild(planRow(e, true)); });
+            grp.appendChild(el("div", { class: "sub lbl" }, [mdl]));
+            byModel[mdl].slice().sort(byName).forEach(function (e) { grp.appendChild(item(e, "ind2")); });
           });
-        } else entries.slice().sort(byName).forEach(function (e) { body.appendChild(planRow(e, false)); });
+        } else entries.slice().sort(byName).forEach(function (e) { grp.appendChild(item(e, "ind")); });
       }
-      wrap.appendChild(el("div", { class: "grp" }, [head, body]));
+      host.appendChild(grp);
     });
-    return wrap;
   }
-  function planRow(e, ind) {
-    var p = e.plan, av = activeVersion(p), fs = av.frequencies || [];
-    return el("button", { class: "plan-row" + (ind ? " ind" : ""), onclick: function () { openEditor(p, e); } }, [
-      el("span", { class: "badge b-" + (av.lifecycleState || "draft") }, [av.lifecycleState || "draft"]),
-      el("span", { class: "pr-name" }, [p.name]), el("span", { class: "pr-code" }, [p.code]),
-      el("span", { class: "pr-freqs" }, fs.length ? fs.map(function (f) { return el("span", { class: "freq" }, [freqLabel(f)]); }) : [el("span", { class: "freq none" }, ["ad hoc"])]),
-      el("span", { class: "pr-tasks num" }, [av.tasks.length + " tasks"])
+  function byName(a, b) { return a.plan.name.localeCompare(b.plan.name); }
+  function item(e, ind) {
+    var p = e.plan, av = activeVersion(p), sel = E.entry === e;
+    return el("button", { class: "item " + ind + (sel ? " sel" : ""), onclick: function () { openPlan(e); } }, [
+      el("span", { class: "dot d-" + (av.lifecycleState || "draft") }),
+      el("span", { class: "col" }, [el("div", { class: "nm" }, [p.name || "Untitled"]), el("div", { class: "mt" }, [(av.tasks.length) + " tasks" + ((av.frequencies || []).length ? " · " + av.frequencies.length + " freq" : "")])])
     ]);
   }
-  function gcard(e) {
-    var p = e.plan, av = activeVersion(p), fs = av.frequencies || [];
-    return el("div", { class: "gcard", onclick: function () { openEditor(p, e); } }, [
-      el("div", { style: "display:flex;gap:10px" }, [el("div", {}, [el("div", { class: "title" }, [p.name]), el("div", { class: "code" }, [p.code])]), el("span", { class: "badge b-" + (av.lifecycleState || "draft"), style: "margin-left:auto" }, [av.lifecycleState || "draft"])]),
-      p.assetClass ? el("div", { class: "cls" }, [p.assetClass + (p.assetModel ? " › " + p.assetModel : "")]) : null,
-      el("div", { class: "desc" }, [p.description || ""]),
-      el("div", { class: "freqs" }, fs.length ? fs.map(function (f) { return el("span", { class: "freq" }, [freqLabel(f)]); }) : [el("span", { class: "freq none" }, ["ad hoc"])]),
-      el("div", { class: "meta" }, [el("span", {}, [el("b", {}, [String(av.tasks.length)]), " tasks"]), el("span", {}, ["v", el("b", {}, [String(av.version || 1)]), " · ", el("b", {}, [String((p.versions || []).length)]), " ver"]), av.estimatedLabourHours != null ? el("span", {}, [el("b", {}, [String(av.estimatedLabourHours)]), " h"]) : null, el("span", { style: "margin-left:auto;color:var(--faint);font-family:var(--mono);font-size:10px" }, ["upd " + fmtDate(p.updatedAt)])])
-    ]);
+
+  /* ---------- detail ---------- */
+  function openPlan(e) { E.doc = loadDoc(JSON.parse(JSON.stringify(e.plan))); E.entry = e; E.sel = activeIndex(E.doc); E.tab = "tasks"; renderRail(); renderDetail(); }
+  function openNew() { E.doc = newDoc(); E.entry = null; E.sel = 0; E.tab = "details"; renderRail(); renderDetail(); }
+
+  function renderDetail() {
+    var host = document.getElementById("detail"); host.innerHTML = "";
+    if (!E.doc) { host.appendChild(emptyState()); return; }
+    host.appendChild(detailHead());
+    host.appendChild(detailTabs());
+    var body = el("div", { class: "dbody" }, [el("div", { class: "wrap", id: "wrap" }, [])]);
+    host.appendChild(body);
+    renderBody();
   }
   function emptyState() {
-    var kids = [el("div", { class: "big" }, [G.q || G.stateFilter !== "all" ? "No plans match." : "No job plans loaded."]),
-      el("div", {}, [G.q || G.stateFilter !== "all" ? "Try clearing the search or filter." : "Open a folder, choose files, load the samples, or create a new plan."])];
-    if (!fsaSupported) kids.push(el("div", { class: "recommend" }, [el("span", { html: "&#9432;" }), el("span", { html: "Folder open needs the File System Access API — use <b>Edge</b> or <b>Chrome</b>. You can still <b>Choose files</b> or drag JSON onto the window." })]));
+    var kids = [el("svg", { width: "42", height: "42", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "1.5", html: '<path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4" stroke-linecap="round"/>' }),
+      el("div", { class: "big" }, ["Select a job plan"]), el("div", {}, ["Choose one from the left, or create a new plan."])];
+    if (!fsaSupported) kids.push(el("div", { class: "recommend" }, [el("span", { html: "&#9432;" }), el("span", { html: "Folder open needs the File System Access API — use <b>Edge</b> or <b>Chrome</b>. Otherwise use <b>Files</b> or drag JSON onto the window." })]));
     return el("div", { class: "empty" }, kids);
   }
-
-  /* ============ EDITOR (doc model) ============ */
-  function emptyVersion(v) { return { version: v, lifecycleState: "draft", estimatedLabourHours: null, safetyInstructions: "", frequencies: [], tasks: [], plannedParts: [], requiredSkills: [], requiredTools: [], requiredPermits: [], parameters: [], approvedBy: null, approvedAt: null, notes: "" }; }
-  function newDoc() { var t = nowIso(); return { id: "", type: "jobPlan", code: "", name: "", description: "", assetClass: "", assetModel: "", rev: 0, createdAt: t, createdBy: null, updatedAt: t, updatedBy: null, activeVersion: null, versions: [emptyVersion(1)] }; }
-  function loadDoc(obj) {
-    var d = newDoc(); Object.assign(d, obj);
-    if (!Array.isArray(d.versions) || !d.versions.length) d.versions = [emptyVersion(1)];
-    d.versions.forEach(function (v) { ["frequencies", "tasks", "plannedParts", "requiredSkills", "requiredTools", "requiredPermits", "parameters"].forEach(function (k) { if (!Array.isArray(v[k])) v[k] = []; }); });
-    return d;
-  }
-  function cur() { return E.doc.versions[E.sel]; }
-  function editable() { return cur().lifecycleState === "draft"; }
-  function maxVersion() { return E.doc.versions.reduce(function (m, v) { return Math.max(m, v.version); }, 0); }
-  function newVersion() { var clone = JSON.parse(JSON.stringify(cur())); clone.version = maxVersion() + 1; clone.lifecycleState = "draft"; clone.approvedBy = null; clone.approvedAt = null; E.doc.versions.unshift(clone); E.sel = 0; renderEditor(); }
-  function setLifecycle(target) {
-    var v = cur();
-    if (target === "approved") { v.lifecycleState = "approved"; v.approvedAt = nowIso(); }
-    else if (target === "active") { E.doc.versions.forEach(function (o) { if (o.lifecycleState === "active") o.lifecycleState = "superseded"; }); v.lifecycleState = "active"; if (!v.approvedAt) v.approvedAt = nowIso(); E.doc.activeVersion = v.version; }
-    else if (target === "retired") { if (E.doc.activeVersion === v.version) E.doc.activeVersion = null; v.lifecycleState = "retired"; }
-    renderEditor();
-  }
-  function validate(d) {
-    var out = [];
-    function add(p, m) { out.push({ path: p, msg: m }); }
-    if (!d.code || !d.code.trim()) add("code", "Code is required.");
-    if (!d.name || !d.name.trim()) add("name", "Name is required.");
-    if (!d.versions || !d.versions.length) add("versions", "At least one version is required.");
-    var seen = {}, actives = 0;
-    (d.versions || []).forEach(function (v) {
-      var vp = "v" + v.version; if (seen[v.version]) add(vp, "Duplicate version."); seen[v.version] = true;
-      if (v.lifecycleState === "active") actives++;
-      if (!(v.tasks || []).length) add(vp + ".tasks", "Version has no tasks.");
-      (v.tasks || []).forEach(function (t, j) { var tp = vp + ".task[" + (j + 1) + "]";
-        if (!t.instruction || !t.instruction.trim()) add(tp, "Instruction is empty.");
-        if (RESPONSE_TYPES.indexOf(t.responseType) < 0) add(tp, "Invalid response type.");
-        if (t.responseType === "numeric" && Array.isArray(t.acceptableRange) && t.acceptableRange.length === 2 && t.acceptableRange[0] > t.acceptableRange[1]) add(tp, "Range low > high.");
-        if (t.responseType === "choice" && !(t.choices || []).length) add(tp, "Choice task needs an option."); });
-    });
-    if (actives > 1) add("activeVersion", "More than one active version.");
-    return out;
-  }
-  function normalized() { var d = JSON.parse(JSON.stringify(E.doc)); if (!d.id) d.id = "jp_" + (slug(d.code) || slug(d.name) || "plan"); d.versions.forEach(function (v) { v.tasks.forEach(function (t, i) { t.seq = i + 1; }); v.estimatedLabourHours = (v.estimatedLabourHours === "" || v.estimatedLabourHours == null) ? null : Number(v.estimatedLabourHours); }); return d; }
-  function forSave() { var d = normalized(); d.updatedAt = nowIso(); d.rev = (d.rev || 0) + 1; E.doc.rev = d.rev; if (!E.doc.id) E.doc.id = d.id; return d; }
-
-  /* ============ EDITOR render ============ */
-  function renderEditor() {
-    var main = document.getElementById("emain"); main.innerHTML = "";
-    Array.prototype.forEach.call(document.getElementById("editorTabs").querySelectorAll("button"), function (b) { b.classList.toggle("on", b.getAttribute("data-tab") === E.editorTab); });
-    main.appendChild(headerCard());
-    main.appendChild(versionCard());
-    if (!editable()) main.appendChild(lockNote());
-    if (E.editorTab === "matrix") {
-      main.appendChild(freqCard());
-      main.appendChild(matrixGridCard());
-      if (cur().frequencies.length) { main.appendChild(generatesCard()); main.appendChild(timelineCard()); }
-    } else {
-      main.appendChild(detailsCard());
-      main.appendChild(tasksCard());
-      main.appendChild(partsCard());
-      main.appendChild(requirementsCard());
-      main.appendChild(parametersCard());
-    }
-    updateSide(); updateFileName();
-  }
-  function bind(obj, key, opts) {
-    opts = opts || {}; var val = obj[key];
-    var input = el(opts.tag || "input", { type: opts.type || "text", value: val == null ? "" : val, placeholder: opts.placeholder || "", disabled: opts.disabled || false });
-    if (opts.tag === "textarea") input.value = val == null ? "" : val;
-    if (opts.attrs) Object.keys(opts.attrs).forEach(function (k) { input.setAttribute(k, opts.attrs[k]); });
-    input.addEventListener("input", function () { obj[key] = opts.number ? (input.value === "" ? null : Number(input.value)) : input.value; if (opts.onchange) opts.onchange(); updateSide(); });
-    return input;
-  }
-  function panel(title, countTxt, bodyKids) { return el("div", { class: "epanel" }, [el("h2", {}, [title, countTxt != null ? el("span", { class: "count", style: "margin-left:auto" }, [countTxt]) : null]), el("div", { class: "epanel-body" }, bodyKids)]); }
-  function badge(s) { return el("span", { class: "badge b-" + s }, [s]); }
-  function headerCard() {
-    var d = E.doc;
-    return panel("Job plan", null, [
-      el("div", { class: "grid2" }, [el("label", { class: "field" }, [el("span", { class: "lbl" }, ["Code"]), bind(d, "code", { placeholder: "JP-UPS-QTR" })]), el("label", { class: "field" }, [el("span", { class: "lbl" }, ["Name"]), bind(d, "name", { placeholder: "Quarterly UPS Inspection" })])]),
-      el("div", { class: "grid2" }, [el("label", { class: "field" }, [el("span", { class: "lbl" }, ["Asset class"]), bind(d, "assetClass", { placeholder: "UPS" })]), el("label", { class: "field" }, [el("span", { class: "lbl" }, ["Asset model (optional)"]), bind(d, "assetModel", { placeholder: "Schneider Galaxy VX" })])]),
-      el("label", { class: "field" }, [el("span", { class: "lbl" }, ["Description"]), bind(d, "description", { tag: "textarea", placeholder: "Optional summary…" })])
-    ]);
-  }
-  function versionCard() {
+  function detailHead() {
     var d = E.doc, v = cur();
-    var sel = el("select", { onchange: function () { E.sel = Number(sel.value); renderEditor(); }, style: "width:auto" }, d.versions.map(function (ver, i) { return el("option", { value: i, selected: i === E.sel }, ["v" + ver.version + " · " + ver.lifecycleState]); }));
-    var acts = [];
-    if (v.lifecycleState === "draft") acts.push(el("button", { class: "btn small", onclick: function () { setLifecycle("approved"); } }, ["Approve"]));
-    if (v.lifecycleState === "approved" || v.lifecycleState === "superseded") acts.push(el("button", { class: "btn small primary", onclick: function () { setLifecycle("active"); } }, ["Make active"]));
-    if (v.lifecycleState !== "retired" && v.lifecycleState !== "draft") acts.push(el("button", { class: "btn small danger", onclick: function () { setLifecycle("retired"); } }, ["Retire"]));
-    var bar = el("div", { class: "versionbar" }, [el("span", { class: "lbl" }, ["Version"]), sel, badge(v.lifecycleState), el("span", { style: "flex:1" }), el("button", { class: "btn small", onclick: newVersion }, ["+ New version"])].concat(acts));
-    return panel("Lifecycle", d.versions.length + " version(s)", [bar]);
-  }
-  function lockNote() { return el("div", { class: "lock-note" }, [el("span", { html: "&#128274;" }), el("span", {}, ["This version is " + cur().lifecycleState + " and locked. "]), el("button", { class: "btn small", onclick: newVersion }, ["+ New version"]), el("span", {}, [" to change it."])]); }
-  function detailsCard() {
-    var v = cur(), dis = !editable();
-    return panel("Details", null, [
-      el("div", { class: "grid2" }, [el("label", { class: "field" }, [el("span", { class: "lbl" }, ["Estimated labour (h)"]), bind(v, "estimatedLabourHours", { type: "number", number: true, placeholder: "1.5", disabled: dis, attrs: { step: "0.25", min: "0" } })]), el("label", { class: "field" }, [el("span", { class: "lbl" }, ["Approved by"]), bind(v, "approvedBy", { placeholder: "—", disabled: true })])]),
-      el("label", { class: "field" }, [el("span", { class: "lbl" }, ["Safety instructions"]), bind(v, "safetyInstructions", { tag: "textarea", placeholder: "Isolation, PPE, permits…", disabled: dis })]),
-      el("label", { class: "field" }, [el("span", { class: "lbl" }, ["Notes (this version)"]), bind(v, "notes", { tag: "textarea", placeholder: "What changed…", disabled: dis })])
+    var vsel = el("select", { onchange: function (e) { E.sel = Number(e.target.value); renderDetail(); } }, d.versions.map(function (ver, i) { return el("option", { value: i, selected: i === E.sel }, ["v" + ver.version + " · " + ver.lifecycleState]); }));
+    var life = [];
+    if (v.lifecycleState === "draft") life.push(el("button", { class: "btn sm", onclick: function () { setLife("approved"); } }, ["Approve"]));
+    if (v.lifecycleState === "approved" || v.lifecycleState === "superseded") life.push(el("button", { class: "btn sm primary", onclick: function () { setLife("active"); } }, ["Make active"]));
+    if (v.lifecycleState !== "retired" && v.lifecycleState !== "draft") life.push(el("button", { class: "btn sm danger", onclick: function () { setLife("retired"); } }, ["Retire"]));
+    var right = el("div", { class: "dhead-right" }, [
+      el("span", { class: "dirty", id: "dirtyTag", style: dirty() ? "" : "display:none" }, ["Unsaved"]),
+      el("span", { class: "vpick" }, [el("span", { class: "lbl" }, ["Ver"]), vsel]),
+      el("button", { class: "btn sm", onclick: newVersion, title: "Clone into a new draft" }, ["+ Version"])
+    ].concat(life).concat([
+      el("button", { class: "btn sm", id: "validBtn", onclick: function () { openInspect("valid"); } }, [validSummary()]),
+      el("button", { class: "btn sm ghost", onclick: function () { openInspect("json"); } }, ["{ } JSON"]),
+      el("button", { class: "btn primary", onclick: save }, ["Save"])
+    ]));
+    var clschip = d.assetClass ? el("span", { class: "clschip" }, [el("span", { class: "dot d-active", style: "background:var(--accent)" }), d.assetClass + (d.assetModel ? " › " + d.assetModel : "")]) : null;
+    return el("div", { class: "dhead" }, [
+      el("div", {}, [el("div", { class: "dtitle", id: "dTitle" }, [d.name || "Untitled plan"]), el("div", { class: "dsub" }, [el("span", { class: "code" }, [d.code || "no code"]), clschip, el("span", { class: "badge b-" + v.lifecycleState }, [v.lifecycleState])])]),
+      right
     ]);
   }
-  function addFreq(unit, interval) { var v = cur(); if (v.frequencies.some(function (f) { return f.unit === unit && f.interval === interval; })) return; v.frequencies.push({ id: "f_" + (freqSeq++), unit: unit, interval: interval, basis: "calendar" }); renderEditor(); }
-  function removeFreq(id) { var v = cur(); v.frequencies = v.frequencies.filter(function (f) { return f.id !== id; }); v.tasks.forEach(function (t) { if (t.frequencyIds) t.frequencyIds = t.frequencyIds.filter(function (x) { return x !== id; }); }); renderEditor(); }
-  function freqCard() {
-    var v = cur(), dis = !editable(), body = [];
-    if (!v.frequencies.length) body.push(el("div", { class: "empty-inline" }, ["No frequencies — tasks run ad hoc until you add one."]));
-    else body.push(el("div", { class: "freqs" }, v.frequencies.map(function (f) {
-      return el("span", { class: "freqtag" }, [freqLabel(f), dis ? null : el("button", { class: "x", title: "Remove", onclick: function () { removeFreq(f.id); } }, ["✕"])]);
-    })));
-    if (!dis) {
-      var quick = [["day", 1], ["week", 1], ["month", 1], ["month", 3], ["month", 6], ["year", 1]];
-      body.push(el("div", { class: "addbar" }, [el("span", { class: "lbl" }, ["Quick add"])].concat(quick.map(function (q) {
-        var exists = v.frequencies.some(function (f) { return f.unit === q[0] && f.interval === q[1]; });
-        return el("button", { class: "btn small", disabled: exists, onclick: function () { addFreq(q[0], q[1]); } }, ["+ " + freqLabel({ unit: q[0], interval: q[1] })]);
-      }))));
-      var ci = el("input", { type: "number", value: "2", min: "1", style: "width:64px" });
-      var cu = el("select", { style: "width:auto" }, [["day", "day(s)"], ["week", "week(s)"], ["month", "month(s)"], ["year", "year(s)"]].map(function (x) { return el("option", { value: x[0], selected: x[0] === "month" }, [x[1]]); }));
-      body.push(el("div", { class: "addbar" }, [el("span", { class: "lbl" }, ["Custom"]), el("span", {}, ["every"]), ci, cu, el("button", { class: "btn small accent", onclick: function () { addFreq(cu.value, Math.max(1, parseInt(ci.value || "1", 10))); } }, ["Add column"])]));
-    }
-    return panel("Frequencies", v.frequencies.length + "", body);
+  function detailTabs() {
+    var v = cur();
+    function tab(id, label, pill) { return el("button", { class: "dtab" + (E.tab === id ? " on" : ""), onclick: function () { E.tab = id; renderDetail(); } }, [label, pill != null ? el("span", { class: "pill" }, [String(pill)]) : null]); }
+    return el("div", { class: "dtabs" }, [tab("tasks", "Tasks", v.tasks.length), tab("schedule", "Schedule", v.frequencies.length), tab("details", "Details")]);
   }
-  function fsub(f) { return "every " + f.interval + " " + f.unit + (f.interval > 1 ? "s" : ""); }
-  function countFor(fid) { return cur().tasks.filter(function (t) { return (t.frequencyIds || []).indexOf(fid) >= 0; }).length; }
-  function matrixGridCard() {
+  function renderBody() {
+    var w = document.getElementById("wrap"); w.innerHTML = "";
+    if (!editable()) w.appendChild(el("div", { class: "lockbar" }, [el("span", { html: "&#128274;" }), el("span", {}, ["This version is " + cur().lifecycleState + " — read-only. Use "]), el("button", { class: "btn sm", onclick: newVersion }, ["+ Version"]), el("span", {}, [" to make changes."])]));
+    if (E.tab === "tasks") tasksTab(w);
+    else if (E.tab === "schedule") scheduleTab(w);
+    else detailsTab(w);
+  }
+
+  function sec(title, ct, hact, bodyKids) { return el("div", { class: "sec" }, [el("header", {}, [el("h3", {}, [title]), ct != null ? el("span", { class: "ct" }, [ct]) : null, hact ? el("div", { class: "hact" }, hact) : null]), el("div", { class: "sec-body" }, bodyKids)]); }
+  function bind(obj, key, opts) {
+    opts = opts || {}; var v = obj[key];
+    var inp = el(opts.tag || "input", { type: opts.type || "text", value: v == null ? "" : v, placeholder: opts.placeholder || "", disabled: opts.disabled || false });
+    if (opts.tag === "textarea") inp.value = v == null ? "" : v;
+    if (opts.attrs) Object.keys(opts.attrs).forEach(function (k) { inp.setAttribute(k, opts.attrs[k]); });
+    inp.addEventListener("input", function () { obj[key] = opts.number ? (inp.value === "" ? null : Number(inp.value)) : inp.value; if (opts.after) opts.after(); onEdit(); });
+    return inp;
+  }
+  function onEdit() { var t = document.getElementById("dirtyTag"); if (t) t.style.display = dirty() ? "" : "none"; var vb = document.getElementById("validBtn"); if (vb) vb.textContent = validSummary(); refreshInspect(); }
+
+  /* ----- Tasks tab ----- */
+  function tasksTab(w) {
     var v = cur(), dis = !editable();
-    if (!v.frequencies.length) return panel("Matrix — tasks × frequencies", null, [el("div", { class: "empty-inline" }, ["Add a frequency column above to build the matrix."])]);
-    if (!v.tasks.length) return panel("Matrix — tasks × frequencies", null, [el("div", { class: "empty-inline" }, ["Add tasks in the Details tab first."])]);
-    var head = [el("th", { class: "tcol" }, [el("span", { class: "lbl" }, ["Task"])])];
-    v.frequencies.forEach(function (f) { head.push(el("th", {}, [el("div", { class: "freqhead" }, [el("span", { class: "fl" }, [freqLabel(f)]), el("span", { class: "fs" }, [fsub(f)])])])); });
-    var body = el("tbody", {}, []);
-    v.tasks.forEach(function (t) {
-      var cells = [el("td", { class: "tcol" }, [el("div", { class: "ti" }, [t.instruction || "(untitled task)"]), el("div", { class: "tm" }, [t.responseType])])];
-      v.frequencies.forEach(function (f) {
-        var cb = el("input", { type: "checkbox", class: "cbx", checked: (t.frequencyIds || []).indexOf(f.id) >= 0, disabled: dis });
-        cb.addEventListener("change", function () { if (!t.frequencyIds) t.frequencyIds = []; if (cb.checked) { if (t.frequencyIds.indexOf(f.id) < 0) t.frequencyIds.push(f.id); } else t.frequencyIds = t.frequencyIds.filter(function (x) { return x !== f.id; }); renderEditor(); });
-        cells.push(el("td", { class: "cell" }, [cb]));
-      });
-      body.appendChild(el("tr", {}, cells));
-    });
-    var totals = [el("td", { class: "tcol lbl" }, ["tasks per drop"])];
-    v.frequencies.forEach(function (f) { totals.push(el("td", { class: "cell num" }, [String(countFor(f.id))])); });
-    body.appendChild(el("tr", { class: "totals" }, totals));
-    return panel("Matrix — tasks × frequencies", v.tasks.length + " × " + v.frequencies.length, [el("div", { class: "scroll" }, [el("table", { class: "matrix" }, [el("thead", {}, [el("tr", {}, head)]), body])])]);
+    var body = [];
+    if (!v.tasks.length) body.push(el("div", { class: "empty-in" }, ["No tasks yet."]));
+    v.tasks.forEach(function (t, i) { body.push(taskCard(t, i, dis)); });
+    var hact = dis ? null : [el("button", { class: "btn sm", onclick: function () { v.tasks.push({ seq: v.tasks.length + 1, instruction: "", responseType: "none", unit: null, acceptableRange: null, choices: null, requiredSkills: [], frequencyIds: [] }); renderBody(); } }, ["+ Add task"])];
+    w.appendChild(sec("Tasks", v.tasks.length + " step" + (v.tasks.length === 1 ? "" : "s"), hact, body));
   }
-  function generatesCard() {
+  function taskCard(t, i, dis) {
     var v = cur();
-    return panel("What generates when a frequency drops", null, [el("div", { class: "drops" }, v.frequencies.map(function (f) {
-      var ts = v.tasks.filter(function (t) { return (t.frequencyIds || []).indexOf(f.id) >= 0; });
-      return el("div", { class: "drop" + (ts.length ? "" : " empty") }, [el("h3", {}, [freqLabel(f), el("span", { class: "n" }, [ts.length + " task" + (ts.length === 1 ? "" : "s")])]), ts.length ? el("ul", {}, ts.map(function (t) { return el("li", {}, [t.instruction || "(untitled task)"]); })) : el("div", { style: "font-size:12px;color:var(--faint);margin-top:6px" }, ["Generates nothing."])]);
-    }))]);
-  }
-  function fires(f, m) { if (f.unit === "day" || f.unit === "week") return true; if (f.unit === "month") return m % f.interval === 0; if (f.unit === "year") return m % (12 * f.interval) === 0; return false; }
-  function timelineCard() {
-    var v = cur(), head = [el("th", { class: "rl" }, ["Frequency"])];
-    for (var m = 1; m <= 12; m++) head.push(el("th", {}, ["M" + m]));
-    var body = el("tbody", {}, []);
-    v.frequencies.forEach(function (f) { var row = [el("td", { class: "rl" }, [freqLabel(f)])]; for (var m = 1; m <= 12; m++) row.push(el("td", {}, [fires(f, m) ? el("span", { class: "dot" }) : null])); body.appendChild(el("tr", {}, row)); });
-    return panel("Drop timeline · next 12 months", null, [el("div", { class: "scroll" }, [el("table", { class: "tl" }, [el("thead", {}, [el("tr", {}, head)]), body])]), el("div", { class: "cap" }, ["Daily/weekly shown as firing each month. Coincident drops each generate a work order; a scheduling layer can nest them into one (see the pm-model demo)."])]);
-  }
-  function tasksCard() {
-    var v = cur(), dis = !editable(), body = [];
-    if (!v.tasks.length) body.push(el("div", { class: "empty-inline" }, ["No tasks yet."]));
-    v.tasks.forEach(function (t, i) { body.push(taskRow(t, i, dis)); });
-    if (!dis) body.push(el("button", { class: "btn small", style: "align-self:flex-start", onclick: function () { v.tasks.push({ seq: v.tasks.length + 1, instruction: "", responseType: "none", unit: null, acceptableRange: null, choices: null, requiredSkills: [], frequencyIds: [] }); renderEditor(); } }, ["+ Add task"]));
-    return panel("Tasks", v.tasks.length + "", body);
-  }
-  function taskRow(t, i, dis) {
-    var v = cur();
-    var head = el("div", { class: "task-head" }, [el("span", { class: "seq" }, [(i + 1) + ""]),
-      el("select", { disabled: dis, style: "width:auto", onchange: function (e) { t.responseType = e.target.value; if (t.responseType !== "numeric") { t.acceptableRange = null; t.unit = null; } if (t.responseType !== "choice") t.choices = null; if (t.responseType === "choice" && !t.choices) t.choices = []; renderEditor(); } }, RESPONSE_TYPES.map(function (rt) { return el("option", { value: rt, selected: rt === t.responseType }, [rt]); })),
-      el("div", { class: "move" }, [el("button", { class: "btn small", disabled: dis || i === 0, onclick: function () { swap(v.tasks, i, i - 1); renderEditor(); } }, ["↑"]), el("button", { class: "btn small", disabled: dis || i === v.tasks.length - 1, onclick: function () { swap(v.tasks, i, i + 1); renderEditor(); } }, ["↓"]), el("button", { class: "btn small danger", disabled: dis, onclick: function () { v.tasks.splice(i, 1); renderEditor(); } }, ["✕"])])]);
-    var kids = [head, bind(t, "instruction", { tag: "textarea", placeholder: "Step instruction…", disabled: dis, attrs: { style: "min-height:44px" } })];
+    var top = el("div", { class: "task-top" }, [
+      el("span", { class: "tseq" }, [(i + 1) + ""]),
+      bind(t, "instruction", { placeholder: "Step instruction…", disabled: dis, attrs: { class: "tinstr" } }),
+      el("select", { class: "tresp", disabled: dis, onchange: function (e) { t.responseType = e.target.value; if (t.responseType !== "numeric") { t.acceptableRange = null; t.unit = null; } if (t.responseType !== "choice") t.choices = null; if (t.responseType === "choice" && !t.choices) t.choices = []; renderBody(); } }, RESPONSE_TYPES.map(function (r) { return el("option", { value: r, selected: r === t.responseType }, [r]); })),
+      el("div", { class: "tmove" }, [el("button", { class: "btn sm ghost", disabled: dis || i === 0, onclick: function () { sw(v.tasks, i, i - 1); renderBody(); } }, ["↑"]), el("button", { class: "btn sm ghost", disabled: dis || i === v.tasks.length - 1, onclick: function () { sw(v.tasks, i, i + 1); renderBody(); } }, ["↓"]), el("button", { class: "x", disabled: dis, onclick: function () { v.tasks.splice(i, 1); renderBody(); } }, ["✕"])])
+    ]);
+    var extra = [];
     if (t.responseType === "numeric") {
       var lo = el("input", { type: "number", value: t.acceptableRange ? t.acceptableRange[0] : "", placeholder: "low", disabled: dis, step: "any" });
       var hi = el("input", { type: "number", value: t.acceptableRange ? t.acceptableRange[1] : "", placeholder: "high", disabled: dis, step: "any" });
-      function upd() { if (lo.value === "" && hi.value === "") t.acceptableRange = null; else t.acceptableRange = [Number(lo.value || 0), Number(hi.value || 0)]; updateSide(); }
-      lo.addEventListener("input", upd); hi.addEventListener("input", upd);
-      kids.push(el("div", { class: "grid3" }, [el("label", { class: "field" }, [el("span", { class: "lbl" }, ["Unit"]), bind(t, "unit", { placeholder: "V, mΩ…", disabled: dis })]), el("label", { class: "field" }, [el("span", { class: "lbl" }, ["Accept low"]), lo]), el("label", { class: "field" }, [el("span", { class: "lbl" }, ["Accept high"]), hi])]));
+      function up() { if (lo.value === "" && hi.value === "") t.acceptableRange = null; else t.acceptableRange = [Number(lo.value || 0), Number(hi.value || 0)]; onEdit(); }
+      lo.addEventListener("input", up); hi.addEventListener("input", up);
+      extra.push(el("div", { class: "g3" }, [labeled("Unit", bind(t, "unit", { placeholder: "V, mΩ…", disabled: dis })), labeled("Accept low", lo), labeled("Accept high", hi)]));
     }
-    if (t.responseType === "choice") { var ci = el("input", { type: "text", value: csv(t.choices), placeholder: "Good, Monitor, Action", disabled: dis }); ci.addEventListener("input", function () { t.choices = parseCsv(ci.value); updateSide(); }); kids.push(el("label", { class: "field" }, [el("span", { class: "lbl" }, ["Choices"]), ci])); }
-    var si = el("input", { type: "text", value: csv(t.requiredSkills), placeholder: "e.g. Battery maintenance", disabled: dis }); si.addEventListener("input", function () { t.requiredSkills = parseCsv(si.value); updateSide(); });
-    kids.push(el("label", { class: "field" }, [el("span", { class: "lbl" }, ["Required skills"]), si]));
-    return el("div", { class: "task" }, kids);
+    if (t.responseType === "choice") { var c = el("input", { type: "text", value: csv(t.choices), placeholder: "Good, Monitor, Action", disabled: dis }); c.addEventListener("input", function () { t.choices = parseCsv(c.value); onEdit(); }); extra.push(labeled("Choices", c)); }
+    var sk = el("input", { type: "text", value: csv(t.requiredSkills), placeholder: "Skills for this step (optional)", disabled: dis }); sk.addEventListener("input", function () { t.requiredSkills = parseCsv(sk.value); onEdit(); });
+    extra.push(labeled("Required skills", sk));
+    return el("div", { class: "task" }, [top, el("div", { class: "task-extra" }, extra)]);
   }
-  function partsCard() {
-    var v = cur(), dis = !editable(), body = [];
-    if (!v.plannedParts.length) body.push(el("div", { class: "empty-inline" }, ["No planned parts."]));
-    v.plannedParts.forEach(function (p, i) {
-      var d1 = el("input", { type: "text", value: p.description || "", placeholder: "Air filter, G4", disabled: dis });
-      var q1 = el("input", { type: "number", value: p.quantity == null ? "" : p.quantity, placeholder: "1", disabled: dis, step: "any", min: "0", style: "max-width:90px" });
-      var u1 = el("input", { type: "text", value: p.unit || "", placeholder: "each", disabled: dis, style: "max-width:110px" });
-      d1.addEventListener("input", function () { p.description = d1.value; updateSide(); }); q1.addEventListener("input", function () { p.quantity = q1.value === "" ? 0 : Number(q1.value); updateSide(); }); u1.addEventListener("input", function () { p.unit = u1.value || null; updateSide(); });
-      body.push(el("div", { class: "rowline" }, [d1, q1, u1, el("button", { class: "btn small danger", disabled: dis, onclick: function () { v.plannedParts.splice(i, 1); renderEditor(); } }, ["✕"])]));
-    });
-    if (!dis) body.push(el("button", { class: "btn small", style: "align-self:flex-start", onclick: function () { v.plannedParts.push({ partRef: null, description: "", quantity: 1, unit: "each" }); renderEditor(); } }, ["+ Add part"]));
-    return panel("Planned parts", v.plannedParts.length + "", body);
-  }
-  function requirementsCard() {
-    var v = cur(), dis = !editable();
-    function lf(label, key, ph) { var inp = el("input", { type: "text", value: csv(v[key]), placeholder: ph, disabled: dis }); inp.addEventListener("input", function () { v[key] = parseCsv(inp.value); updateSide(); }); return el("label", { class: "field" }, [el("span", { class: "lbl" }, [label]), inp]); }
-    return panel("Requirements", null, [lf("Required skills", "requiredSkills", "Electrical – LV, Battery"), lf("Required tools", "requiredTools", "Impedance tester"), lf("Required permits", "requiredPermits", "Electrical work permit"), el("div", { class: "chip-hint" }, ["Comma-separated; free text until the People & Parts modules exist."])]);
-  }
-  function parametersCard() {
-    var v = cur(), dis = !editable(), body = [];
-    if (!v.parameters.length) body.push(el("div", { class: "empty-inline" }, ["No parameters."]));
-    v.parameters.forEach(function (p, i) {
-      var k = el("input", { type: "text", value: p.key || "", placeholder: "acceptableImpedance", disabled: dis });
-      var l = el("input", { type: "text", value: p.label || "", placeholder: "Max impedance", disabled: dis });
-      var vt = el("select", { disabled: dis, style: "width:auto" }, ["number", "text", "boolean"].map(function (x) { return el("option", { value: x, selected: x === p.valueType }, [x]); }));
-      var df = el("input", { type: "text", value: p.defaultValue == null ? "" : p.defaultValue, placeholder: "default", disabled: dis, style: "max-width:120px" });
-      k.addEventListener("input", function () { p.key = k.value; updateSide(); }); l.addEventListener("input", function () { p.label = l.value; updateSide(); }); vt.addEventListener("change", function () { p.valueType = vt.value; updateSide(); }); df.addEventListener("input", function () { p.defaultValue = df.value; updateSide(); });
-      body.push(el("div", { class: "task" }, [el("div", { class: "grid2" }, [el("label", { class: "field" }, [el("span", { class: "lbl" }, ["Key"]), k]), el("label", { class: "field" }, [el("span", { class: "lbl" }, ["Label"]), l])]), el("div", { class: "rowline" }, [vt, df, el("button", { class: "btn small danger", disabled: dis, onclick: function () { v.parameters.splice(i, 1); renderEditor(); } }, ["✕"])])]));
-    });
-    if (!dis) body.push(el("button", { class: "btn small", style: "align-self:flex-start", onclick: function () { v.parameters.push({ key: "", label: "", valueType: "number", defaultValue: "", unit: null, source: "manual" }); renderEditor(); } }, ["+ Add parameter"]));
-    return panel("Parameters", v.parameters.length + "", body);
-  }
-  function swap(a, i, j) { var t = a[i]; a[i] = a[j]; a[j] = t; }
-  function updateSide() {
-    var body = document.getElementById("sideBody"); body.innerHTML = "";
-    document.getElementById("tabJson").classList.toggle("on", E.sideTab === "json");
-    document.getElementById("tabValid").classList.toggle("on", E.sideTab === "valid");
-    if (E.sideTab === "json") body.appendChild(el("pre", { class: "json" }, [JSON.stringify(normalized(), null, 2)]));
-    else { var iss = validate(normalized()); if (!iss.length) body.appendChild(el("div", { class: "all-good" }, [el("span", { html: "&#10003;" }), "Valid against job-plan schema."])); else body.appendChild(el("div", { class: "issues" }, iss.map(function (x) { return el("div", { class: "issue" }, [el("span", { class: "path" }, [x.path]), el("span", {}, [x.msg])]); }))); }
-  }
-  function updateFileName() {
-    var f = document.getElementById("fileName");
-    if (E.entry && E.entry.handle) f.innerHTML = "Editing <b>" + E.entry.handle.name + "</b>";
-    else if (E.entry && E.entry.source && E.entry.source !== "sample") f.innerHTML = "<b>" + E.entry.source + "</b>";
-    else f.innerHTML = "Unsaved · <b>" + ((slug(E.doc.code) || "plan") + ".json") + "</b>" + (E.entry ? " (sample)" : "");
-  }
-  function toast(msg, err) { var t = document.getElementById("toast"); t.textContent = msg; t.className = "toast" + (err ? " err" : ""); }
+  function labeled(l, inp) { return el("label", { class: "field" }, [el("span", { class: "lbl" }, [l]), inp]); }
+  function sw(a, i, j) { var t = a[i]; a[i] = a[j]; a[j] = t; }
 
-  /* ============ file I/O ============ */
+  /* ----- Schedule tab (matrix) ----- */
+  function addFreq(u, iv) { var v = cur(); if (v.frequencies.some(function (f) { return f.unit === u && f.interval === iv; })) return; v.frequencies.push({ id: "f_" + (freqSeq++), unit: u, interval: iv, basis: "calendar" }); renderBody(); }
+  function removeFreq(id) { var v = cur(); v.frequencies = v.frequencies.filter(function (f) { return f.id !== id; }); v.tasks.forEach(function (t) { if (t.frequencyIds) t.frequencyIds = t.frequencyIds.filter(function (x) { return x !== id; }); }); renderBody(); }
+  function countFor(id) { return cur().tasks.filter(function (t) { return (t.frequencyIds || []).indexOf(id) >= 0; }).length; }
+  function fires(f, m) { if (f.unit === "day" || f.unit === "week") return true; if (f.unit === "month") return m % f.interval === 0; if (f.unit === "year") return m % (12 * f.interval) === 0; return false; }
+  function scheduleTab(w) {
+    var v = cur(), dis = !editable();
+    /* frequency columns */
+    var fbody = [];
+    if (!v.frequencies.length) fbody.push(el("div", { class: "empty-in" }, ["No frequencies — this plan runs ad hoc. Add one to schedule its tasks."]));
+    else fbody.push(el("div", { class: "freqtags" }, v.frequencies.map(function (f) { return el("span", { class: "freqtag" }, [freqLabel(f), dis ? null : el("button", { class: "x", onclick: function () { removeFreq(f.id); } }, ["✕"])]); })));
+    if (!dis) {
+      var quick = [["day", 1], ["week", 1], ["month", 1], ["month", 3], ["month", 6], ["year", 1]];
+      fbody.push(el("div", { class: "addbar" }, [el("span", { class: "lbl" }, ["Add"])].concat(quick.map(function (q) { var ex = v.frequencies.some(function (f) { return f.unit === q[0] && f.interval === q[1]; }); return el("button", { class: "btn sm", disabled: ex, onclick: function () { addFreq(q[0], q[1]); } }, ["+ " + freqLabel({ unit: q[0], interval: q[1] })]); }))));
+      var ci = el("input", { type: "number", value: "2", min: "1", style: "width:62px" });
+      var cu = el("select", { style: "width:auto" }, [["day", "day(s)"], ["week", "week(s)"], ["month", "month(s)"], ["year", "year(s)"]].map(function (x) { return el("option", { value: x[0], selected: x[0] === "month" }, [x[1]]); }));
+      fbody.push(el("div", { class: "addbar" }, [el("span", { class: "lbl" }, ["Custom"]), el("span", { class: "hint" }, ["every"]), ci, cu, el("button", { class: "btn sm", onclick: function () { addFreq(cu.value, Math.max(1, parseInt(ci.value || "1", 10))); } }, ["Add"])]));
+    }
+    w.appendChild(sec("Frequencies", v.frequencies.length + "", null, fbody));
+
+    /* matrix grid */
+    var gridBody;
+    if (!v.frequencies.length) gridBody = [el("div", { class: "empty-in" }, ["Add a frequency to build the matrix."])];
+    else if (!v.tasks.length) gridBody = [el("div", { class: "empty-in" }, ["Add tasks in the Tasks tab first."])];
+    else {
+      var head = [el("th", { class: "tc" }, [el("span", { class: "lbl" }, ["Task"])])];
+      v.frequencies.forEach(function (f) { head.push(el("th", {}, [el("div", { class: "fh" }, [el("span", { class: "fl" }, [freqLabel(f)]), el("span", { class: "fs" }, [fsub(f)])])])); });
+      var tb = el("tbody", {}, []);
+      v.tasks.forEach(function (t) {
+        var cells = [el("td", { class: "tc" }, [el("div", { class: "ti" }, [t.instruction || "(untitled)"]), el("div", { class: "tmn" }, [t.responseType])])];
+        v.frequencies.forEach(function (f) { var cb = el("input", { type: "checkbox", class: "cbx", checked: (t.frequencyIds || []).indexOf(f.id) >= 0, disabled: dis }); cb.addEventListener("change", function () { if (!t.frequencyIds) t.frequencyIds = []; if (cb.checked) { if (t.frequencyIds.indexOf(f.id) < 0) t.frequencyIds.push(f.id); } else t.frequencyIds = t.frequencyIds.filter(function (x) { return x !== f.id; }); renderBody(); }); cells.push(el("td", { class: "c" }, [cb])); });
+        tb.appendChild(el("tr", {}, cells));
+      });
+      var tot = [el("td", { class: "tc" }, ["tasks per drop"])]; v.frequencies.forEach(function (f) { tot.push(el("td", { class: "c num" }, [String(countFor(f.id))])); }); tb.appendChild(el("tr", { class: "tot" }, tot));
+      gridBody = [el("div", { class: "scroll" }, [el("table", { class: "mtx" }, [el("thead", {}, [el("tr", {}, head)]), tb])])];
+    }
+    w.appendChild(sec("Matrix — tasks × frequencies", v.frequencies.length && v.tasks.length ? v.tasks.length + " × " + v.frequencies.length : null, null, gridBody));
+
+    if (v.frequencies.length) {
+      w.appendChild(sec("What generates when a frequency drops", null, null, [el("div", { class: "drops" }, v.frequencies.map(function (f) { var ts = v.tasks.filter(function (t) { return (t.frequencyIds || []).indexOf(f.id) >= 0; }); return el("div", { class: "drop" + (ts.length ? "" : " empty") }, [el("h4", {}, [freqLabel(f), el("span", { class: "n" }, [ts.length + ""])]), ts.length ? el("ul", {}, ts.map(function (t) { return el("li", {}, [t.instruction || "(untitled)"]); })) : el("div", { class: "hint", style: "margin-top:6px" }, ["Generates nothing."])]); }))]));
+      var th = [el("th", { class: "rl" }, ["Frequency"])]; for (var m = 1; m <= 12; m++) th.push(el("th", {}, ["M" + m]));
+      var tlb = el("tbody", {}, []); v.frequencies.forEach(function (f) { var row = [el("td", { class: "rl" }, [freqLabel(f)])]; for (var m = 1; m <= 12; m++) row.push(el("td", {}, [fires(f, m) ? el("span", { class: "tldot" }) : null])); tlb.appendChild(el("tr", {}, row)); });
+      w.appendChild(sec("Drop timeline · next 12 months", null, null, [el("div", { class: "scroll" }, [el("table", { class: "tl" }, [el("thead", {}, [el("tr", {}, th)]), tlb])]), el("div", { class: "cap" }, ["Daily/weekly shown as firing each month. Coincident drops each generate a work order; a scheduling layer can nest them (see the pm-model demo)."])]));
+    }
+  }
+
+  /* ----- Details tab ----- */
+  function detailsTab(w) {
+    var d = E.doc, v = cur(), dis = !editable();
+    w.appendChild(sec("Identity", null, null, [
+      el("div", { class: "g2" }, [labeled("Code", bind(d, "code", { placeholder: "JP-UPS-QTR", after: syncHead })), labeled("Name", bind(d, "name", { placeholder: "Quarterly UPS Inspection", after: syncHead }))]),
+      el("div", { class: "g2" }, [labeled("Asset class", bind(d, "assetClass", { placeholder: "UPS", after: syncHead })), labeled("Asset model (optional)", bind(d, "assetModel", { placeholder: "Schneider Galaxy VX", after: syncHead }))]),
+      labeled("Description", bind(d, "description", { tag: "textarea", placeholder: "Optional summary…" }))
+    ]));
+    w.appendChild(sec("This version", "v" + v.version, null, [
+      el("div", { class: "g2" }, [labeled("Estimated labour (h)", bind(v, "estimatedLabourHours", { type: "number", number: true, placeholder: "1.5", disabled: dis, attrs: { step: "0.25", min: "0" } })), labeled("Approved by", bind(v, "approvedBy", { placeholder: "—", disabled: true }))]),
+      labeled("Safety instructions", bind(v, "safetyInstructions", { tag: "textarea", placeholder: "Isolation, PPE, permits…", disabled: dis })),
+      labeled("Notes (this version)", bind(v, "notes", { tag: "textarea", placeholder: "What changed…", disabled: dis }))
+    ]));
+    /* parts */
+    var pbody = []; if (!v.plannedParts.length) pbody.push(el("div", { class: "empty-in" }, ["No planned parts."]));
+    v.plannedParts.forEach(function (p, i) { var d1 = el("input", { type: "text", value: p.description || "", placeholder: "Air filter, G4", disabled: dis }); var q1 = el("input", { type: "number", value: p.quantity == null ? "" : p.quantity, placeholder: "1", disabled: dis, step: "any", min: "0", style: "max-width:88px" }); var u1 = el("input", { type: "text", value: p.unit || "", placeholder: "each", disabled: dis, style: "max-width:100px" }); d1.addEventListener("input", function () { p.description = d1.value; onEdit(); }); q1.addEventListener("input", function () { p.quantity = q1.value === "" ? 0 : Number(q1.value); onEdit(); }); u1.addEventListener("input", function () { p.unit = u1.value || null; onEdit(); }); pbody.push(el("div", { class: "rowline" }, [d1, q1, u1, el("button", { class: "x", disabled: dis, onclick: function () { v.plannedParts.splice(i, 1); renderBody(); } }, ["✕"])])); });
+    w.appendChild(sec("Planned parts", v.plannedParts.length + "", dis ? null : [el("button", { class: "btn sm", onclick: function () { v.plannedParts.push({ partRef: null, description: "", quantity: 1, unit: "each" }); renderBody(); } }, ["+ Add part"])], pbody));
+    /* requirements */
+    function lf(l, key, ph) { var inp = el("input", { type: "text", value: csv(v[key]), placeholder: ph, disabled: dis }); inp.addEventListener("input", function () { v[key] = parseCsv(inp.value); onEdit(); }); return labeled(l, inp); }
+    w.appendChild(sec("Requirements", null, null, [lf("Required skills", "requiredSkills", "Electrical – LV, Battery"), lf("Required tools", "requiredTools", "Impedance tester"), lf("Required permits", "requiredPermits", "Electrical work permit"), el("div", { class: "hint" }, ["Comma-separated; free text until the People & Parts modules exist."])]));
+    /* parameters */
+    var prbody = []; if (!v.parameters.length) prbody.push(el("div", { class: "empty-in" }, ["No parameters."]));
+    v.parameters.forEach(function (p, i) { var k = el("input", { type: "text", value: p.key || "", placeholder: "acceptableImpedance", disabled: dis }); var l = el("input", { type: "text", value: p.label || "", placeholder: "Max impedance", disabled: dis }); var vt = el("select", { disabled: dis, style: "width:auto" }, ["number", "text", "boolean"].map(function (x) { return el("option", { value: x, selected: x === p.valueType }, [x]); })); var df = el("input", { type: "text", value: p.defaultValue == null ? "" : p.defaultValue, placeholder: "default", disabled: dis, style: "max-width:120px" }); k.addEventListener("input", function () { p.key = k.value; onEdit(); }); l.addEventListener("input", function () { p.label = l.value; onEdit(); }); vt.addEventListener("change", function () { p.valueType = vt.value; onEdit(); }); df.addEventListener("input", function () { p.defaultValue = df.value; onEdit(); }); prbody.push(el("div", { class: "task", style: "padding:12px;background:var(--panel-2)" }, [el("div", { class: "g2" }, [labeled("Key", k), labeled("Label", l)]), el("div", { class: "rowline", style: "margin-top:10px" }, [vt, df, el("button", { class: "x", disabled: dis, onclick: function () { v.parameters.splice(i, 1); renderBody(); } }, ["✕"])])])); });
+    w.appendChild(sec("Parameters", v.parameters.length + "", dis ? null : [el("button", { class: "btn sm", onclick: function () { v.parameters.push({ key: "", label: "", valueType: "number", defaultValue: "", unit: null, source: "manual" }); renderBody(); } }, ["+ Add parameter"])], prbody));
+  }
+  function syncHead() { var t = document.getElementById("dTitle"); if (t) t.textContent = E.doc.name || "Untitled plan"; }
+
+  /* ---------- lifecycle / versions ---------- */
+  function newVersion() { var c = JSON.parse(JSON.stringify(cur())); c.version = maxVersion() + 1; c.lifecycleState = "draft"; c.approvedBy = null; c.approvedAt = null; E.doc.versions.unshift(c); E.sel = 0; renderDetail(); }
+  function setLife(target) { var v = cur(); if (target === "approved") { v.lifecycleState = "approved"; v.approvedAt = nowIso(); } else if (target === "active") { E.doc.versions.forEach(function (o) { if (o.lifecycleState === "active") o.lifecycleState = "superseded"; }); v.lifecycleState = "active"; if (!v.approvedAt) v.approvedAt = nowIso(); E.doc.activeVersion = v.version; } else if (target === "retired") { if (E.doc.activeVersion === v.version) E.doc.activeVersion = null; v.lifecycleState = "retired"; } renderDetail(); }
+
+  /* ---------- inspect modal ---------- */
+  var inspectTab = "json";
+  function validSummary() { var n = validate(normalized()).length; return n ? "⚠ " + n + " issue" + (n === 1 ? "" : "s") : "✓ Valid"; }
+  function openInspect(which) { inspectTab = which; renderInspect(); }
+  function closeInspect() { var o = document.getElementById("ovl"); if (o) o.remove(); }
+  function refreshInspect() { if (document.getElementById("ovl")) renderInspect(); }
+  function renderInspect() {
+    closeInspect();
+    var iss = validate(normalized());
+    var content = inspectTab === "json" ? el("pre", { class: "json" }, [JSON.stringify(normalized(), null, 2)])
+      : (iss.length ? el("div", {}, iss.map(function (x) { return el("div", { class: "issue" }, [el("span", { class: "p" }, [x.path]), el("span", {}, [x.msg])]); })) : el("div", { class: "allgood" }, [el("span", { html: "&#10003;" }), "Valid against the job-plan schema."]));
+    var modal = el("div", { class: "modal", onclick: function (e) { e.stopPropagation(); } }, [
+      el("header", {}, [el("div", { class: "side-tabs" }, [el("button", { class: inspectTab === "json" ? "on" : "", onclick: function () { inspectTab = "json"; renderInspect(); } }, ["JSON"]), el("button", { class: inspectTab === "valid" ? "on" : "", onclick: function () { inspectTab = "valid"; renderInspect(); } }, ["Validation" + (iss.length ? " · " + iss.length : "")])]), el("button", { class: "btn sm ghost", style: "margin-left:auto", onclick: closeInspect }, ["Close"])]),
+      el("div", { class: "mbody" }, [content, inspectTab === "json" ? el("div", { style: "margin-top:12px" }, [el("button", { class: "btn sm", onclick: function () { downloadDoc(); } }, ["Download JSON"])]) : null])
+    ]);
+    document.body.appendChild(el("div", { class: "ovl", id: "ovl", onclick: closeInspect }, [modal]));
+  }
+  function downloadDoc() { var out = normalized(); var blob = new Blob([JSON.stringify(out, null, 2)], { type: "application/json" }); var url = URL.createObjectURL(blob); var a = el("a", { href: url, download: (slug(out.code) || out.id || "job-plan") + ".json" }); document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); }
+
+  /* ---------- file I/O ---------- */
   async function verify(h) { if (!h.queryPermission) return true; if ((await h.queryPermission({ mode: "readwrite" })) === "granted") return true; return (await h.requestPermission({ mode: "readwrite" })) === "granted"; }
   async function save() {
     var out = forSave(), text = JSON.stringify(out, null, 2), fname = (slug(out.code) || out.id || "job-plan") + ".json";
@@ -644,47 +512,29 @@
       var handle = E.entry && E.entry.handle ? E.entry.handle : null;
       if (!handle && folderHandle && fsaSupported) handle = await folderHandle.getFileHandle(fname, { create: true });
       if (!handle && fsaSupported) handle = await window.showSaveFilePicker({ suggestedName: fname, types: [{ description: "JSON", accept: { "application/json": [".json"] } }] });
-      if (handle) { if (!(await verify(handle))) { toast("Write permission denied", true); return; } var w = await handle.createWritable(); await w.write(text); await w.close(); }
+      if (handle) { if (!(await verify(handle))) return; var wt = await handle.createWritable(); await wt.write(text); await wt.close(); }
       else { var blob = new Blob([text], { type: "application/json" }); var url = URL.createObjectURL(blob); var a = el("a", { href: url, download: fname }); document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); }
-      if (E.entry) { E.entry.plan = out; if (handle) E.entry.handle = handle; E.entry.source = handle ? handle.name : (E.entry.source === "sample" ? fname : E.entry.source); }
+      if (E.entry) { E.entry.plan = out; if (handle) E.entry.handle = handle; if (E.entry.source === "sample") E.entry.source = handle ? handle.name : fname; }
       else { E.entry = { plan: out, source: handle ? handle.name : fname, handle: handle || null }; store.push(E.entry); }
-      G.usingSamples = false;
-      toast("Saved ✓"); updateFileName();
-    } catch (e) { if (e.name !== "AbortError") toast("Save failed: " + e.message, true); }
+      renderRail(); renderDetail();
+    } catch (e) { if (e.name !== "AbortError") alert("Save failed: " + e.message); }
   }
-  async function walk(dir, out, depth) {
-    if (depth > 6) return;
-    for await (var entry of dir.values()) {
-      if (entry.kind === "file" && entry.name.toLowerCase().endsWith(".json")) { try { var f = await entry.getFile(); var obj = JSON.parse(await f.text()); if (obj && obj.type === "jobPlan") out.push({ plan: obj, source: entry.name, handle: entry }); } catch (e) {} }
-      else if (entry.kind === "directory") await walk(entry, out, depth + 1);
-    }
-  }
+  async function walk(dir, out, depth) { if (depth > 6) return; for await (var entry of dir.values()) { if (entry.kind === "file" && entry.name.toLowerCase().endsWith(".json")) { try { var f = await entry.getFile(); var o = JSON.parse(await f.text()); if (o && o.type === "jobPlan") out.push({ plan: o, source: entry.name, handle: entry }); } catch (e) {} } else if (entry.kind === "directory") await walk(entry, out, depth + 1); } }
   async function openFolder() { try { var dir = await window.showDirectoryPicker({ mode: "readwrite" }); var out = []; await walk(dir, out, 0); setLoaded(out, dir); } catch (e) { if (e.name !== "AbortError") alert("Could not open folder: " + e.message); } }
-  function readFiles(fl) {
-    var files = Array.prototype.slice.call(fl).filter(function (f) { return f.name.toLowerCase().endsWith(".json"); });
-    var out = [], pending = files.length; if (!pending) return;
-    files.forEach(function (f) { var r = new FileReader(); r.onload = function () { try { var o = JSON.parse(r.result); if (o && o.type === "jobPlan") out.push({ plan: o, source: f.name, handle: null }); } catch (e) {} finally { if (--pending === 0) setLoaded(out, null); } }; r.onerror = function () { if (--pending === 0) setLoaded(out, null); }; r.readAsText(f); });
-  }
+  function readFiles(fl) { var files = Array.prototype.slice.call(fl).filter(function (f) { return f.name.toLowerCase().endsWith(".json"); }); var out = [], pend = files.length; if (!pend) return; files.forEach(function (f) { var r = new FileReader(); r.onload = function () { try { var o = JSON.parse(r.result); if (o && o.type === "jobPlan") out.push({ plan: o, source: f.name, handle: null }); } catch (e) {} finally { if (--pend === 0) setLoaded(out, null); } }; r.onerror = function () { if (--pend === 0) setLoaded(out, null); }; r.readAsText(f); }); }
 
-  /* ============ wire ============ */
+  /* ---------- wire ---------- */
   document.getElementById("newPlan").addEventListener("click", openNew);
   document.getElementById("openFolder").addEventListener("click", openFolder);
   document.getElementById("chooseFiles").addEventListener("click", function () { document.getElementById("fileInput").click(); });
   document.getElementById("loadSamples").addEventListener("click", setSamples);
   document.getElementById("fileInput").addEventListener("change", function (e) { readFiles(e.target.files); e.target.value = ""; });
-  document.getElementById("q").addEventListener("input", function (e) { G.q = e.target.value; renderGallery(); });
-  document.getElementById("sort").addEventListener("change", function (e) { G.sort = e.target.value; renderGallery(); });
-  Array.prototype.forEach.call(document.getElementById("viewToggle").querySelectorAll("button"), function (b) { b.addEventListener("click", function () { G.viewMode = b.getAttribute("data-view"); renderGallery(); }); });
-  document.getElementById("backBtn").addEventListener("click", backToGallery);
-  document.getElementById("saveBtn").addEventListener("click", save);
-  document.getElementById("validateBtn").addEventListener("click", function () { E.sideTab = "valid"; updateSide(); });
-  document.getElementById("tabJson").addEventListener("click", function () { E.sideTab = "json"; updateSide(); });
-  document.getElementById("tabValid").addEventListener("click", function () { E.sideTab = "valid"; updateSide(); });
-  Array.prototype.forEach.call(document.getElementById("editorTabs").querySelectorAll("button"), function (b) { b.addEventListener("click", function () { E.editorTab = b.getAttribute("data-tab"); renderEditor(); }); });
+  document.getElementById("q").addEventListener("input", function (e) { G.q = e.target.value; renderRail(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeInspect(); });
   var body = document.body;
-  ["dragenter", "dragover"].forEach(function (ev) { body.addEventListener(ev, function (e) { if (view === "gallery") { e.preventDefault(); body.classList.add("drag"); } }); });
+  ["dragenter", "dragover"].forEach(function (ev) { body.addEventListener(ev, function (e) { e.preventDefault(); body.classList.add("drag"); }); });
   ["dragleave", "drop"].forEach(function (ev) { body.addEventListener(ev, function (e) { e.preventDefault(); if (ev === "dragleave" && e.relatedTarget) return; body.classList.remove("drag"); }); });
-  body.addEventListener("drop", function (e) { if (view === "gallery" && e.dataTransfer && e.dataTransfer.files.length) readFiles(e.dataTransfer.files); });
+  body.addEventListener("drop", function (e) { if (e.dataTransfer && e.dataTransfer.files.length) readFiles(e.dataTransfer.files); });
 
   var sup = document.getElementById("support");
   if (fsaSupported) { sup.className = "status ok"; sup.textContent = "Folder access"; } else { sup.className = "status warn"; sup.textContent = "Files / drag-drop"; }

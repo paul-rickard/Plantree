@@ -20,40 +20,40 @@ schedules exist.
 
 ## The app (`app.html`)
 
-Gallery and editor integrated into one self-contained app — no server, no build.
-It ships pre-seeded with sample plans; only files with `"type": "jobPlan"` are
-recognised.
+A single self-contained app — no server, no build — in a **master–detail**
+layout: a persistent left **rail** of plans beside the open plan's **detail**.
+Ships pre-seeded with samples; only files with `"type": "jobPlan"` are recognised.
 
-**Gallery** — browse every plan:
+**Rail (left)** — always-visible navigation:
 
-- **Open folder…** (Edge/Chrome) recurses a directory — point it at the
-  OneDrive-synced `job-plans/` library and every plan appears. **Choose files…**
-  and **drag-and-drop** are the fallback everywhere.
-- **By class (default):** plans **roll up under their asset class**, alphabetical
-  — Class → (Model) → Plan. Classes and models sort A–Z; a class with models
-  sub-groups by model (model-less plans under *General*); a class with none lists
-  its plans directly. Groups collapse with a rolled-up plan/task count. A **Grid**
-  view (flat cards, sortable) is also available. **Search** and **state filter**
-  apply in both.
-- Rollup uses the `assetClass` / `assetModel` fields on the plan (set in the
-  editor); plans without a class group under *Unclassified*.
+- **+ New plan**, and **Open folder** / **Files** / **Samples** to load data.
+  Open folder (Edge/Chrome) recurses a directory — point it at the OneDrive-synced
+  `job-plans/` library; **Files** and **drag-and-drop** are the fallback.
+- Plans **roll up under their asset class**, alphabetical — Class → (Model) →
+  Plan. A class with models sub-groups by model (model-less plans under
+  *General*). Each item shows a status dot and a task/frequency count; the
+  selected plan is highlighted. **Search** filters the tree.
 
-**Editor** — click any plan (or **+ New plan**) to open it:
+**Detail (right)** — the selected plan (or **+ New plan**):
 
-- Full authoring: code/name/class/model, description; version lifecycle
-  (`draft → approved → active → superseded → retired`, approved history locked —
-  fork a new version to change it); tasks with response types and acceptable
-  ranges; planned parts; required skills/tools/permits; parameters; live JSON
-  preview and schema validation.
-- A **Details / Matrix** tab toggle. **Matrix** is the grid view (rows = tasks,
-  columns = frequencies, tick where each task drops) with add/remove columns, a
-  **what-generates** card per frequency, and a **12-month drop timeline** — the
-  old `matrix-demo`, now editing the opened plan. Editable on draft versions,
-  read-only when locked.
-- **Save** writes back to the plan's file handle if it was opened from a folder,
-  creates a file in the opened folder for a new plan, otherwise falls back to
-  Save-As / download. Edits are reflected in the gallery immediately (**← Gallery**
-  returns you there).
+- **Header:** plan name, code, class chip, status badge; a **version** picker +
+  lifecycle actions (`draft → approved → active → superseded → retired`, approved
+  history locked — fork **+ Version** to change it); an **Unsaved** indicator, a
+  live **validity** chip and a **{ } JSON** inspector, and **Save**.
+- **Tabs:**
+  - **Tasks** — the step list (instruction, response type, acceptable ranges,
+    per-step skills; reorder/add/remove).
+  - **Schedule** — frequencies (add/remove columns) and the **matrix grid**
+    (tasks × frequencies), with a **what-generates** card per frequency and a
+    **12-month drop timeline**.
+  - **Details** — identity (code/name/class/model/description), this version's
+    labour/safety/notes, planned parts, requirements, parameters.
+- Everything is **read-only on non-draft versions** (shown by an inline lock
+  bar); JSON and validation live in an on-demand inspector modal, not the main
+  surface.
+- **Save** writes back to the plan's file handle if opened from a folder, creates
+  a file in the opened folder for a new plan, else Save-As / download. The rail
+  updates immediately (regrouping if the class changed).
 
 ## Template inheritance (`inheritance-demo.html`)
 
