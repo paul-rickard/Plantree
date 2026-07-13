@@ -515,27 +515,34 @@
   function selAsset(sel) { Asel = sel; bulkSel = {}; renderRail(); renderDetail(); document.getElementById("app").classList.add("show-detail"); }
   function assetBack() { document.getElementById("app").classList.remove("show-detail"); }
 
+  function assetMatch(a, q) { var f = classById(a.classId), m = f && a.modelId ? modelById(f, a.modelId) : null; var hay = (a.code || "") + " " + (a.name || "") + " " + (f ? f.name + " " + f.code : "") + " " + (m ? m.name : "") + " " + locVector(a.locationId); return hay.toLowerCase().indexOf(q) >= 0; }
+  function locMatch(n, q) { return ((n.name || "") + " " + (n.code || "")).toLowerCase().indexOf(q) >= 0; }
+  function locSubtreeMatch(n, q) { if (!q) return true; if (locMatch(n, q)) return true; if (n.kind === "site" && assetsIn(n.id).some(function (a) { return assetMatch(a, q); })) return true; return (n.children || []).some(function (c) { return locSubtreeMatch(c, q); }); }
   function renderRailAssets() {
-    var host = document.getElementById("railList"); host.innerHTML = ""; var q = G.q.toLowerCase();
+    var host = document.getElementById("railList"); host.innerHTML = ""; var q = G.q.toLowerCase().trim(); var shown = 0;
     if (assetsView === "location") {
-      (function walk(nodes, depth) { (nodes || []).forEach(function (n) {
+      (function walk(nodes, depth, forceAll) { (nodes || []).forEach(function (n) {
+        var show = forceAll || locSubtreeMatch(n, q); if (!show) return; shown++;
         var site = n.kind === "site";
         host.appendChild(el("button", { class: "node" + (Asel && Asel.kind === "loc" && Asel.id === n.id ? " sel" : ""), style: "padding-left:" + (8 + depth * 16) + "px", onclick: function () { selAsset({ kind: "loc", id: n.id }); } }, [
           el("span", { class: "kind" }, [locIcon(n.kind)]),
           el("span", { class: "col" }, [el("div", { class: "nm" }, [n.name]), el("div", { class: "mt" }, [(n.code || "") + (site ? " · " + assetsIn(n.id).length + " assets" : "")])]),
           el("span", { class: "tag" }, [site ? "Site" : "Folder"])
         ]));
-        if (n.children) walk(n.children, depth + 1);
-      }); })(locations, 0);
+        if (n.children) walk(n.children, depth + 1, forceAll || (q && locMatch(n, q)));
+      }); })(locations, 0, false);
     } else {
       var byC = {}; assets.forEach(function (a) { (byC[a.classId] = byC[a.classId] || []).push(a); });
       families.slice().sort(function (a, b) { return a.name.localeCompare(b.name); }).forEach(function (f) {
         var list = byC[f.id] || [];
+        var clsHit = !q || (f.name + " " + f.code).toLowerCase().indexOf(q) >= 0;
+        if (q && !clsHit && !list.some(function (a) { return assetMatch(a, q); })) return; shown++;
         host.appendChild(el("button", { class: "node" + (Asel && Asel.kind === "class" && Asel.id === f.id ? " sel" : ""), onclick: function () { selAsset({ kind: "class", id: f.id }); } }, [
           el("span", { class: "col" }, [el("div", { class: "nm" }, [f.name]), el("div", { class: "mt" }, [f.code + " · " + list.length + " assets"])]), el("span", { class: "tag" }, ["Class"])
         ]));
       });
     }
+    if (q && !shown) host.appendChild(el("div", { class: "empty-in", style: "padding:14px" }, ["No matches for “" + G.q.trim() + "”."]));
   }
 
   function alHead(title, sub, right) { return el("div", { class: "dhead" }, [el("div", { style: "display:flex;align-items:center;gap:10px;min-width:0" }, [el("button", { class: "btn sm ghost back-mobile", onclick: assetBack }, ["‹ Back"]), el("div", { style: "min-width:0" }, [el("div", { class: "dtitle" }, [title]), sub || null])]), el("div", { class: "dhead-right" }, right || [])]); }
@@ -560,9 +567,12 @@
     host.appendChild(alHead(title, sub, site ? [el("button", { class: "btn primary", onclick: function () { addAssetModal(site.id); } }, ["+ Add asset"])] : []));
     var w = el("div", { class: "wrap" }, []);
     if (site) w.appendChild(sec("Site", null, null, [el("div", { class: "g2" }, [labeled("Name", bindInput(site, "name", { after: renderRail })), labeled("Code", bindInput(site, "code", { after: renderRail }))])]));
+    var q = G.q.toLowerCase().trim(); var full = list.slice();
+    if (q) list = list.filter(function (a) { return assetMatch(a, q); });
     var selN = Object.keys(bulkSel).filter(function (k) { return bulkSel[k]; }).length;
     if (selN) w.appendChild(bulkBar(selN));
-    if (!list.length) w.appendChild(sec("Assets", "0", null, [el("div", { class: "empty-in" }, [site ? "No assets in this site yet — add one." : "No assets of this class."])]));
+    if (q) w.appendChild(el("div", { class: "hint", style: "margin:-2px 0 4px" }, [list.length + " of " + full.length + " match “" + G.q.trim() + "”"]));
+    if (!list.length) w.appendChild(sec("Assets", "0", null, [el("div", { class: "empty-in" }, [q ? "No assets match the search." : (site ? "No assets in this site yet — add one." : "No assets of this class.")])]));
     else {
       var head = el("tr", {}, [el("th", { style: "width:30px" }, [(function () { var cb = el("input", { type: "checkbox", class: "chk" }); cb.addEventListener("change", function () { list.forEach(function (a) { bulkSel[a.id] = cb.checked; }); renderDetail(); }); return cb; })()]), el("th", {}, ["Code"]), el("th", {}, ["Name"]), el("th", {}, ["Class"]), el("th", {}, ["Model"]), el("th", {}, ["Location"]), el("th", {}, ["Plans"])]);
       var tb = el("tbody", {}, []);
@@ -691,7 +701,7 @@
     });
   });
   document.getElementById("fileInput").addEventListener("change", function (e) { readFiles(e.target.files); e.target.value = ""; });
-  document.getElementById("q").addEventListener("input", function (e) { G.q = e.target.value; renderRail(); });
+  document.getElementById("q").addEventListener("input", function (e) { G.q = e.target.value; renderRail(); if (mode === "assets" && Asel && Asel.kind !== "asset") renderDetail(); });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") { closeInspect(); closeConfirm(); } });
   var b = document.body;
   ["dragenter", "dragover"].forEach(function (ev) { b.addEventListener(ev, function (e) { e.preventDefault(); b.classList.add("drag"); }); });
