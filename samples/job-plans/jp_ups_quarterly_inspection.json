@@ -4,6 +4,8 @@
   "code": "JP-UPS-QTR",
   "name": "Quarterly UPS Inspection",
   "description": "Routine quarterly inspection for static UPS units. Parameterised on battery-string count and acceptable impedance so one plan covers the fleet.",
+  "assetClass": "UPS",
+  "assetModel": "Schneider Galaxy VX",
   "rev": 4,
   "createdAt": "2025-11-03T02:00:00Z",
   "createdBy": null,

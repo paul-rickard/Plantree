@@ -12,6 +12,8 @@
     "code": { "type": "string", "description": "Human-facing unique code, e.g. JP-UPS-QTR." },
     "name": { "type": "string" },
     "description": { "type": ["string", "null"] },
+    "assetClass": { "type": ["string", "null"], "description": "Asset class this plan belongs to (e.g. UPS, Generator, Chiller). Plans roll up under their class in the gallery, alphabetically." },
+    "assetModel": { "type": ["string", "null"], "description": "Optional asset model within the class (e.g. Schneider Galaxy VX). When present, plans sub-group by model under the class." },
     "rev": { "type": "integer", "minimum": 0, "description": "Optimistic-concurrency revision; bumped on every save." },
     "createdAt": { "type": "string", "format": "date-time" },
     "createdBy": { "type": ["string", "null"] },

@@ -27,9 +27,16 @@ Displays every job plan as a card grid. In the file-based deployment this is
 - **Open folder…** (Edge/Chrome) recurses a directory — point it at the
   OneDrive-synced `job-plans/` library and every plan appears. **Choose files…**
   and **drag-and-drop** work everywhere as the fallback.
-- Each card shows the active version's **state**, version count, **task count**,
-  **frequency chips** and estimated labour; **search**, **state filter** and
-  **sort** across the set.
+- **By class (default):** plans **roll up under their asset class**, alphabetical
+  — Class → (Model) → Plan. Classes and models sort A–Z; a class with models
+  sub-groups by model (model-less plans fall under *General*); a class with no
+  models lists its plans directly. Groups collapse and show a rolled-up
+  plan/task count. A **Grid** view (flat cards, sortable) is also available.
+- Each card/row shows the active version's **state**, version count, **task
+  count**, **frequency chips** and estimated labour; **search** and **state
+  filter** apply in both views.
+- Rollup uses the new `assetClass` / `assetModel` fields on the job plan (set in
+  the authoring app's header); plans without a class group under *Unclassified*.
 - Click a card for a detail view (per-version tasks with their frequency tags,
   and a **Download JSON**).
 - Ships pre-seeded with sample plans so it's populated on first open; loading a

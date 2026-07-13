@@ -65,6 +65,29 @@
   .meta b { color:var(--ink); font-variant-numeric:tabular-nums; font-family:var(--mono); }
   .src { margin-left:auto; font-family:var(--mono); font-size:10px; color:var(--faint); }
 
+  /* grouped tree */
+  .tree { padding:6px 20px 40px; display:flex; flex-direction:column; gap:10px; }
+  .grp { border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--surface); }
+  .grp-head { width:100%; display:flex; align-items:center; gap:10px; padding:12px 15px; background:var(--surface-2); border:0; border-bottom:1px solid var(--line); cursor:pointer; font:inherit; color:var(--ink); text-align:left; }
+  .grp-head:hover { background:color-mix(in srgb,var(--accent) 5%,var(--surface-2)); }
+  .grp-name { font-weight:680; font-size:15px; letter-spacing:-.01em; }
+  .grp-meta { margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--faint); }
+  .grp-body { display:flex; flex-direction:column; }
+  .caret { color:var(--faint); transition:transform .12s; flex:none; }
+  .caret.open { transform:rotate(90deg); }
+  .sub-head { width:100%; display:flex; align-items:center; gap:9px; padding:8px 15px 8px 26px; background:transparent; border:0; border-bottom:1px solid var(--line); cursor:pointer; font:inherit; color:var(--muted); text-align:left; }
+  .sub-head:hover { color:var(--ink); }
+  .sub-name { font-weight:620; font-size:12.5px; font-family:var(--mono); color:var(--ink); }
+  .plan-row { width:100%; display:flex; align-items:center; gap:12px; padding:11px 15px; background:transparent; border:0; border-bottom:1px solid var(--line); cursor:pointer; font:inherit; color:var(--ink); text-align:left; }
+  .plan-row.ind { padding-left:44px; }
+  .plan-row:last-child { border-bottom:0; }
+  .plan-row:hover { background:var(--surface-2); }
+  .pr-name { font-weight:600; font-size:13.5px; }
+  .pr-code { font-family:var(--mono); font-size:11px; color:var(--faint); }
+  .pr-freqs { margin-left:auto; display:flex; gap:4px; flex-wrap:wrap; justify-content:flex-end; }
+  .pr-tasks { font-family:var(--mono); font-size:11.5px; color:var(--muted); white-space:nowrap; min-width:60px; text-align:right; }
+  @media (max-width:640px){ .pr-freqs { display:none; } }
+
   .empty { padding:60px 20px; text-align:center; color:var(--muted); }
   .empty .big { font-size:16px; color:var(--ink); font-weight:600; margin-bottom:6px; }
   .recommend { display:inline-flex; gap:8px; align-items:flex-start; text-align:left; max-width:520px; margin:14px auto 0; font-size:12.5px; color:var(--warn); background:var(--warn-soft); border:1px solid color-mix(in srgb,var(--warn) 26%,transparent); border-radius:9px; padding:10px 12px; }
@@ -108,14 +131,18 @@
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--faint)"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2" stroke-linecap="round"/></svg>
       <input id="q" placeholder="Search name, code or description…" />
     </div>
+    <div class="chips" id="viewToggle">
+      <button class="fchip on" data-view="grouped">By class</button>
+      <button class="fchip" data-view="grid">Grid</button>
+    </div>
     <div class="chips" id="stateChips"></div>
-    <label class="lbl" for="sort">Sort</label>
+    <span id="sortWrap" style="display:inline-flex;align-items:center;gap:8px"><label class="lbl" for="sort">Sort</label>
     <select id="sort">
       <option value="name">Name</option>
       <option value="code">Code</option>
       <option value="updated">Updated</option>
       <option value="tasks">Tasks</option>
-    </select>
+    </select></span>
     <span class="count" id="count"></span>
   </div>
 
@@ -160,36 +187,62 @@
 
   var store = [];          // {plan, source}
   var q = "", sort = "name", stateFilter = "all", usingSamples = true;
+  var viewMode = "grouped", collapsed = {};
 
   // ---------- seed samples ----------
   function T(instruction, responseType, frequencyIds) { return { instruction: instruction, responseType: responseType, frequencyIds: frequencyIds || [] }; }
+  function P(o) { return o; }
   var SAMPLES = [
     { id: "jp_ups_quarterly_inspection", type: "jobPlan", code: "JP-UPS-QTR", name: "Quarterly UPS Inspection",
+      assetClass: "UPS", assetModel: "Schneider Galaxy VX",
       description: "Routine quarterly inspection for static UPS units; parameterised on battery-string count.", updatedAt: "2026-06-18",
       activeVersion: 4, versions: [{ version: 4, lifecycleState: "active", estimatedLabourHours: 1.5,
         frequencies: [{ id: "q", label: "Quarterly", unit: "month", interval: 3 }],
         tasks: [T("Record input voltage.", "numeric", ["q"]), T("Record output voltage.", "numeric", ["q"]), T("Battery impedance per string.", "numeric", ["q"]), T("Check fans & filters.", "passfail", ["q"]), T("Review event log.", "text", ["q"]), T("Overall condition.", "choice", ["q"])] }] },
+    { id: "jp_ups_battery_load", type: "jobPlan", code: "JP-UPS-BAT", name: "Annual UPS Battery Load Test",
+      assetClass: "UPS",
+      description: "Timed discharge / capacity test of the UPS battery string.", updatedAt: "2026-04-11",
+      activeVersion: 1, versions: [{ version: 1, lifecycleState: "active", estimatedLabourHours: 3,
+        frequencies: [{ id: "y", unit: "year", interval: 1 }],
+        tasks: [T("Record float voltage per cell.", "numeric", ["y"]), T("Run timed discharge to end voltage.", "numeric", ["y"]), T("Log runtime vs rated.", "numeric", ["y"])] }] },
     { id: "jp_generator_maintenance", type: "jobPlan", code: "JP-GEN-STD", name: "Standby Generator Maintenance",
+      assetClass: "Generator", assetModel: "Caterpillar 3512",
       description: "Full programme for standby diesel generators — every cadence in one plan via the task × frequency matrix.", updatedAt: "2026-06-01",
       activeVersion: 1, versions: [{ version: 1, lifecycleState: "active", estimatedLabourHours: 3,
         frequencies: [{ id: "w", unit: "week", interval: 1 }, { id: "m", unit: "month", interval: 1 }, { id: "s", unit: "month", interval: 6 }, { id: "y", unit: "year", interval: 1 }],
         tasks: [T("Visual inspection.", "passfail", ["w"]), T("Check coolant & oil.", "passfail", ["w", "m"]), T("Check battery.", "numeric", ["w", "m"]), T("No-load test run.", "passfail", ["m"]), T("Change oil & filter.", "passfail", ["s"]), T("Replace fuel/air filters.", "passfail", ["s"]), T("Full-load test.", "numeric", ["y"]), T("Fuel polishing.", "passfail", ["s", "y"])] }] },
+    { id: "jp_generator_fuel", type: "jobPlan", code: "JP-GEN-FUEL", name: "Generator Fuel System Service",
+      assetClass: "Generator", assetModel: "Caterpillar 3512",
+      description: "Fuel filters, injectors and tank water management.", updatedAt: "2026-03-22",
+      activeVersion: 2, versions: [{ version: 2, lifecycleState: "active", estimatedLabourHours: 2,
+        frequencies: [{ id: "s", label: "6-Monthly", unit: "month", interval: 6 }],
+        tasks: [T("Replace primary/secondary fuel filters.", "passfail", ["s"]), T("Drain tank water trap.", "passfail", ["s"]), T("Sample fuel for analysis.", "numeric", ["s"])] }] },
     { id: "jp_chiller_annual", type: "jobPlan", code: "JP-CHW-ANN", name: "Chiller Annual Service",
+      assetClass: "Chiller",
       description: "Annual major service for water-cooled centrifugal chillers.", updatedAt: "2026-05-20",
       activeVersion: 2, versions: [{ version: 2, lifecycleState: "active", estimatedLabourHours: 8,
         frequencies: [{ id: "y", unit: "year", interval: 1 }],
         tasks: [T("Eddy-current tube test.", "passfail", ["y"]), T("Oil analysis.", "numeric", ["y"]), T("Refrigerant charge check.", "numeric", ["y"]), T("Calibrate controls.", "passfail", ["y"]), T("Megger motor windings.", "numeric", ["y"])] }] },
+    { id: "jp_chiller_weekly", type: "jobPlan", code: "JP-CHW-WK", name: "Chiller Weekly Log",
+      assetClass: "Chiller",
+      description: "Operator weekly readings and visual check.", updatedAt: "2026-07-05",
+      activeVersion: 1, versions: [{ version: 1, lifecycleState: "active", estimatedLabourHours: 0.25,
+        frequencies: [{ id: "w", unit: "week", interval: 1 }],
+        tasks: [T("Record condenser/evaporator temps.", "numeric", ["w"]), T("Record approach & pressures.", "numeric", ["w"]), T("Check for leaks/alarms.", "passfail", ["w"])] }] },
     { id: "jp_crah_filter", type: "jobPlan", code: "JP-CRAH-FLT", name: "CRAH Filter & Belt Check",
+      assetClass: "CRAH",
       description: "Monthly filter and belt inspection for computer-room air handlers; run as a route.", updatedAt: "2026-07-02",
       activeVersion: 3, versions: [{ version: 3, lifecycleState: "active", estimatedLabourHours: 0.5,
         frequencies: [{ id: "m", unit: "month", interval: 1 }],
         tasks: [T("Inspect / replace filters.", "passfail", ["m"]), T("Check belt tension.", "passfail", ["m"]), T("Record supply/return temps.", "numeric", ["m"])] }] },
     { id: "jp_firepump_weekly", type: "jobPlan", code: "JP-FP-WK", name: "Fire Pump Weekly Test",
+      assetClass: "Fire Pump",
       description: "Statutory weekly no-flow (churn) test for electric fire pumps.", updatedAt: "2026-07-06",
       activeVersion: 1, versions: [{ version: 1, lifecycleState: "active", estimatedLabourHours: 0.5,
         frequencies: [{ id: "w", unit: "week", interval: 1 }],
         tasks: [T("Start pump, run 10 min.", "passfail", ["w"]), T("Record suction/discharge pressure.", "numeric", ["w"]), T("Check packing gland leakage.", "passfail", ["w"]), T("Confirm auto-start.", "passfail", ["w"])] }] },
     { id: "jp_thermo_survey", type: "jobPlan", code: "JP-THERMO", name: "Thermographic Survey",
+      assetClass: "Switchboard",
       description: "Infrared survey of switchboards and distribution — draft, pending approval.", updatedAt: "2026-07-09",
       activeVersion: null, versions: [{ version: 1, lifecycleState: "draft", estimatedLabourHours: 4,
         frequencies: [{ id: "y", unit: "year", interval: 1 }],
@@ -203,29 +256,92 @@
     store = list; usingSamples = false; render();
   }
 
-  function render() {
-    renderStateChips();
-    var list = store.filter(function (e) {
+  function filtered() {
+    return store.filter(function (e) {
       var p = e.plan, av = activeVersion(p);
       if (stateFilter !== "all" && av.lifecycleState !== stateFilter) return false;
       if (!q) return true;
-      var hay = (p.name + " " + p.code + " " + (p.description || "")).toLowerCase();
+      var hay = (p.name + " " + p.code + " " + (p.description || "") + " " + (p.assetClass || "") + " " + (p.assetModel || "")).toLowerCase();
       return hay.indexOf(q.toLowerCase()) >= 0;
     });
-    list.sort(function (a, b) {
-      var pa = a.plan, pb = b.plan;
-      if (sort === "name") return pa.name.localeCompare(pb.name);
-      if (sort === "code") return pa.code.localeCompare(pb.code);
-      if (sort === "updated") return String(pb.updatedAt || "").localeCompare(String(pa.updatedAt || ""));
-      if (sort === "tasks") return activeVersion(pb).tasks.length - activeVersion(pa).tasks.length;
-      return 0;
-    });
+  }
+  function byName(a, b) { return a.plan.name.localeCompare(b.plan.name); }
+  function render() {
+    renderStateChips();
+    syncViewToggle();
+    var list = filtered();
     document.getElementById("count").textContent = list.length + " of " + store.length + " plan" + (store.length === 1 ? "" : "s") + (usingSamples ? " · samples" : "");
+    document.getElementById("sortWrap").style.display = viewMode === "grid" ? "" : "none";
     var view = document.getElementById("view");
     view.innerHTML = "";
     if (!list.length) { view.appendChild(emptyState()); return; }
-    var grid = el("div", { class: "grid" }, list.map(card));
-    view.appendChild(grid);
+    if (viewMode === "grouped") view.appendChild(groupedTree(list));
+    else {
+      list.sort(function (a, b) {
+        var pa = a.plan, pb = b.plan;
+        if (sort === "name") return pa.name.localeCompare(pb.name);
+        if (sort === "code") return pa.code.localeCompare(pb.code);
+        if (sort === "updated") return String(pb.updatedAt || "").localeCompare(String(pa.updatedAt || ""));
+        if (sort === "tasks") return activeVersion(pb).tasks.length - activeVersion(pa).tasks.length;
+        return 0;
+      });
+      view.appendChild(el("div", { class: "grid" }, list.map(card)));
+    }
+  }
+  function syncViewToggle() {
+    var host = document.getElementById("viewToggle");
+    Array.prototype.forEach.call(host.querySelectorAll("button"), function (b) { b.classList.toggle("on", b.getAttribute("data-view") === viewMode); });
+  }
+
+  // ---------- grouped (Class -> [Model] -> Plans), alphabetical ----------
+  function groupBy(list, keyFn) {
+    var m = {};
+    list.forEach(function (e) { var k = keyFn(e); (m[k] = m[k] || []).push(e); });
+    return m;
+  }
+  function taskTotal(entries) { return entries.reduce(function (s, e) { return s + activeVersion(e.plan).tasks.length; }, 0); }
+  function groupedTree(list) {
+    var wrap = el("div", { class: "tree" }, []);
+    var byClass = groupBy(list, function (e) { return e.plan.assetClass || "Unclassified"; });
+    Object.keys(byClass).sort(function (a, b) { return a.localeCompare(b); }).forEach(function (cls) {
+      var entries = byClass[cls];
+      var key = "class:" + cls, open = !collapsed[key];
+      var head = el("button", { class: "grp-head", onclick: function () { collapsed[key] = open; render(); } }, [
+        caret(open), el("span", { class: "grp-name" }, [cls]),
+        el("span", { class: "grp-meta" }, [entries.length + " plan" + (entries.length === 1 ? "" : "s") + " · " + taskTotal(entries) + " tasks"])
+      ]);
+      var body = el("div", { class: "grp-body" }, []);
+      if (open) {
+        var hasModel = entries.some(function (e) { return e.plan.assetModel; });
+        if (hasModel) {
+          var byModel = groupBy(entries, function (e) { return e.plan.assetModel || "General"; });
+          Object.keys(byModel).sort(function (a, b) { return a.localeCompare(b); }).forEach(function (mdl) {
+            var mEntries = byModel[mdl].slice().sort(byName), mkey = "model:" + cls + ":" + mdl, mopen = !collapsed[mkey];
+            body.appendChild(el("button", { class: "sub-head", onclick: function () { collapsed[mkey] = mopen; render(); } }, [
+              caret(mopen), el("span", { class: "sub-name" }, [mdl]), el("span", { class: "grp-meta" }, [mEntries.length + ""])
+            ]));
+            if (mopen) mEntries.forEach(function (e) { body.appendChild(planRow(e, true)); });
+          });
+        } else {
+          entries.slice().sort(byName).forEach(function (e) { body.appendChild(planRow(e, false)); });
+        }
+      }
+      wrap.appendChild(el("div", { class: "grp" }, [head, body]));
+    });
+    return wrap;
+  }
+  function caret(open) {
+    return el("svg", { class: "caret" + (open ? " open" : ""), width: "12", height: "12", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2.4", html: '<path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/>' });
+  }
+  function planRow(e, indented) {
+    var p = e.plan, av = activeVersion(p), freqs = av.frequencies || [];
+    return el("button", { class: "plan-row" + (indented ? " ind" : ""), onclick: function () { openModal(p); } }, [
+      el("span", { class: "badge b-" + (av.lifecycleState || "draft") }, [av.lifecycleState || "draft"]),
+      el("span", { class: "pr-name" }, [p.name]),
+      el("span", { class: "pr-code" }, [p.code]),
+      el("span", { class: "pr-freqs" }, freqs.length ? freqs.map(function (f) { return el("span", { class: "freq" }, [freqLabel(f)]); }) : [el("span", { class: "freq none" }, ["ad hoc"])]),
+      el("span", { class: "pr-tasks num" }, [av.tasks.length + " tasks"])
+    ]);
   }
   function renderStateChips() {
     var host = document.getElementById("stateChips"); host.innerHTML = "";
@@ -349,6 +465,9 @@
   document.getElementById("fileInput").addEventListener("change", function (e) { readFiles(e.target.files); e.target.value = ""; });
   document.getElementById("q").addEventListener("input", function (e) { q = e.target.value; render(); });
   document.getElementById("sort").addEventListener("change", function (e) { sort = e.target.value; render(); });
+  Array.prototype.forEach.call(document.getElementById("viewToggle").querySelectorAll("button"), function (b) {
+    b.addEventListener("click", function () { viewMode = b.getAttribute("data-view"); render(); });
+  });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeModal(); });
   var body = document.getElementById("body");
   ["dragenter", "dragover"].forEach(function (ev) { body.addEventListener(ev, function (e) { e.preventDefault(); body.classList.add("drag"); }); });

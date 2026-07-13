@@ -4,6 +4,8 @@
   "code": "JP-GEN-STD",
   "name": "Standby Generator Maintenance",
   "description": "Full maintenance programme for standby diesel generators. One plan holds every cadence; the task × frequency matrix (task.frequencyIds) decides which tasks drop when.",
+  "assetClass": "Generator",
+  "assetModel": "Caterpillar 3512",
   "rev": 2,
   "createdAt": "2026-01-14T00:00:00Z",
   "createdBy": null,

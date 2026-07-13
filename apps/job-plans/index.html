@@ -186,7 +186,7 @@
   }
   function newDoc() {
     var t = nowIso();
-    return { id: "", type: "jobPlan", code: "", name: "", description: "", rev: 0,
+    return { id: "", type: "jobPlan", code: "", name: "", description: "", assetClass: "", assetModel: "", rev: 0,
       createdAt: t, createdBy: null, updatedAt: t, updatedBy: null, activeVersion: null,
       versions: [emptyVersion(1)] };
   }
@@ -320,6 +320,10 @@
       el("div", { class: "grid2" }, [
         el("label", { class: "field" }, [el("span", { class: "lbl" }, ["Code"]), bind(d, "code", { placeholder: "JP-UPS-QTR" })]),
         el("label", { class: "field" }, [el("span", { class: "lbl" }, ["Name"]), bind(d, "name", { placeholder: "Quarterly UPS Inspection" })])
+      ]),
+      el("div", { class: "grid2" }, [
+        el("label", { class: "field" }, [el("span", { class: "lbl" }, ["Asset class"]), bind(d, "assetClass", { placeholder: "UPS" })]),
+        el("label", { class: "field" }, [el("span", { class: "lbl" }, ["Asset model (optional)"]), bind(d, "assetModel", { placeholder: "Schneider Galaxy VX" })])
       ]),
       el("label", { class: "field" }, [el("span", { class: "lbl" }, ["Description"]),
         bind(d, "description", { tag: "textarea", placeholder: "Optional summary of the plan…" })])
