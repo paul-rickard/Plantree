@@ -407,9 +407,10 @@
     var val, act;
     if (lvl === "class") { val = bindObj(cls, "value", type, unit); act = el("button", { class: "btn sm" + (cls.enforced ? " on" : ""), title: "Lock so models/instances can't override", onclick: function () { cls.enforced = !cls.enforced; if (cls.enforced) walkNodes(function (n) { delete n.attrOverrides[key]; }); renderBody(); } }, [cls.enforced ? "🔒 Enforced" : "Enforce"]); }
     else if (cls.enforced) { val = el("span", { class: "ro" }, [String(eff.value), unit ? el("span", { class: "u" }, [" " + unit]) : null]); act = el("span", { class: "lbl" }, ["locked"]); }
-    else if (eff.state === "overridden") { val = bindObj(selNode().attrOverrides, key, type, unit); act = el("button", { class: "btn sm", onclick: function () { delete selNode().attrOverrides[key]; renderBody(); } }, ["Revert"]); }
+    else if (eff.state === "overridden") { val = bindObj(selNode().attrOverrides, key, type, unit); act = el("button", { class: "btn sm", onclick: function () { resetAttr(ch, key, name); } }, ["Reset"]); }
     else { val = el("span", { class: "ro" }, [String(eff.value), unit ? el("span", { class: "u" }, [" " + unit]) : null]); act = el("button", { class: "btn sm", onclick: function () { selNode().attrOverrides[key] = eff.value; renderBody(); } }, ["Override"]); }
-    return el("div", { class: "arow" }, [el("div", { class: "an" }, [name]), el("div", { class: "av" }, [val]), chip(eff.state), el("div", { class: "aa" }, [act])]);
+    var pc = chip(eff.state); if (eff.state === "overridden") { pc.style.cursor = "pointer"; pc.title = "Reset to inherited"; pc.addEventListener("click", function () { resetAttr(ch, key, name); }); }
+    return el("div", { class: "arow" }, [el("div", { class: "an" }, [name]), el("div", { class: "av" }, [val]), pc, el("div", { class: "aa" }, [act])]);
   }
   function paramRow(ch, p) {
     var eff = effParam(ch, p), lvl = level();
@@ -417,9 +418,10 @@
     var val, act;
     if (lvl === "class") { val = el("div", { class: "rowline" }, [bindObj(p, "defaultValue", p.valueType === "number" ? "number" : "text", null)]); act = el("div", { class: "aa" }, [el("button", { class: "btn sm" + (p.enforced ? " on" : ""), title: "Lock the value for all models/instances", onclick: function () { p.enforced = !p.enforced; if (p.enforced) walkNodes(function (n) { delete n.paramOverrides[p.id]; }); renderBody(); } }, [p.enforced ? "🔒 Enforced" : "Enforce"]), el("button", { class: "x", onclick: function () { pullBy(selFamily().parameters, p.id); renderBody(); } }, ["✕"])]); }
     else if (p.enforced) { val = el("span", { class: "ro" }, [String(eff.value), p.unit ? el("span", { class: "u" }, [" " + p.unit]) : null]); act = el("div", { class: "aa" }, [el("span", { class: "lbl" }, ["locked"])]); }
-    else if (eff.state === "overridden") { var node = selNode(); val = bindMap(node.paramOverrides, p.id, p.valueType === "number" ? "number" : "text"); act = el("div", { class: "aa" }, [el("button", { class: "btn sm", onclick: function () { delete selNode().paramOverrides[p.id]; renderBody(); } }, ["Revert"])]); }
+    else if (eff.state === "overridden") { var node = selNode(); val = bindMap(node.paramOverrides, p.id, p.valueType === "number" ? "number" : "text"); act = el("div", { class: "aa" }, [el("button", { class: "btn sm", onclick: function () { resetParam(ch, p); } }, ["Reset"])]); }
     else { val = el("span", { class: "ro" }, [String(eff.value), p.unit ? el("span", { class: "u" }, [" " + p.unit]) : null]); act = el("div", { class: "aa" }, [el("button", { class: "btn sm", onclick: function () { selNode().paramOverrides[p.id] = eff.value; renderBody(); } }, ["Override"])]); }
-    return el("div", { class: "arow" }, [nmeta_wrap(nmeta), el("div", { class: "av" }, [val]), chip(eff.state), act]);
+    var pc = chip(eff.state); if (eff.state === "overridden") { pc.style.cursor = "pointer"; pc.title = "Reset to inherited"; pc.addEventListener("click", function () { resetParam(ch, p); }); }
+    return el("div", { class: "arow" }, [nmeta_wrap(nmeta), el("div", { class: "av" }, [val]), pc, act]);
   }
   function nmeta_wrap(x) { return x; }
   function syncHead() { var t = document.getElementById("dTitle"); if (t) t.textContent = selNode().name || "Untitled"; renderRail(); }
@@ -447,6 +449,36 @@
   function openInspect() { renderInspect(); } function closeInspect() { var o = document.getElementById("ovl"); if (o) o.remove(); } function refreshInspect() { if (document.getElementById("ovl")) renderInspect(); }
   function renderInspect() { closeInspect(); var modal = el("div", { class: "modal", onclick: function (e) { e.stopPropagation(); } }, [el("header", {}, [el("h3", {}, ["Effective plan · " + selNode().code]), el("button", { class: "btn sm ghost", style: "margin-left:auto", onclick: closeInspect }, ["Close"])]), el("div", { class: "mbody" }, [el("pre", { class: "json" }, [JSON.stringify(effectivePlan(), null, 2)]), el("div", { class: "hint", style: "margin-top:10px" }, ["This is the resolved snapshot a work order would freeze for this node."])])]); document.body.appendChild(el("div", { class: "ovl", id: "ovl", onclick: closeInspect }, [modal])); }
 
+  /* ---------- confirm + reset-to-inherited ---------- */
+  function closeConfirm() { var o = document.getElementById("cfm"); if (o) o.remove(); }
+  function confirmModal(opts) {
+    closeConfirm();
+    var modal = el("div", { class: "modal", style: "width:min(460px,100%)", onclick: function (e) { e.stopPropagation(); } }, [
+      el("header", {}, [el("h3", {}, [opts.title || "Are you sure?"])]),
+      el("div", { class: "mbody" }, [ opts.message,
+        el("div", { style: "display:flex;gap:10px;justify-content:flex-end;margin-top:20px" }, [
+          el("button", { class: "btn", onclick: closeConfirm }, ["Cancel"]),
+          el("button", { class: "btn primary", onclick: function () { closeConfirm(); opts.onConfirm(); } }, [opts.confirmLabel || "Confirm"])
+        ])
+      ])
+    ]);
+    document.body.appendChild(el("div", { class: "ovl", id: "cfm", onclick: closeConfirm }, [modal]));
+  }
+  function inheritedAttr(ch, key) { var n = ch[ch.length - 1], had = key in n.attrOverrides, s = n.attrOverrides[key]; if (had) delete n.attrOverrides[key]; var v = effAttr(ch, key).value; if (had) n.attrOverrides[key] = s; return v; }
+  function inheritedParam(ch, p) { var n = ch[ch.length - 1], had = p.id in n.paramOverrides, s = n.paramOverrides[p.id]; if (had) delete n.paramOverrides[p.id]; var v = effParam(ch, p).value; if (had) n.paramOverrides[p.id] = s; return v; }
+  function resetPrompt(name, curVal, inhVal, onConfirm) {
+    confirmModal({ title: "Reset to inherited?", confirmLabel: "Reset to inherited", onConfirm: onConfirm,
+      message: el("div", {}, [
+        el("div", { style: "font-size:13.5px;line-height:1.5" }, ["Remove the override on ", el("b", {}, [selNode().name]), " so ", el("b", {}, [name]), " follows its parent again."]),
+        el("div", { style: "margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap" }, [
+          el("span", { class: "prov p-overridden" }, [String(curVal)]), el("span", { style: "color:var(--faint)" }, ["→"]),
+          el("span", { class: "prov p-inherited" }, [String(inhVal)]), el("span", { class: "hint" }, ["inherited from parent"])
+        ])
+      ]) });
+  }
+  function resetAttr(ch, key, name) { resetPrompt(name, effAttr(ch, key).value, inheritedAttr(ch, key), function () { delete selNode().attrOverrides[key]; renderBody(); }); }
+  function resetParam(ch, p) { resetPrompt(p.label || p.key, effParam(ch, p).value, inheritedParam(ch, p), function () { delete selNode().paramOverrides[p.id]; renderBody(); }); }
+
   /* ---------- file I/O (one file per class family) ---------- */
   async function verify(h) { if (!h.queryPermission) return true; if ((await h.queryPermission({ mode: "readwrite" })) === "granted") return true; return (await h.requestPermission({ mode: "readwrite" })) === "granted"; }
   function famDoc(f) { return Object.assign({ type: "assetClassPlan" }, f); }
@@ -465,7 +497,7 @@
   document.getElementById("loadSamples").addEventListener("click", setSamples);
   document.getElementById("fileInput").addEventListener("change", function (e) { readFiles(e.target.files); e.target.value = ""; });
   document.getElementById("q").addEventListener("input", function (e) { G.q = e.target.value; renderRail(); });
-  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeInspect(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") { closeInspect(); closeConfirm(); } });
   var b = document.body;
   ["dragenter", "dragover"].forEach(function (ev) { b.addEventListener(ev, function (e) { e.preventDefault(); b.classList.add("drag"); }); });
   ["dragleave", "drop"].forEach(function (ev) { b.addEventListener(ev, function (e) { e.preventDefault(); if (ev === "dragleave" && e.relatedTarget) return; b.classList.remove("drag"); }); });
