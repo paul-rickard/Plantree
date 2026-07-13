@@ -303,7 +303,7 @@
     var editContent = (row.origin === 0 && lvl === "class") || (row.origin === ch.length - 1 && row.origin !== 0); // class task at class, or added-here task
     var top = el("div", { class: "task-top" }, [ el("span", { class: "tseq" }, [(idx + 1) + ""]),
       el("div", { class: "tname" }, [ editContent ? bindInput(t, "instruction", { placeholder: "Instruction…" }) : el("div", { class: "ti" + (row.excluded ? " ex" : "") }, [t.instruction || "(untitled)"]), editContent ? null : el("div", { class: "tm" }, [t.responseType + (ticks.length ? " · " + ticks.map(function (id) { var f = effFreqs(ch).filter(function (x) { return x.id === id; })[0]; return f ? freqLabel(f) : id; }).join(", ") : "") ]) ]),
-      chip(st, row.origin ? levelName(row.origin) : null),
+      (function () { var pc = chip(st, row.origin ? levelName(row.origin) : null); if (st === "overridden") { pc.style.cursor = "pointer"; pc.title = "Reset schedule to inherited"; pc.addEventListener("click", function () { resetTaskMap(ch, row); }); } return pc; })(),
       el("div", { class: "taus" }, taskActions(ch, row, st)) ]);
     var extra = [];
     if (editContent) {
@@ -316,7 +316,7 @@
   function taskActions(ch, row, st) {
     var lvl = level(), acts = [];
     if (lvl === "class" && row.origin === 0) { acts.push(el("button", { class: "btn sm" + (row.task.enforced ? " on" : ""), title: "Lock so models/instances can't change or remove it", onclick: function () { row.task.enforced = !row.task.enforced; if (row.task.enforced) walkNodes(function (n) { pull(n.exclusions, row.task.id); delete n.mapOverrides[row.task.id]; }); renderBody(); } }, [row.task.enforced ? "🔒 Enforced" : "Enforce"])); acts.push(el("button", { class: "x", onclick: function () { pullBy(selFamily().tasks, row.task.id); renderBody(); } }, ["✕"])); }
-    else if (row.origin === 0 && !row.enforced && lvl !== "class") { var node = selNode(); acts.push(el("button", { class: "btn sm", onclick: function () { var i = node.exclusions.indexOf(row.task.id); if (i >= 0) node.exclusions.splice(i, 1); else node.exclusions.push(row.task.id); renderBody(); } }, [row.excluded ? "Include" : "Exclude"])); }
+    else if (row.origin === 0 && !row.enforced && lvl !== "class") { var node = selNode(); if (st === "overridden") acts.push(el("button", { class: "btn sm", title: "Reset this task's schedule to inherited", onclick: function () { resetTaskMap(ch, row); } }, ["Reset schedule"])); acts.push(el("button", { class: "btn sm", onclick: function () { var i = node.exclusions.indexOf(row.task.id); if (i >= 0) node.exclusions.splice(i, 1); else node.exclusions.push(row.task.id); renderBody(); } }, [row.excluded ? "Include" : "Exclude"])); }
     else if (row.origin === ch.length - 1 && row.origin !== 0) { acts.push(el("button", { class: "x", onclick: function () { pullBy(selNode().addedTasks, row.task.id); renderBody(); } }, ["✕"])); }
     return acts;
   }
@@ -478,6 +478,9 @@
   }
   function resetAttr(ch, key, name) { resetPrompt(name, effAttr(ch, key).value, inheritedAttr(ch, key), function () { delete selNode().attrOverrides[key]; renderBody(); }); }
   function resetParam(ch, p) { resetPrompt(p.label || p.key, effParam(ch, p).value, inheritedParam(ch, p), function () { delete selNode().paramOverrides[p.id]; renderBody(); }); }
+  function labelIds(ch, ids) { var fs = effFreqs(ch); return ids.map(function (id) { var f = fs.filter(function (x) { return x.id === id; })[0]; return f ? freqLabel(f) : id; }).join(", ") || "(none)"; }
+  function inheritedTaskTicks(ch, row) { var n = ch[ch.length - 1], id = row.task.id, had = !!n.mapOverrides[id], s = n.mapOverrides[id]; if (had) delete n.mapOverrides[id]; var v = effTicks(ch, row); if (had) n.mapOverrides[id] = s; return v; }
+  function resetTaskMap(ch, row) { resetPrompt("the schedule for “" + (row.task.instruction || "this task") + "”", labelIds(ch, effTicks(ch, row)), labelIds(ch, inheritedTaskTicks(ch, row)), function () { delete selNode().mapOverrides[row.task.id]; renderBody(); }); }
 
   /* ---------- file I/O (one file per class family) ---------- */
   async function verify(h) { if (!h.queryPermission) return true; if ((await h.queryPermission({ mode: "readwrite" })) === "granted") return true; return (await h.requestPermission({ mode: "readwrite" })) === "granted"; }
