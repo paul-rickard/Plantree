@@ -11,12 +11,29 @@ schedules exist.
 | File | Purpose |
 |------|---------|
 | `apps/job-plans/index.html` | Self-contained authoring app — no server, no build step. Open it in a browser. |
+| `apps/job-plans/gallery.html` | Browse all job plans as cards — opens a folder (or files) of plan JSON (see below). |
 | `apps/job-plans/inheritance-demo.html` | Working demo of **Class → Model → Instance** template inheritance with attribute-level locks (see below). |
 | `apps/job-plans/matrix-demo.html` | Working demo of the **task × frequency matrix** — one plan, every cadence (see below). |
 | `apps/job-plans/pm-model-demo.html` | **Combined** demo: inheritance + matrix + work-order nesting in one view (see below). |
 | `schemas/job-plan.schema.json` | The job-plan document contract (JSON Schema, draft 2020-12). This is the architecture, made executable. |
 | `samples/job-plans/jp_ups_quarterly_inspection.json` | Worked example (Quarterly UPS Inspection) — also a schema fixture. |
 | `samples/job-plans/jp_generator_maintenance.json` | Worked example with a full frequency matrix (generator programme). |
+
+## Gallery (`gallery.html`)
+
+Displays every job plan as a card grid. In the file-based deployment this is
+"read all the plan JSON in a folder and show them":
+
+- **Open folder…** (Edge/Chrome) recurses a directory — point it at the
+  OneDrive-synced `job-plans/` library and every plan appears. **Choose files…**
+  and **drag-and-drop** work everywhere as the fallback.
+- Each card shows the active version's **state**, version count, **task count**,
+  **frequency chips** and estimated labour; **search**, **state filter** and
+  **sort** across the set.
+- Click a card for a detail view (per-version tasks with their frequency tags,
+  and a **Download JSON**).
+- Ships pre-seeded with sample plans so it's populated on first open; loading a
+  folder/files replaces them. Only files with `"type": "jobPlan"` are shown.
 
 ## Template inheritance (`inheritance-demo.html`)
 
