@@ -33,6 +33,7 @@ strategy decision. Every other module attaches to a point on this loop.
 | `AssetException` | A justified, visible deviation from an asset's inherited strategy (frequency change, extra/excluded task, suspension). |
 | `WorkRequest` | A reported need for work, before it becomes (or is rejected as) a work order. |
 | `WorkOrder` | The unit of executable, costable work. The operational heart of the system. |
+| `WorkOrderType` | Configurable catalogue of the *kinds* of work (preventative, reactive, administrative, operations, …); a work order references one. |
 | `WorkOrderTask` | A step / checklist item on a work order, instantiated from a job-plan task. |
 | `LabourEntry` | Time booked against a work order by a person or crew. |
 | `PartsUsage` | Parts reserved for and consumed by a work order. |

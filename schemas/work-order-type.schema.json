@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://plantree/schemas/work-order-type.json",
+  "title": "WorkOrderType",
+  "description": "A configurable classification of work an organisation performs (e.g. Preventative, Reactive, Administrative, Operations). Turns the work-order 'type' from a fixed enum into a seedable, extensible catalogue. A WorkOrder references one of these by its code. One JSON document = one work-order type. Plantree ships a built-in set out of the box; organisations may add, re-label, deactivate or reorder types, but the four built-in codes (PM, RM, AD, OP) cannot be deleted — only deactivated — so that history and reporting stay stable.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "type", "code", "name", "category", "nature", "active", "system", "rev", "createdAt", "updatedAt"],
+  "properties": {
+    "id": { "type": "string", "description": "Opaque unique id, e.g. wot_preventive." },
+    "type": { "const": "workOrderType" },
+    "code": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9]{1,5}$",
+      "description": "Human-facing unique code an org standardises on and reports by, e.g. PM, RM, AD, OP. Uppercase, 2-6 chars. Referenced by WorkOrder.workOrderTypeCode; immutable once work exists against it."
+    },
+    "name": { "type": "string", "description": "Display name, e.g. 'Preventative Maintenance'." },
+    "description": { "type": ["string", "null"] },
+    "category": {
+      "enum": ["maintenance", "operations", "administrative"],
+      "description": "Top-level grouping for rollups and cost analysis. 'maintenance' is work against an asset's health (PM/RM); 'operations' is running/operating work (rounds, adjustments); 'administrative' is non-maintenance overhead (meetings, training, travel)."
+    },
+    "nature": {
+      "enum": ["proactive", "reactive", "not_applicable"],
+      "description": "Analytical nature of the work, driving the proactive-vs-reactive maintenance KPI. Preventive work is 'proactive'; breakdown/corrective work is 'reactive'; non-maintenance work is 'not_applicable'."
+    },
+    "defaultPriority": {
+      "type": ["integer", "null"],
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Priority pre-filled on a new work order of this type, on the org's 1-5 scale (1 = most urgent). Null = no default; the planner sets it."
+    },
+    "requiresAsset": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether a work order of this type must name an asset. Maintenance types require one; administrative/operational work often does not."
+    },
+    "requiresFailureReport": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether closing a work order of this type expects failure/cause/remedy coding (a FailureReport). True for reactive maintenance so breakdowns feed reliability analysis."
+    },
+    "workflowProfile": {
+      "type": ["string", "null"],
+      "description": "Key of the lifecycle profile (state machine) this type follows. Null = the organisation's default profile (see work-management-lifecycle). Lets, e.g., a low-risk administrative flow skip review/approval while reactive work keeps the full path."
+    },
+    "colour": {
+      "type": ["string", "null"],
+      "pattern": "^#[0-9a-fA-F]{6}$",
+      "description": "Hex colour used to tint this type in boards, calendars and charts."
+    },
+    "icon": {
+      "type": ["string", "null"],
+      "description": "Icon token for UI (implementation-agnostic name, e.g. 'calendar-check')."
+    },
+    "sortOrder": {
+      "type": ["integer", "null"],
+      "description": "Display order in pickers and legends; ascending. Null sorts after numbered entries, then by code."
+    },
+    "system": {
+      "type": "boolean",
+      "description": "True for the built-in types Plantree seeds. System types may be re-labelled, recoloured, reordered or deactivated, but not deleted."
+    },
+    "active": {
+      "type": "boolean",
+      "description": "Whether this type can be chosen for new work orders. Deactivating hides it from pickers without affecting historical work already coded to it."
+    },
+    "rev": { "type": "integer", "minimum": 0, "description": "Optimistic-concurrency revision; bumped on every save." },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "createdBy": { "type": ["string", "null"] },
+    "updatedAt": { "type": "string", "format": "date-time" },
+    "updatedBy": { "type": ["string", "null"] }
+  }
+}

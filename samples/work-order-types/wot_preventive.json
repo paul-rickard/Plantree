@@ -1,0 +1,23 @@
+{
+  "id": "wot_preventive",
+  "type": "workOrderType",
+  "code": "PM",
+  "name": "Preventative Maintenance",
+  "description": "Planned, schedule- or meter-driven work intended to prevent failure — inspections, servicing and condition checks generated from maintenance strategies.",
+  "category": "maintenance",
+  "nature": "proactive",
+  "defaultPriority": 3,
+  "requiresAsset": true,
+  "requiresFailureReport": false,
+  "workflowProfile": null,
+  "colour": "#2e7d32",
+  "icon": "calendar-check",
+  "sortOrder": 10,
+  "system": true,
+  "active": true,
+  "rev": 0,
+  "createdAt": "2026-07-14T00:00:00Z",
+  "createdBy": null,
+  "updatedAt": "2026-07-14T00:00:00Z",
+  "updatedBy": null
+}

@@ -91,6 +91,7 @@ GET/POST   /assets/{id}/exceptions         # AssetException — justified, visib
 
 ### Work management
 ```
+GET/POST   /work-order-types              # configurable type catalogue (PM/RM/AD/OP seeded); system types deactivate, not delete
 GET/POST   /work-requests
 POST       /work-requests/{id}/convert     # → work order (returns the new work order)
 GET/POST   /work-orders

@@ -46,8 +46,9 @@ document* versus *what is embedded inside one*.
 | `JobPlan` | **all versions** (array of immutable version objects), each with its tasks | — |
 | `MaintenanceStrategy` | its schedules, its applicability rules | job plans (by id+version) |
 | `AssetException` | the deviation detail | asset, strategy |
+| `WorkOrderType` | presentation & default flags | — (small reference catalogue) |
 | `WorkRequest` | — | asset/location, resulting work order |
-| `WorkOrder` | **content snapshot**, tasks, labour entries, parts usage, failure report, comments | asset, schedule/request, permits, attachments |
+| `WorkOrder` | **content snapshot**, tasks, labour entries, parts usage, failure report, comments | asset, work-order type (by code), schedule/request, permits, attachments |
 | `Part` | per-store stock policy (min/max/reorder) | compatible asset types |
 | `Store` | its bins | — |
 | `Supplier` / `Contract` / `PurchaseOrder` | PO lines | supplier, parts |
@@ -88,7 +89,7 @@ changes:
   "organizationId": "org_plantree",
   "workOrderNumber": "WO-2026-004182",
   "assetId": "ast_ups_a2",
-  "workType": "preventive",
+  "workOrderTypeCode": "PM",
   "status": "completed",
   "priority": 3,
   "provenance": { "scheduleId": "sch_ups_qtr_inspection" },

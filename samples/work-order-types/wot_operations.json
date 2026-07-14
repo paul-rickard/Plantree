@@ -1,0 +1,23 @@
+{
+  "id": "wot_operations",
+  "type": "workOrderType",
+  "code": "OP",
+  "name": "Operations",
+  "description": "Operational work involved in running the plant — operator rounds, adjustments, changeovers and setup. Often against an asset or location but not aimed at its maintenance.",
+  "category": "operations",
+  "nature": "not_applicable",
+  "defaultPriority": 4,
+  "requiresAsset": false,
+  "requiresFailureReport": false,
+  "workflowProfile": null,
+  "colour": "#1565c0",
+  "icon": "gauge",
+  "sortOrder": 40,
+  "system": true,
+  "active": true,
+  "rev": 0,
+  "createdAt": "2026-07-14T00:00:00Z",
+  "createdBy": null,
+  "updatedAt": "2026-07-14T00:00:00Z",
+  "updatedBy": null
+}

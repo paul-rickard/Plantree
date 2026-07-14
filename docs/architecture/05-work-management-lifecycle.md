@@ -124,7 +124,11 @@ organisation, but they encode good practice.
 The workflow engine treats the lifecycle as data, not code:
 
 - **States** and their order are configurable per organisation (and optionally
-  per work-order `type` — corrective, preventive, inspection, project, safety).
+  per work-order type — a [`WorkOrderType`](03-data-dictionary.md#workordertype)
+  can name a `workflowProfile` so, e.g., reactive breakdowns keep the full path
+  while administrative work skips review/approval). The seeded types are
+  `PM` (preventative), `RM` (reactive), `AD` (administrative) and `OP` (operations);
+  the catalogue is extensible.
 - **Transitions** carry configurable guards (role, approval limit, required
   fields) and **actions** (notify, create follow-up, reserve parts, fire
   webhook, run a no-code automation rule).

@@ -48,5 +48,6 @@ to an entity, the entity name is given in `code font`.
 | **SWMS / JHA** | Safe Work Method Statement / Job Hazard Analysis — documented hazard controls for a task. |
 | **Work order** (`WorkOrder`) | The unit of executable, costable work; the operational heart of the system. |
 | **Work-order snapshot** | The applicable content (pinned job-plan version, resolved parameters, tasks, ranges, active exceptions) captured onto a work order at generation, so history stays truthful after the live plan changes. |
+| **Work-order type** (`WorkOrderType`) | The configurable classification of a work order — preventative (PM), reactive (RM), administrative (AD), operations (OP) out of the box, extensible per organisation. Drives grouping, the proactive/reactive KPI and per-type workflow. |
 | **Work request** (`WorkRequest`) | Reported demand for work, before it is committed to (or rejected as) a work order. |
 | **Versioning** | Job plans (`draft → approved → active → superseded → retired`), tasks and forms are version-controlled; historical work snapshots the version used, so the *exact* instructions that applied are always recoverable. |

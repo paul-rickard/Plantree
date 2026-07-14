@@ -1,0 +1,23 @@
+{
+  "id": "wot_reactive",
+  "type": "workOrderType",
+  "code": "RM",
+  "name": "Reactive Maintenance",
+  "description": "Unplanned corrective work raised in response to a breakdown, fault or defect. Captures failure/cause/remedy coding so breakdowns feed reliability analysis.",
+  "category": "maintenance",
+  "nature": "reactive",
+  "defaultPriority": 2,
+  "requiresAsset": true,
+  "requiresFailureReport": true,
+  "workflowProfile": null,
+  "colour": "#c62828",
+  "icon": "alert-triangle",
+  "sortOrder": 20,
+  "system": true,
+  "active": true,
+  "rev": 0,
+  "createdAt": "2026-07-14T00:00:00Z",
+  "createdBy": null,
+  "updatedAt": "2026-07-14T00:00:00Z",
+  "updatedBy": null
+}
