@@ -103,6 +103,13 @@ Assets and job plans live in parallel but share the class names.
 **Apply to selected**. Nothing is auto-assigned by class; application is always
 a deliberate act, individually or in bulk.
 
+A plan can be applied **at any level of its own hierarchy** — the selector
+groups each plan by class and lets you pick the **class-level** plan, a
+specific **model-level** variant, or an **instance-level** one. The applied
+row shows the level (class / model / instance) and the *resolved* task and
+frequency counts at that level, so applying the generator plan at model level
+picks up the model's added tasks, and at instance level the instance's too.
+
 **Effective { }** (asset header) resolves the asset's parameters (class
 inheritance + its own) and lists the plans applied to it — the snapshot a work
 order would freeze.

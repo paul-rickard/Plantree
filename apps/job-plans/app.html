@@ -509,6 +509,28 @@
   function assetsIn(locId) { return assets.filter(function (a) { return a.locationId === locId; }); }
   function classById(id) { return families.filter(function (f) { return f.id === id; })[0]; }
   function modelById(f, id) { return (f && f.models ? f.models : []).filter(function (m) { return m.id === id; })[0]; }
+  function instById(m, id) { return (m && m.instances ? m.instances : []).filter(function (i) { return i.id === id; })[0]; }
+  // job-plan references carry the level they're applied at: "famId" (class), "famId>modelId" (model), "famId>modelId>instId" (instance)
+  function planParse(ref) { var p = String(ref).split(">"); return { fam: p[0], model: p[1] || null, inst: p[2] || null }; }
+  function planLevel(ref) { var r = planParse(ref); return r.inst ? "instance" : r.model ? "model" : "class"; }
+  function planChain(ref) { var r = planParse(ref), f = classById(r.fam); if (!f) return null; var ch = [f]; if (r.model) { var m = modelById(f, r.model); if (m) { ch.push(m); if (r.inst) { var i = instById(m, r.inst); if (i) ch.push(i); } } } return ch; }
+  function planLabel(ref) { var r = planParse(ref), f = classById(r.fam); if (!f) return String(ref); var parts = [f.name]; if (r.model) { var m = modelById(f, r.model); parts.push(m ? m.name : r.model); if (r.inst) { var i = m ? instById(m, r.inst) : null; parts.push(i ? i.name : r.inst); } } return parts.join(" / "); }
+  function planStats(ref) { var ch = planChain(ref); if (!ch) return null; return { tasks: effTasks(ch).filter(function (r) { return !r.excluded; }).length, freqs: effFreqs(ch).length }; }
+  function buildPlanSelect() {
+    var sel = el("select", { style: "width:auto" }, [el("option", { value: "" }, ["Apply job plan…"])]);
+    families.slice().sort(function (a, b) { return a.name.localeCompare(b.name); }).forEach(function (f) {
+      var og = el("optgroup", { label: f.name });
+      og.appendChild(el("option", { value: f.id }, ["Class-level plan"]));
+      (f.models || []).forEach(function (m) {
+        og.appendChild(el("option", { value: f.id + ">" + m.id }, [m.name + " · model"]));
+        (m.instances || []).forEach(function (i) {
+          og.appendChild(el("option", { value: f.id + ">" + m.id + ">" + i.id }, ["  ↳ " + i.name + " · instance"]));
+        });
+      });
+      sel.appendChild(og);
+    });
+    return sel;
+  }
   function locIcon(kind) { return el("svg", { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "1.7", html: kind === "site" ? '<path d="M12 21s-7-5-7-11a7 7 0 1114 0c0 6-7 11-7 11z"/><circle cx="12" cy="10" r="2.3"/>' : '<path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/>' }); }
   function assetChain(a) { var f = classById(a.classId); if (!f) return [a]; var ch = [f]; if (a.modelId) { var m = modelById(f, a.modelId); if (m) ch.push(m); } ch.push(a); return ch; }
 
@@ -585,7 +607,7 @@
     host.appendChild(el("div", { class: "dbody" }, [w]));
   }
   function bulkBar(n) {
-    var ps = el("select", { style: "width:auto" }, [el("option", { value: "" }, ["Apply job plan…"])].concat(families.map(function (f) { return el("option", { value: f.id }, [f.name]); })));
+    var ps = buildPlanSelect();
     return el("div", { class: "bulkbar" }, [el("span", {}, [el("span", { class: "n" }, [String(n)]), " selected"]), ps,
       el("button", { class: "btn sm primary", onclick: function () { if (!ps.value) return; assets.forEach(function (a) { if (bulkSel[a.id]) { a.appliedPlans = a.appliedPlans || []; if (a.appliedPlans.indexOf(ps.value) < 0) a.appliedPlans.push(ps.value); } }); bulkSel = {}; renderDetail(); } }, ["Apply to selected"]),
       el("button", { class: "btn sm", onclick: function () { bulkSel = {}; renderDetail(); } }, ["Clear"])]);
@@ -621,8 +643,8 @@
     w.appendChild(sec("Own parameters", a.ownParameters.length + "", [el("button", { class: "btn sm", onclick: function () { a.ownParameters.push({ id: nid("op"), key: "", label: "", valueType: "number", defaultValue: "", unit: null }); renderDetail(); } }, ["+ Add parameter"])], ob));
     var applied = a.appliedPlans || [], jb = [];
     if (!applied.length) jb.push(el("div", { class: "empty-in" }, ["No job plans applied. Apply one explicitly from the library →"]));
-    applied.forEach(function (pid) { var pf = classById(pid); jb.push(el("div", { class: "rowline" }, [el("span", { class: "cls-chip" }, [pf ? pf.name : pid]), el("span", { class: "hint" }, [pf ? pf.tasks.length + " tasks · " + pf.frequencies.length + " freq" : ""]), el("button", { class: "x", style: "margin-left:auto", onclick: function () { a.appliedPlans = applied.filter(function (x) { return x !== pid; }); renderDetail(); } }, ["✕"])])); });
-    var as = el("select", { style: "width:auto" }, [el("option", { value: "" }, ["Apply job plan…"])].concat(families.map(function (x) { return el("option", { value: x.id }, [x.name]); })));
+    applied.forEach(function (ref) { var st = planStats(ref), lvl = planLevel(ref); jb.push(el("div", { class: "rowline" }, [el("span", { class: "cls-chip" }, [planLabel(ref)]), el("span", { class: "nbadge nb-" + lvl }, [lvl]), el("span", { class: "hint" }, [st ? st.tasks + " tasks · " + st.freqs + " freq" : "missing plan"]), el("button", { class: "x", style: "margin-left:auto", onclick: function () { a.appliedPlans = applied.filter(function (x) { return x !== ref; }); renderDetail(); } }, ["✕"])])); });
+    var as = buildPlanSelect();
     as.addEventListener("change", function () { if (!as.value) return; a.appliedPlans = (a.appliedPlans || []); if (a.appliedPlans.indexOf(as.value) < 0) a.appliedPlans.push(as.value); renderDetail(); });
     w.appendChild(sec("Applied job plans", applied.length + "", [as], jb));
   }
@@ -643,7 +665,7 @@
     k.addEventListener("input", function () { p.key = k.value; }); l.addEventListener("input", function () { p.label = l.value; }); vt.addEventListener("change", function () { p.valueType = vt.value; }); df.addEventListener("input", function () { p.defaultValue = df.value; });
     return el("div", { class: "task", style: "padding:12px;background:var(--panel-2)" }, [el("div", { class: "g2" }, [labeled("Key", k), labeled("Label", l)]), el("div", { class: "rowline", style: "margin-top:10px" }, [vt, df, el("button", { class: "x", onclick: function () { a.ownParameters.splice(i, 1); renderDetail(); } }, ["✕"])])]);
   }
-  function assetEffective(a) { var f = classById(a.classId), ch = assetChain(a), params = {}; (f ? f.parameters : []).forEach(function (p) { params[p.key] = effParam(ch, p).value; }); a.ownParameters.forEach(function (p) { params[p.key] = p.defaultValue; }); return { asset: a.code, name: a.name, class: f ? f.name : null, model: a.modelId && f ? (modelById(f, a.modelId) || {}).name : null, location: locVector(a.locationId), parameters: params, appliedPlans: (a.appliedPlans || []).map(function (pid) { var pf = classById(pid); return pf ? { plan: pf.name, tasks: pf.tasks.length, frequencies: pf.frequencies.length } : pid; }) }; }
+  function assetEffective(a) { var f = classById(a.classId), ch = assetChain(a), params = {}; (f ? f.parameters : []).forEach(function (p) { params[p.key] = effParam(ch, p).value; }); a.ownParameters.forEach(function (p) { params[p.key] = p.defaultValue; }); return { asset: a.code, name: a.name, class: f ? f.name : null, model: a.modelId && f ? (modelById(f, a.modelId) || {}).name : null, location: locVector(a.locationId), parameters: params, appliedPlans: (a.appliedPlans || []).map(function (ref) { var st = planStats(ref); return st ? { plan: planLabel(ref), level: planLevel(ref), tasks: st.tasks, frequencies: st.freqs } : ref; }) }; }
   function openAssetInspect(a) { closeInspect(); var modal = el("div", { class: "modal", onclick: function (e) { e.stopPropagation(); } }, [el("header", {}, [el("h3", {}, ["Effective · " + a.code]), el("button", { class: "btn sm ghost", style: "margin-left:auto", onclick: closeInspect }, ["Close"])]), el("div", { class: "mbody" }, [el("pre", { class: "json" }, [JSON.stringify(assetEffective(a), null, 2)]), el("div", { class: "hint", style: "margin-top:10px" }, ["Resolved parameters (class inheritance + own) and the job plans explicitly applied to this asset."])])]); document.body.appendChild(el("div", { class: "ovl", id: "ovl", onclick: closeInspect }, [modal])); }
 
   /* ---------- confirm + reset-to-inherited ---------- */
