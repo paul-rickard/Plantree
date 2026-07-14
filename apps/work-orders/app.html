@@ -1,0 +1,670 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Plantree — Work Orders</title>
+<style>
+  :root {
+    --bg:#eef1ef; --panel:#fff; --panel-2:#f7f9f7; --ink:#15201d; --muted:#5a6a65; --faint:#8a9a94;
+    --line:#e2e7e4; --line-2:#d2dad6; --accent:#0f6f66; --accent-h:#148a7e; --accent-soft:#e4f1ee;
+    --good:#1e8e5a; --good-soft:color-mix(in srgb,#1e8e5a 14%,transparent);
+    --warn:#b3760f; --warn-soft:color-mix(in srgb,#b3760f 15%,transparent);
+    --crit:#c0453b; --crit-soft:color-mix(in srgb,#c0453b 12%,transparent);
+    --info:#3a6ea5; --info-soft:color-mix(in srgb,#3a6ea5 13%,transparent);
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace; --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --sh:0 1px 2px rgba(16,32,28,.05); --sh-2:0 8px 30px rgba(16,32,28,.10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0d1512; --panel:#141f1b; --panel-2:#111b17; --ink:#e8eeeb; --muted:#9aaaa4; --faint:#6c7d77;
+      --line:#25322d; --line-2:#33433d; --accent:#38b4a4; --accent-h:#54c6b7; --accent-soft:#16302c;
+      --good:#37b37a; --good-soft:color-mix(in srgb,#37b37a 16%,transparent);
+      --warn:#d69b3a; --warn-soft:color-mix(in srgb,#d69b3a 15%,transparent);
+      --crit:#e0685d; --crit-soft:color-mix(in srgb,#e0685d 15%,transparent);
+      --info:#6c9fd6; --info-soft:color-mix(in srgb,#6c9fd6 15%,transparent); --sh-2:0 10px 34px rgba(0,0,0,.4); }
+  }
+  * { box-sizing:border-box; }
+  html,body { height:100%; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans); font-size:14px; line-height:1.5; overflow:hidden; -webkit-font-smoothing:antialiased; }
+  h1,h2,h3,h4 { margin:0; } .mono { font-family:var(--mono); } .num { font-variant-numeric:tabular-nums; }
+  .lbl { font-size:10px; letter-spacing:.07em; text-transform:uppercase; color:var(--faint); font-weight:700; font-family:var(--mono); }
+
+  button { font:inherit; cursor:pointer; }
+  .btn { font-weight:600; font-size:13px; padding:7px 13px; border-radius:9px; border:1px solid var(--line-2); background:var(--panel); color:var(--ink); display:inline-flex; align-items:center; gap:7px; transition:border-color .12s, background .12s, color .12s; white-space:nowrap; }
+  .btn:hover { border-color:var(--faint); } .btn.primary { background:var(--accent); color:#fff; border-color:transparent; } .btn.primary:hover { background:var(--accent-h); }
+  .btn.ghost { border-color:transparent; background:transparent; color:var(--muted); } .btn.ghost:hover { background:var(--panel-2); color:var(--ink); }
+  .btn.sm { padding:5px 10px; font-size:12px; border-radius:8px; } .btn.danger { color:var(--crit); border-color:color-mix(in srgb,var(--crit) 30%,transparent); } .btn:disabled { opacity:.4; cursor:not-allowed; }
+  .x { border:0; background:transparent; color:var(--faint); padding:2px 5px; border-radius:6px; font-size:13px; } .x:hover { color:var(--crit); background:var(--crit-soft); }
+
+  input[type=text],input[type=number],input[type=date],textarea,select { font:inherit; padding:8px 10px; border:1px solid var(--line-2); border-radius:8px; background:var(--bg); color:var(--ink); outline:none; width:100%; }
+  :where(input,textarea,select):focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+  textarea { resize:vertical; min-height:50px; }
+
+  .chip { display:inline-flex; align-items:center; gap:5px; font-family:var(--mono); font-size:9.5px; letter-spacing:.04em; text-transform:uppercase; font-weight:700; padding:2px 8px; border-radius:6px; white-space:nowrap; }
+  .chip.dot::before { content:""; width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .c-open { color:var(--info); background:var(--info-soft); } .c-active { color:var(--accent); background:var(--accent-soft); }
+  .c-on_hold { color:var(--warn); background:var(--warn-soft); } .c-done { color:var(--good); background:var(--good-soft); } .c-rejected { color:var(--crit); background:var(--crit-soft); }
+  .prio { font-size:11px; font-weight:700; padding:1px 8px; border-radius:999px; } .prio-low { color:var(--faint); background:var(--panel-2); } .prio-medium { color:var(--info); background:var(--info-soft); } .prio-high { color:var(--warn); background:var(--warn-soft); } .prio-urgent { color:var(--crit); background:var(--crit-soft); }
+
+  .topbar { height:52px; display:flex; align-items:center; gap:12px; padding:0 16px; background:var(--panel); border-bottom:1px solid var(--line); }
+  .brand { display:flex; align-items:center; gap:9px; font-weight:700; font-size:15.5px; letter-spacing:-.01em; }
+  .brand .mark { color:var(--accent); } .brand small { font-weight:500; color:var(--faint); font-family:var(--mono); font-size:11px; }
+  .topbar .right { margin-left:auto; display:flex; align-items:center; gap:10px; }
+  .status { display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:600; padding:3px 10px; border-radius:999px; } .status::before { content:""; width:7px; height:7px; border-radius:50%; background:currentColor; }
+  .status.ok { color:var(--good); background:var(--good-soft); }
+
+  .app { display:flex; height:calc(100vh - 52px); }
+  .rail { width:320px; flex:none; background:var(--panel); border-right:1px solid var(--line); display:flex; flex-direction:column; }
+  .rail-top { padding:14px 14px 10px; display:flex; flex-direction:column; gap:10px; border-bottom:1px solid var(--line); }
+  .search { display:flex; align-items:center; gap:8px; background:var(--bg); border:1px solid var(--line-2); border-radius:9px; padding:7px 11px; } .search:focus-within { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); } .search input { border:0; background:transparent; padding:0; }
+  .rail-list { flex:1; overflow-y:auto; padding:8px; }
+  .grp { margin:6px 6px 2px; display:flex; align-items:center; gap:8px; } .grp .lbl2 { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; } .grp .n { font-family:var(--mono); font-size:10px; color:var(--faint); }
+
+  .card { width:100%; text-align:left; display:flex; flex-direction:column; gap:6px; padding:10px 11px; margin:3px 0; background:var(--panel); border:1px solid var(--line); border-radius:11px; color:var(--ink); position:relative; }
+  .card:hover { border-color:var(--faint); } .card.sel { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-soft); }
+  .card .r1 { display:flex; align-items:center; gap:8px; } .card .num2 { font-family:var(--mono); font-size:11px; color:var(--faint); } .card .r1 .sp { margin-left:auto; }
+  .card .ttl { font-weight:600; font-size:13.5px; line-height:1.3; }
+  .card .r2 { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .card .due { font-family:var(--mono); font-size:10.5px; color:var(--muted); } .card .due.over { color:var(--crit); font-weight:700; }
+
+  .detail { flex:1; min-width:0; display:flex; flex-direction:column; background:var(--bg); }
+  .empty { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; color:var(--muted); text-align:center; padding:40px; } .empty .big { font-size:17px; color:var(--ink); font-weight:650; }
+  .dhead { background:var(--panel); border-bottom:1px solid var(--line); padding:14px 22px; display:flex; align-items:flex-start; gap:16px; flex-wrap:wrap; }
+  .dtitle { font-size:20px; font-weight:700; letter-spacing:-.02em; line-height:1.2; }
+  .dsub { display:flex; align-items:center; gap:8px; margin-top:6px; font-size:12.5px; color:var(--muted); flex-wrap:wrap; } .dsub .code { font-family:var(--mono); }
+  .dhead-right { margin-left:auto; display:flex; flex-direction:column; align-items:flex-end; gap:8px; }
+
+  .actionbar { background:var(--panel); border-bottom:1px solid var(--line); padding:12px 22px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .actionbar .al { font-size:11px; font-weight:700; color:var(--faint); text-transform:uppercase; letter-spacing:.05em; }
+  .tact { display:flex; flex-direction:column; }
+  .guards { display:flex; gap:5px; flex-wrap:wrap; margin-top:5px; } .gd { font-size:10px; font-family:var(--mono); padding:1px 6px; border-radius:5px; display:inline-flex; align-items:center; gap:3px; }
+  .gd.met { color:var(--good); background:var(--good-soft); } .gd.unmet { color:var(--warn); background:var(--warn-soft); } .gd.adv { color:var(--muted); background:var(--panel-2); }
+
+  .dtabs { background:var(--panel); border-bottom:1px solid var(--line); padding:0 22px; display:flex; gap:2px; }
+  .dtab { border:0; background:transparent; color:var(--muted); font-weight:600; font-size:13.5px; padding:11px 14px; border-bottom:2px solid transparent; margin-bottom:-1px; } .dtab:hover { color:var(--ink); } .dtab.on { color:var(--accent); border-bottom-color:var(--accent); }
+  .dtab .pill { font-family:var(--mono); font-size:10px; font-weight:700; margin-left:6px; color:var(--muted); background:var(--panel-2); border:1px solid var(--line); padding:0 6px; border-radius:999px; }
+  .dbody { flex:1; overflow-y:auto; padding:22px; } .wrap { max-width:900px; margin:0 auto; display:flex; flex-direction:column; gap:18px; }
+
+  .sec { background:var(--panel); border:1px solid var(--line); border-radius:14px; box-shadow:var(--sh); }
+  .sec > header { padding:13px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px; } .sec > header h3 { font-size:13.5px; font-weight:660; } .sec > header .ct { font-family:var(--mono); font-size:11px; color:var(--faint); } .sec > header .hact { margin-left:auto; display:flex; gap:8px; }
+  .sec-body { padding:16px; display:flex; flex-direction:column; gap:12px; }
+  .kv { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:12px 18px; } .kv .k { font-size:11px; color:var(--faint); text-transform:uppercase; letter-spacing:.05em; font-weight:700; } .kv .v { font-weight:560; margin-top:2px; } .kv .v.mono { font-family:var(--mono); font-weight:500; }
+  .infobar { display:flex; align-items:flex-start; gap:9px; font-size:12.5px; border-radius:10px; padding:10px 14px; } .infobar.i { color:var(--info); background:var(--info-soft); border:1px solid color-mix(in srgb,var(--info) 22%,transparent); } .infobar.w { color:var(--warn); background:var(--warn-soft); border:1px solid color-mix(in srgb,var(--warn) 25%,transparent); } .infobar b { color:var(--ink); }
+  .planbar { display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; }
+  .planbar .field { display:flex; flex-direction:column; gap:4px; } .planbar .field .lbl { margin-bottom:1px; }
+
+  .task { border:1px solid var(--line); border-radius:11px; background:var(--panel-2); } .task + .task { margin-top:8px; }
+  .task-top { display:flex; align-items:center; gap:10px; padding:10px 12px; } .tseq { font-family:var(--mono); font-weight:700; color:var(--accent); background:var(--accent-soft); border-radius:6px; padding:3px 9px; font-size:12px; flex:none; }
+  .tname { flex:1; min-width:0; } .tname .ti { font-weight:560; } .tname .tm { font-family:var(--mono); font-size:10px; color:var(--faint); }
+  .tresp { padding:0 12px 12px 50px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; } .tresp .rin { max-width:180px; }
+  .oor { color:var(--crit); font-weight:700; font-size:11px; }
+  .chk { width:18px; height:18px; accent-color:var(--accent); cursor:pointer; }
+
+  table.tbl { width:100%; border-collapse:collapse; } table.tbl th { text-align:left; font-size:10px; letter-spacing:.05em; text-transform:uppercase; color:var(--faint); font-family:var(--mono); font-weight:700; padding:8px 10px; border-bottom:1px solid var(--line); }
+  table.tbl td { padding:9px 10px; border-bottom:1px solid var(--line); } table.tbl tbody tr:last-child td { border-bottom:0; } table.tbl td.r, table.tbl th.r { text-align:right; font-variant-numeric:tabular-nums; }
+  tr.tot td { font-weight:700; border-top:2px solid var(--line-2); }
+
+  .timeline { display:flex; flex-direction:column; } .tev { display:flex; gap:12px; padding-bottom:14px; position:relative; } .tev:not(:last-child)::before { content:""; position:absolute; left:7px; top:16px; bottom:0; width:2px; background:var(--line); }
+  .tev .dot { width:16px; height:16px; border-radius:50%; border:2px solid var(--panel); background:var(--accent); flex:none; margin-top:1px; box-shadow:0 0 0 1px var(--line-2); } .tev.rej .dot { background:var(--crit); } .tev.hold .dot { background:var(--warn); }
+  .tev .tc { flex:1; } .tev .th { font-weight:600; } .tev .tt { font-family:var(--mono); font-size:11px; color:var(--faint); } .tev .tr { font-size:12.5px; color:var(--muted); margin-top:2px; }
+
+  .board { display:flex; gap:14px; padding:22px; overflow-x:auto; height:100%; align-items:flex-start; }
+  .col { flex:none; width:270px; background:var(--panel-2); border:1px solid var(--line); border-radius:12px; display:flex; flex-direction:column; max-height:100%; }
+  .col > header { padding:11px 13px; display:flex; align-items:center; gap:8px; border-bottom:1px solid var(--line); position:sticky; top:0; } .col > header .n { margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--faint); }
+  .col .colbody { padding:9px; overflow-y:auto; display:flex; flex-direction:column; gap:2px; }
+  .col .colbody .empty-c { color:var(--faint); font-size:12px; font-style:italic; padding:8px; text-align:center; }
+
+  .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--ink); color:var(--bg); padding:11px 18px; border-radius:10px; font-size:13px; font-weight:560; box-shadow:var(--sh-2); z-index:80; opacity:0; transition:opacity .2s, transform .2s; }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(-4px); }
+  .ovl { position:fixed; inset:0; background:rgba(12,22,18,.5); display:flex; align-items:center; justify-content:center; padding:24px; z-index:60; } .modal { background:var(--panel); border:1px solid var(--line); border-radius:16px; width:min(440px,100%); box-shadow:var(--sh-2); } .modal header { padding:15px 18px; border-bottom:1px solid var(--line); font-weight:660; } .modal .mbody { padding:16px 18px; display:flex; flex-direction:column; gap:12px; } .modal .mfoot { padding:12px 18px; border-top:1px solid var(--line); display:flex; justify-content:flex-end; gap:8px; }
+
+  .back-mobile { display:none; }
+  @media (max-width:720px){
+    .app { display:block; position:relative; }
+    .rail { width:100%; height:calc(100vh - 52px); }
+    .detail { display:none; position:absolute; inset:0; height:calc(100vh - 52px); }
+    #app.show-detail .rail { display:none; } #app.show-detail .detail { display:flex; }
+    .back-mobile { display:inline-flex; }
+    .dhead, .actionbar, .dtabs { padding-left:14px; padding-right:14px; } .dbody { padding:14px; }
+    .board { padding:14px; }
+  }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand"><svg class="mark" width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 22V12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M12 12L6.5 7.5M12 12l5.5-4.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="6" cy="7" r="2" fill="currentColor"/><circle cx="18" cy="7" r="2" fill="currentColor"/></svg>Plantree <small>· Work Orders</small></div>
+    <div class="right">
+      <button class="btn sm" id="genBtn" title="Run the PM generation engine for the seeded generator schedule">⚙ Generate PM work</button>
+      <span class="status ok">demo</span>
+    </div>
+  </div>
+  <div class="app" id="app">
+    <aside class="rail">
+      <div class="rail-top">
+        <div class="search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--faint)"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2" stroke-linecap="round"/></svg><input id="q" placeholder="Search work orders & requests…" /></div>
+      </div>
+      <div class="rail-list" id="railList"></div>
+    </aside>
+    <main class="detail" id="detail"></main>
+  </div>
+  <div class="toast" id="toast"></div>
+  <div id="modalHost"></div>
+
+<script src="pm-generate.js"></script>
+<script>
+/* ---------------- helpers ---------------- */
+function el(t, p, k) {
+  var n = document.createElement(t);
+  if (p) Object.keys(p).forEach(function (key) {
+    if (key === "class") n.className = p[key];
+    else if (key === "html") n.innerHTML = p[key];
+    else if (key.slice(0, 2) === "on") n.addEventListener(key.slice(2), p[key]);
+    else if (key in n) { try { n[key] = p[key]; } catch (e) { n.setAttribute(key, p[key]); } }
+    else n.setAttribute(key, p[key]);
+  });
+  (k || []).forEach(function (c) { if (c != null) n.appendChild(typeof c === "string" ? document.createTextNode(c) : c); });
+  return n;
+}
+function nowISO() { return new Date().toISOString(); }
+function fmtDate(iso) { return iso ? iso.slice(0, 10) : "—"; }
+function fmtDT(iso) { return iso ? iso.slice(0, 16).replace("T", " ") : "—"; }
+function money(n) { return n == null ? "—" : "$" + n.toFixed(2); }
+function idseq(pfx) { idseq._n = (idseq._n || 0) + 1; return pfx + "_" + Date.now().toString(36) + idseq._n; }
+
+/* ---------------- work-order type catalogue ---------------- */
+var WOT = {
+  PM: { name: "Preventative", cls: "c-active" },
+  RM: { name: "Reactive", cls: "c-rejected" },
+  AD: { name: "Administrative", cls: "c-open" },
+  OP: { name: "Operations", cls: "c-on_hold" }
+};
+function wotChip(code) { var w = WOT[code] || { name: code, cls: "c-open" }; return el("span", { class: "chip " + w.cls, title: w.name + " (" + code + ")" }, [code]); }
+
+/* ---------------- seed: default workflow profile ---------------- */
+var PROFILE = {
+  key: "default",
+  states: [
+    { key: "requested", label: "Requested", category: "open", isInitial: true },
+    { key: "reviewed", label: "Reviewed", category: "open" },
+    { key: "approved", label: "Approved", category: "open" },
+    { key: "planned", label: "Planned", category: "open", isInitial: true },
+    { key: "scheduled", label: "Scheduled", category: "open", isInitial: true },
+    { key: "assigned", label: "Assigned", category: "open" },
+    { key: "in_progress", label: "In progress", category: "active" },
+    { key: "awaiting_parts_access", label: "Awaiting parts/access", category: "on_hold", pausesSla: true },
+    { key: "completed", label: "Completed", category: "done" },
+    { key: "verified", label: "Verified", category: "done" },
+    { key: "closed", label: "Closed", category: "done", isTerminal: true },
+    { key: "rejected", label: "Rejected", category: "rejected", isTerminal: true }
+  ],
+  transitions: [
+    { from: "requested", to: "reviewed", label: "Triage" },
+    { from: "requested", to: "rejected", label: "Reject", guards: [{ type: "role", role: "approver" }], needsReason: true },
+    { from: "reviewed", to: "approved", label: "Approve", guards: [{ type: "role", role: "approver" }, { type: "within_approval_limit" }] },
+    { from: "reviewed", to: "rejected", label: "Reject", guards: [{ type: "role", role: "approver" }], needsReason: true },
+    { from: "approved", to: "planned", label: "Plan", guards: [{ type: "job_plan_present" }, { type: "labour_estimate_present" }] },
+    { from: "planned", to: "scheduled", label: "Schedule", guards: [{ type: "parts_reserved" }, { type: "window_set" }], action: "reserve_parts" },
+    { from: "scheduled", to: "assigned", label: "Assign", guards: [{ type: "skills_match" }] },
+    { from: "assigned", to: "in_progress", label: "Start work", guards: [{ type: "permit_issued" }, { type: "asset_status_allows" }] },
+    { from: "in_progress", to: "awaiting_parts_access", label: "Put on hold", needsReason: true },
+    { from: "awaiting_parts_access", to: "in_progress", label: "Resume" },
+    { from: "in_progress", to: "completed", label: "Complete", guards: [{ type: "actuals_captured" }], action: "deduct_stock" },
+    { from: "completed", to: "in_progress", label: "Rework" },
+    { from: "completed", to: "verified", label: "Verify", guards: [{ type: "role", role: "supervisor" }] },
+    { from: "verified", to: "closed", label: "Close", action: "finalise_costs" }
+  ]
+};
+function stateOf(k) { for (var i = 0; i < PROFILE.states.length; i++) if (PROFILE.states[i].key === k) return PROFILE.states[i]; return { key: k, label: k, category: "open" }; }
+
+/* ---------------- seed: work orders & requests ---------------- */
+function seedOrders() {
+  return [
+    {
+      id: "wo_2026_000123", type: "workOrder", workOrderNumber: "WO-2026-000123", assetId: "ast_gen1",
+      workOrderTypeCode: "PM", title: "Weekly generator inspection — GEN-1", priority: "medium", status: "scheduled",
+      dueDate: "2026-07-20T17:00:00Z", scheduledStart: "2026-07-20T08:00:00Z", scheduleId: "sch_gen_weekly", workRequestId: null,
+      jobPlanId: "acp_standby_generator", jobPlanVersion: 1, assignedTo: { kind: "crew", id: "crew_syd_mech", name: "Sydney Mechanical" },
+      estimatedLabourHours: 3, actualLabourHours: null, onHold: null,
+      snapshot: { jobPlanCode: "GEN", jobPlanVersion: 1, safetyInstructions: "Set control to MANUAL/OFF and lock off before intrusive work.", workOrderTypeCode: "PM",
+        parameters: [{ key: "maxExhaustTempC", label: "Max exhaust temp", value: 600, unit: "°C" }, { key: "oilGrade", label: "Oil grade", value: "Cat DEO 15W-40", unit: null }] },
+      tasks: [
+        { id: "wot1", jobPlanTaskId: "t1", sequence: 1, instruction: "Visual inspection for leaks/damage.", responseType: "passfail", completed: false },
+        { id: "wot2", jobPlanTaskId: "t2", sequence: 2, instruction: "Check coolant & oil levels.", responseType: "passfail", completed: false }
+      ],
+      labour: [], parts: [{ id: "pu1", description: "Oil filter", reservedQty: 1, consumedQty: null, unit: "each", unitCost: 24.5 }],
+      failure: null, requiredPermits: [], comments: [],
+      statusHistory: [
+        { from: null, to: "planned", at: "2026-07-13T00:00:00Z", by: "system:pm-generator", reason: "Generated from schedule sch_gen_weekly." },
+        { from: "planned", to: "scheduled", at: "2026-07-13T09:15:00Z", by: "planner@example.com", reason: null }
+      ]
+    },
+    {
+      id: "wo_2026_000124", type: "workOrder", workOrderNumber: "WO-2026-000124", assetId: "ast_ups_a1",
+      workOrderTypeCode: "RM", title: "Replace failing cooling fan — UPS-A1", priority: "high", status: "in_progress",
+      dueDate: "2026-07-15T17:00:00Z", scheduledStart: "2026-07-14T10:00:00Z", scheduleId: null, workRequestId: "wr_2026_000045",
+      jobPlanId: null, jobPlanVersion: null, assignedTo: { kind: "user", id: "usr_tech_kim", name: "Kim Tran" },
+      estimatedLabourHours: 1.5, actualLabourHours: null, onHold: null, _permitsIssued: true,
+      snapshot: null,
+      tasks: [
+        { id: "wot1", jobPlanTaskId: null, sequence: 1, instruction: "Isolate on bypass and confirm redundant path covers load.", responseType: "passfail", response: true, completed: true, completedBy: "usr_tech_kim", completedAt: "2026-07-14T10:10:00Z" },
+        { id: "wot2", jobPlanTaskId: null, sequence: 2, instruction: "Replace top-bank cooling fan.", responseType: "passfail", completed: false },
+        { id: "wot3", jobPlanTaskId: null, sequence: 3, instruction: "Measure airflow after replacement.", responseType: "numeric", unit: "m/s", acceptableRange: [2.5, 6.0], completed: false }
+      ],
+      labour: [{ id: "le1", userId: "usr_tech_kim", hours: 0.75, date: "2026-07-14", rate: 95, trade: "Electrical – LV" }],
+      parts: [{ id: "pu1", description: "Cooling fan, 120mm, UPS top bank", reservedQty: 1, consumedQty: null, unit: "each", unitCost: 68 }],
+      failure: null, requiredPermits: ["Electrical isolation"], comments: [{ id: "c1", author: "planner@example.com", at: "2026-07-14T07:10:00Z", body: "Converted from WR-000045; parts in stock at SYD1." }],
+      statusHistory: [
+        { from: null, to: "requested", at: "2026-07-14T07:10:00Z", by: "planner@example.com", reason: "Converted from WR-2026-000045." },
+        { from: "requested", to: "reviewed", at: "2026-07-14T07:12:00Z", by: "planner@example.com", reason: null },
+        { from: "reviewed", to: "approved", at: "2026-07-14T07:15:00Z", by: "supervisor@example.com", reason: null },
+        { from: "approved", to: "planned", at: "2026-07-14T07:20:00Z", by: "planner@example.com", reason: null },
+        { from: "planned", to: "scheduled", at: "2026-07-14T07:25:00Z", by: "planner@example.com", reason: null },
+        { from: "scheduled", to: "assigned", at: "2026-07-14T07:30:00Z", by: "planner@example.com", reason: null },
+        { from: "assigned", to: "in_progress", at: "2026-07-14T10:00:00Z", by: "usr_tech_kim", reason: null }
+      ]
+    }
+  ];
+}
+function seedRequests() {
+  return [
+    { id: "wr_2026_000046", type: "workRequest", requestNumber: "WR-2026-000046", assetId: "ast_chiller_2", locationId: "site_syd1",
+      summary: "Chiller-2 tripping on high head pressure", description: "Intermittent HP trips through the afternoon peak. Reset holds for ~40 min then trips again.",
+      reportedBy: "operator@example.com", reportedAt: "2026-07-14T05:20:00Z", priority: "high", status: "submitted", source: "mobile", workOrderId: null }
+  ];
+}
+
+/* ---------------- resolved plan + schedule for PM generation ---------------- */
+var GEN_PLAN = {
+  id: "acp_standby_generator", code: "GEN", version: 1, workOrderTypeCode: "PM",
+  safetyInstructions: "Set control to MANUAL/OFF and lock off before intrusive work.",
+  estimatedLabourHours: 3, requiredPermits: [],
+  parameters: [{ key: "oilGrade", label: "Oil grade", value: "Cat DEO 15W-40", unit: null }],
+  frequencies: [{ id: "m", unit: "month", interval: 1 }, { id: "q", unit: "month", interval: 3 }, { id: "s", unit: "month", interval: 6 }, { id: "y", unit: "year", interval: 1 }],
+  tasks: [
+    { id: "t1", instruction: "Check coolant & oil levels.", responseType: "passfail", frequencyIds: ["m"] },
+    { id: "t2", instruction: "Change oil & oil filter.", responseType: "passfail", frequencyIds: ["q"] },
+    { id: "t3", instruction: "Major service — injectors, valves.", responseType: "passfail", frequencyIds: ["s"] },
+    { id: "t4", instruction: "Full-load / building-load test.", responseType: "numeric", unit: "kW", acceptableRange: [400, 600], frequencyIds: ["y"] },
+    { id: "t5", instruction: "Visual inspection for leaks/damage.", responseType: "passfail", frequencyIds: ["m", "q", "s", "y"] }
+  ]
+};
+function genSchedule() {
+  var lastYear = new Date(); lastYear.setUTCFullYear(lastYear.getUTCFullYear() - 1); lastYear.setUTCMonth(0, 1);
+  return { id: "sch_gen_svc_gen1", type: "maintenanceSchedule", assetId: "ast_gen1", jobPlanId: "acp_standby_generator",
+    planLevel: "class", anchorDate: lastYear.toISOString().slice(0, 10), mergeWindowDays: 0, leadTimeDays: 14,
+    priority: "medium", responsibleTeamId: "crew_syd_mech", workflowProfileKey: "default", active: true,
+    highWaterMarks: {}, rev: 0, createdAt: nowISO(), updatedAt: nowISO() };
+}
+
+/* ---------------- app state ---------------- */
+var S = { orders: seedOrders(), requests: seedRequests(), schedule: genSchedule(), sel: null, tab: "overview", q: "" };
+
+/* ---------------- guard evaluation ---------------- */
+function evalGuard(wo, g) {
+  switch (g.type) {
+    case "role": return { checkable: false, met: true, label: "role: " + (g.role || "?") };
+    case "within_approval_limit": return { checkable: false, met: true, label: "approval limit" };
+    case "job_plan_present": return { checkable: true, met: !!wo.jobPlanId || (wo.tasks || []).length > 0, label: "job plan / tasks" };
+    case "labour_estimate_present": return { checkable: true, met: wo.estimatedLabourHours != null, label: "labour estimate" };
+    case "parts_reserved": return { checkable: true, met: (wo.parts || []).every(function (p) { return (p.reservedQty || 0) > 0; }), label: "parts reserved" };
+    case "window_set": return { checkable: true, met: !!wo.scheduledStart, label: "window set" };
+    case "skills_match": return { checkable: false, met: !!wo.assignedTo, label: "skills match" };
+    case "permit_issued": return { checkable: true, met: (wo.requiredPermits || []).length === 0 || !!wo._permitsIssued, label: "permits issued" };
+    case "asset_status_allows": return { checkable: false, met: true, label: "asset status" };
+    case "actuals_captured": return { checkable: true, met: (wo.tasks || []).every(function (t) { return t.completed; }) && (wo.labour || []).length > 0, label: "actuals captured" };
+    case "failure_report_present": return { checkable: true, met: !!wo.failure, label: "failure report" };
+    default: return { checkable: false, met: true, label: g.type };
+  }
+}
+function availableTransitions(wo) {
+  return PROFILE.transitions.filter(function (t) { return t.from === wo.status; }).map(function (t) {
+    var gs = (t.guards || []).map(function (g) { return evalGuard(wo, g); });
+    var blocked = gs.some(function (g) { return g.checkable && !g.met; });
+    return { t: t, guards: gs, enabled: !blocked };
+  });
+}
+
+/* ---------------- actions ---------------- */
+function applyTransition(wo, tr) {
+  var t = tr.t;
+  function commit(reason) {
+    // side-effect actions
+    if (t.action === "reserve_parts") (wo.parts || []).forEach(function (p) { if (!p.reservedQty) p.reservedQty = 1; });
+    if (t.action === "deduct_stock") (wo.parts || []).forEach(function (p) { if (p.consumedQty == null) p.consumedQty = p.reservedQty || 0; });
+    if (t.to === "awaiting_parts_access") wo.onHold = { reason: "parts", note: reason || null, since: nowISO() };
+    if (t.from === "awaiting_parts_access") wo.onHold = null;
+    if (t.to === "completed") wo.actualLabourHours = (wo.labour || []).reduce(function (s, l) { return s + (l.hours || 0); }, 0);
+    wo.statusHistory.push({ from: wo.status, to: t.to, at: nowISO(), by: "you@plantree", reason: reason || null });
+    wo.status = t.to;
+    render();
+    toast(t.label + " → " + stateOf(t.to).label);
+  }
+  if (t.needsReason) askReason(t.label, commit); else commit(null);
+}
+
+function generatePM() {
+  var res = PMGenerate.generate({ plan: GEN_PLAN, schedule: S.schedule, asOf: nowISO().slice(0, 10), generatedAt: nowISO() });
+  S.schedule = res.schedule;
+  var added = 0;
+  res.workOrders.forEach(function (w) {
+    if (!S.orders.some(function (o) { return o.id === w.id; })) { S.orders.push(w); added++; }
+  });
+  render();
+  toast(added ? ("Generated " + added + " work order" + (added > 1 ? "s" : "")) : "Nothing due — schedule up to date (idempotent)");
+}
+
+function convertRequest(wr) {
+  var wo = {
+    id: idseq("wo"), type: "workOrder", workOrderNumber: "WO-NEW-" + (S.orders.length + 1), assetId: wr.assetId,
+    workOrderTypeCode: "RM", title: wr.summary, description: wr.description, priority: wr.priority, status: "requested",
+    dueDate: null, scheduledStart: null, scheduleId: null, workRequestId: wr.id, jobPlanId: null, jobPlanVersion: null,
+    assignedTo: null, estimatedLabourHours: null, actualLabourHours: null, onHold: null, snapshot: null,
+    tasks: [], labour: [], parts: [], failure: null, requiredPermits: [], comments: [],
+    statusHistory: [{ from: null, to: "requested", at: nowISO(), by: "you@plantree", reason: "Converted from " + wr.requestNumber + "." }]
+  };
+  wr.status = "converted"; wr.workOrderId = wo.id;
+  S.orders.push(wo); S.sel = { kind: "wo", id: wo.id }; S.tab = "overview";
+  render();
+  toast("Converted " + wr.requestNumber + " → work order");
+}
+
+/* small planning mutations to satisfy guards */
+function setEstimate(wo, v) { wo.estimatedLabourHours = v === "" ? null : parseFloat(v); render(); }
+function setWindow(wo, v) { wo.scheduledStart = v ? v + "T08:00:00Z" : null; render(); }
+function issuePermits(wo) { wo._permitsIssued = true; render(); toast("Permits issued"); }
+function assign(wo) { wo.assignedTo = { kind: "crew", id: "crew_syd_mech", name: "Sydney Mechanical" }; render(); toast("Assigned to Sydney Mechanical"); }
+function logLabour(wo) { wo.labour.push({ id: idseq("le"), userId: "you@plantree", hours: 1, date: nowISO().slice(0, 10), rate: 90, trade: "General" }); render(); toast("Logged 1.0 h"); }
+function toggleTask(wo, task, on) {
+  task.completed = on; task.completedAt = on ? nowISO() : null; task.completedBy = on ? "you@plantree" : null;
+  if (!on) { task.response = undefined; task.outOfRange = null; }
+  render();
+}
+function setResponse(wo, task, val) {
+  if (task.responseType === "numeric") {
+    var n = val === "" ? null : parseFloat(val); task.response = n;
+    task.outOfRange = (n != null && task.acceptableRange) ? (n < task.acceptableRange[0] || n > task.acceptableRange[1]) : null;
+  } else task.response = val;
+  render();
+}
+
+/* ---------------- modal / toast ---------------- */
+function toast(msg) {
+  var t = document.getElementById("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toast._t); toast._t = setTimeout(function () { t.classList.remove("show"); }, 2200);
+}
+function askReason(title, cb) {
+  var host = document.getElementById("modalHost");
+  var input = el("textarea", { placeholder: "Reason…", rows: 3 });
+  function close() { host.innerHTML = ""; }
+  host.appendChild(el("div", { class: "ovl", onclick: function (e) { if (e.target.className === "ovl") close(); } }, [
+    el("div", { class: "modal" }, [
+      el("header", {}, [title]),
+      el("div", { class: "mbody" }, [el("label", { class: "lbl" }, ["Reason (recorded on the order)"]), input]),
+      el("div", { class: "mfoot" }, [
+        el("button", { class: "btn", onclick: close }, ["Cancel"]),
+        el("button", { class: "btn primary", onclick: function () { var v = input.value.trim(); close(); cb(v || "(no reason given)"); } }, ["Confirm"])
+      ])
+    ])
+  ]));
+  input.focus();
+}
+
+/* ---------------- rendering ---------------- */
+var CATS = [{ k: "open", l: "Open" }, { k: "active", l: "Active" }, { k: "on_hold", l: "On hold" }, { k: "done", l: "Done" }, { k: "rejected", l: "Rejected" }];
+function matchesQ(o) {
+  if (!S.q) return true; var s = S.q.toLowerCase();
+  return (o.title || o.summary || "").toLowerCase().indexOf(s) >= 0 || (o.workOrderNumber || o.requestNumber || "").toLowerCase().indexOf(s) >= 0 || (o.assetId || "").toLowerCase().indexOf(s) >= 0;
+}
+function overdue(wo) { return wo.dueDate && new Date(wo.dueDate) < new Date() && stateOf(wo.status).category !== "done" && stateOf(wo.status).category !== "rejected"; }
+
+function woCard(wo) {
+  var st = stateOf(wo.status);
+  var sel = S.sel && S.sel.kind === "wo" && S.sel.id === wo.id;
+  return el("button", { class: "card" + (sel ? " sel" : ""), onclick: function () { S.sel = { kind: "wo", id: wo.id }; S.tab = "overview"; document.getElementById("app").classList.add("show-detail"); render(); } }, [
+    el("div", { class: "r1" }, [wotChip(wo.workOrderTypeCode), el("span", { class: "num2" }, [wo.workOrderNumber]), el("span", { class: "sp" }), el("span", { class: "prio prio-" + wo.priority }, [wo.priority])]),
+    el("div", { class: "ttl" }, [wo.title]),
+    el("div", { class: "r2" }, [el("span", { class: "chip dot " + "c-" + st.category }, [st.label]), el("span", { class: "due" + (overdue(wo) ? " over" : "") }, ["Due " + fmtDate(wo.dueDate)])])
+  ]);
+}
+function wrCard(wr) {
+  var sel = S.sel && S.sel.kind === "wr" && S.sel.id === wr.id;
+  return el("button", { class: "card" + (sel ? " sel" : ""), onclick: function () { S.sel = { kind: "wr", id: wr.id }; render(); document.getElementById("app").classList.add("show-detail"); } }, [
+    el("div", { class: "r1" }, [el("span", { class: "chip c-open" }, ["REQ"]), el("span", { class: "num2" }, [wr.requestNumber]), el("span", { class: "sp" }), el("span", { class: "prio prio-" + wr.priority }, [wr.priority])]),
+    el("div", { class: "ttl" }, [wr.summary]),
+    el("div", { class: "r2" }, [el("span", { class: "chip c-" + (wr.status === "converted" ? "done" : wr.status === "rejected" ? "rejected" : "open") }, [wr.status])])
+  ]);
+}
+
+function renderRail() {
+  var host = document.getElementById("railList"); host.innerHTML = "";
+  var openReqs = S.requests.filter(matchesQ);
+  if (openReqs.length) {
+    host.appendChild(el("div", { class: "grp" }, [el("span", { class: "lbl2" }, ["Requests"]), el("span", { class: "n" }, [String(openReqs.length)])]));
+    openReqs.forEach(function (wr) { host.appendChild(wrCard(wr)); });
+  }
+  CATS.forEach(function (c) {
+    var os = S.orders.filter(function (o) { return stateOf(o.status).category === c.k && matchesQ(o); })
+      .sort(function (a, b) { return (a.dueDate || "").localeCompare(b.dueDate || ""); });
+    if (!os.length) return;
+    host.appendChild(el("div", { class: "grp" }, [el("span", { class: "lbl2" }, [c.l]), el("span", { class: "n" }, [String(os.length)])]));
+    os.forEach(function (o) { host.appendChild(woCard(o)); });
+  });
+}
+
+function renderDetail() {
+  var host = document.getElementById("detail"); host.innerHTML = "";
+  if (!S.sel) { host.appendChild(renderBoard()); return; }
+  if (S.sel.kind === "wr") { host.appendChild(renderRequest()); return; }
+  var wo = S.orders.filter(function (o) { return o.id === S.sel.id; })[0];
+  if (!wo) { S.sel = null; return renderDetail(); }
+  var st = stateOf(wo.status);
+
+  // header
+  host.appendChild(el("div", { class: "dhead" }, [
+    el("div", {}, [
+      el("div", { class: "dtitle" }, [wo.title]),
+      el("div", { class: "dsub" }, [
+        el("button", { class: "btn ghost sm back-mobile", onclick: function () { document.getElementById("app").classList.remove("show-detail"); } }, ["‹ List"]),
+        el("span", { class: "code" }, [wo.workOrderNumber]), el("span", {}, ["·"]),
+        el("span", {}, ["Asset "]), el("span", { class: "code" }, [wo.assetId || "—"]),
+        wo.scheduleId ? el("span", { class: "code", title: "PM provenance" }, ["· from " + wo.scheduleId]) : (wo.workRequestId ? el("span", { class: "code", title: "Request provenance" }, ["· from " + wo.workRequestId]) : null)
+      ])
+    ]),
+    el("div", { class: "dhead-right" }, [
+      el("div", { style: "display:flex;gap:8px;align-items:center" }, [wotChip(wo.workOrderTypeCode), el("span", { class: "prio prio-" + wo.priority }, [wo.priority]), el("span", { class: "chip dot c-" + st.category }, [st.label])]),
+      el("div", { class: "due" + (overdue(wo) ? " over" : ""), style: "font-family:var(--mono);font-size:11px;color:var(--muted)" }, ["Due " + fmtDate(wo.dueDate)])
+    ])
+  ]));
+
+  // action bar (transitions)
+  var trans = availableTransitions(wo);
+  var bar = el("div", { class: "actionbar" }, [el("span", { class: "al" }, ["Actions"])]);
+  if (!trans.length) bar.appendChild(el("span", { style: "color:var(--faint);font-size:12.5px" }, [st.isTerminal ? "Terminal state — this work order is closed." : "No transitions available."]));
+  trans.forEach(function (tr) {
+    var isReject = tr.t.to === "rejected";
+    var wrap = el("div", { class: "tact" }, [
+      el("button", { class: "btn " + (isReject ? "danger" : "primary") + " sm", disabled: !tr.enabled, onclick: function () { applyTransition(wo, tr); } }, [tr.t.label + " →"]),
+      tr.guards.length ? el("div", { class: "guards" }, tr.guards.map(function (g) {
+        var cls = !g.checkable ? "adv" : (g.met ? "met" : "unmet");
+        return el("span", { class: "gd " + cls }, [(g.checkable ? (g.met ? "✓ " : "• ") : "· ") + g.label]);
+      })) : null
+    ]);
+    bar.appendChild(wrap);
+  });
+  host.appendChild(bar);
+
+  // tabs
+  var tabs = [["overview", "Overview"], ["tasks", "Tasks", (wo.tasks || []).length], ["costs", "Costs"], ["history", "History", (wo.statusHistory || []).length]];
+  host.appendChild(el("div", { class: "dtabs" }, tabs.map(function (t) {
+    return el("button", { class: "dtab" + (S.tab === t[0] ? " on" : ""), onclick: function () { S.tab = t[0]; render(); } }, [t[1], t[2] != null ? el("span", { class: "pill" }, [String(t[2])]) : null]);
+  })));
+
+  var body = el("div", { class: "dbody" }); var wrap = el("div", { class: "wrap" }); body.appendChild(wrap);
+  if (S.tab === "overview") renderOverview(wrap, wo);
+  else if (S.tab === "tasks") renderTasks(wrap, wo);
+  else if (S.tab === "costs") renderCosts(wrap, wo);
+  else if (S.tab === "history") renderHistory(wrap, wo);
+  host.appendChild(body);
+}
+
+function sec(title, count, bodyChildren, headActions) {
+  return el("div", { class: "sec" }, [
+    el("header", {}, [el("h3", {}, [title]), count != null ? el("span", { class: "ct" }, [String(count)]) : null, headActions ? el("div", { class: "hact" }, headActions) : null]),
+    el("div", { class: "sec-body" }, bodyChildren)
+  ]);
+}
+
+function renderOverview(wrap, wo) {
+  if (wo.onHold) wrap.appendChild(el("div", { class: "infobar w" }, [el("span", {}, [el("b", {}, ["On hold"]), " — " + (wo.onHold.note || wo.onHold.reason) + ". SLA clock paused."])]));
+  // identity
+  wrap.appendChild(sec("Details", null, [
+    el("div", { class: "kv" }, [
+      kv("Status", stateOf(wo.status).label), kv("Priority", wo.priority),
+      kv("Assigned to", wo.assignedTo ? wo.assignedTo.name || wo.assignedTo.id : "—"),
+      kv("Estimated labour", wo.estimatedLabourHours != null ? wo.estimatedLabourHours + " h" : "—"),
+      kv("Scheduled", fmtDate(wo.scheduledStart), true), kv("Due", fmtDate(wo.dueDate), true),
+      kv("Provenance", wo.scheduleId ? "Schedule " + wo.scheduleId : (wo.workRequestId ? "Request " + wo.workRequestId : "Ad-hoc"), true),
+      kv("Job plan", wo.jobPlanId ? wo.jobPlanId + " v" + wo.jobPlanVersion : "—", true)
+    ]),
+    wo.description ? el("div", { style: "color:var(--muted);font-size:13px" }, [wo.description]) : null
+  ]));
+  // planning controls (contextual) — help satisfy guards to advance
+  var cat = stateOf(wo.status).category;
+  if (cat === "open" || cat === "active") {
+    var controls = [];
+    controls.push(el("div", { class: "field" }, [el("span", { class: "lbl" }, ["Estimate (h)"]), el("input", { type: "number", value: wo.estimatedLabourHours != null ? wo.estimatedLabourHours : "", style: "width:110px", onchange: function (e) { setEstimate(wo, e.target.value); } })]));
+    controls.push(el("div", { class: "field" }, [el("span", { class: "lbl" }, ["Schedule window"]), el("input", { type: "date", value: wo.scheduledStart ? wo.scheduledStart.slice(0, 10) : "", onchange: function (e) { setWindow(wo, e.target.value); } })]));
+    if (!wo.assignedTo) controls.push(el("button", { class: "btn sm", onclick: function () { assign(wo); } }, ["Assign crew"]));
+    if ((wo.requiredPermits || []).length && !wo._permitsIssued) controls.push(el("button", { class: "btn sm", onclick: function () { issuePermits(wo); } }, ["Issue permits"]));
+    wrap.appendChild(sec("Planning", null, [el("div", { class: "planbar" }, controls), el("div", { style: "font-size:11.5px;color:var(--faint)" }, ["These satisfy the guards on the transitions above — mirroring the default profile in doc 05."])]));
+  }
+  // snapshot
+  if (wo.snapshot) {
+    var snap = wo.snapshot;
+    wrap.appendChild(sec("Content snapshot", null, [
+      el("div", { class: "infobar i" }, [el("span", {}, [el("b", {}, ["Frozen at generation."]), " Pinned " + (snap.jobPlanCode || "plan") + " v" + snap.jobPlanVersion + " — history stays truthful if the plan later changes."])]),
+      snap.safetyInstructions ? el("div", {}, [el("span", { class: "lbl" }, ["Safety"]), el("div", { style: "margin-top:3px" }, [snap.safetyInstructions])]) : null,
+      (snap.parameters || []).length ? el("div", { class: "kv" }, snap.parameters.map(function (p) { return kv(p.label || p.key, p.value + (p.unit ? " " + p.unit : ""), true); })) : null
+    ]));
+  }
+}
+function kv(k, v, mono) { return el("div", {}, [el("div", { class: "k" }, [k]), el("div", { class: "v" + (mono ? " mono" : "") }, [String(v)])]); }
+
+function renderTasks(wrap, wo) {
+  if (!(wo.tasks || []).length) { wrap.appendChild(sec("Tasks", 0, [el("div", { style: "color:var(--faint);font-style:italic" }, ["No tasks on this order."])])); return; }
+  var canDo = stateOf(wo.status).category === "active";
+  var rows = wo.tasks.map(function (t) {
+    var top = el("div", { class: "task-top" }, [
+      el("span", { class: "tseq" }, [String(t.sequence)]),
+      el("div", { class: "tname" }, [el("div", { class: "ti" }, [t.instruction]), el("div", { class: "tm" }, [t.responseType + (t.unit ? " · " + t.unit : "") + (t.acceptableRange ? " · " + t.acceptableRange[0] + "–" + t.acceptableRange[1] : "")])]),
+      el("label", { style: "display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)" }, [
+        el("input", { class: "chk", type: "checkbox", checked: !!t.completed, disabled: !canDo, onchange: function (e) { toggleTask(wo, t, e.target.checked); } }), "done"
+      ])
+    ]);
+    var resp = null;
+    if (t.responseType !== "none" && t.responseType !== "passfail") {
+      resp = el("div", { class: "tresp" }, [
+        el("span", { class: "lbl" }, ["Reading"]),
+        t.responseType === "choice"
+          ? el("select", { class: "rin", disabled: !canDo, onchange: function (e) { setResponse(wo, t, e.target.value); } }, [el("option", { value: "" }, ["—"])].concat((t.choices || []).map(function (c) { return el("option", { value: c, selected: t.response === c }, [c]); })))
+          : el("input", { class: "rin", type: t.responseType === "numeric" ? "number" : "text", value: t.response != null ? t.response : "", disabled: !canDo, placeholder: t.responseType === "numeric" ? "value" : "note", onchange: function (e) { setResponse(wo, t, e.target.value); } }),
+        t.unit ? el("span", { style: "color:var(--faint);font-family:var(--mono);font-size:11px" }, [t.unit]) : null,
+        t.outOfRange ? el("span", { class: "oor" }, ["out of range → raise defect"]) : null
+      ]);
+    }
+    return el("div", { class: "task" }, [top, resp]);
+  });
+  wrap.appendChild(sec("Tasks", wo.tasks.length, rows, canDo ? null : [el("span", { style: "font-size:11.5px;color:var(--faint)" }, ["Start the work order to capture responses"])]));
+}
+
+function renderCosts(wrap, wo) {
+  // labour
+  var lrows = (wo.labour || []).map(function (l) { return el("tr", {}, [el("td", {}, [l.userId || l.crewId || "—"]), el("td", {}, [l.trade || "—"]), el("td", { class: "r" }, [String(l.hours)]), el("td", { class: "r" }, [money(l.rate)]), el("td", { class: "r" }, [money((l.hours || 0) * (l.rate || 0))])]); });
+  var lTotal = (wo.labour || []).reduce(function (s, l) { return s + (l.hours || 0) * (l.rate || 0); }, 0);
+  var lHours = (wo.labour || []).reduce(function (s, l) { return s + (l.hours || 0); }, 0);
+  var labourTbl = el("table", { class: "tbl" }, [
+    el("thead", {}, [el("tr", {}, [el("th", {}, ["Who"]), el("th", {}, ["Trade"]), el("th", { class: "r" }, ["Hours"]), el("th", { class: "r" }, ["Rate"]), el("th", { class: "r" }, ["Cost"])])]),
+    el("tbody", {}, lrows.length ? lrows.concat([el("tr", { class: "tot" }, [el("td", { colspan: 2 }, ["Total"]), el("td", { class: "r" }, [String(lHours)]), el("td", {}, [""]), el("td", { class: "r" }, [money(lTotal)])])]) : [el("tr", {}, [el("td", { colspan: 5, style: "color:var(--faint);font-style:italic" }, ["No labour booked."])])])
+  ]);
+  var labAct = stateOf(wo.status).category === "active" ? [el("button", { class: "btn sm", onclick: function () { logLabour(wo); } }, ["+ Log 1 h"])] : null;
+  wrap.appendChild(sec("Labour", null, [labourTbl], labAct));
+  // parts
+  var prows = (wo.parts || []).map(function (p) { return el("tr", {}, [el("td", {}, [p.description]), el("td", { class: "r" }, [p.reservedQty != null ? String(p.reservedQty) : "—"]), el("td", { class: "r" }, [p.consumedQty != null ? String(p.consumedQty) : "—"]), el("td", { class: "r" }, [money(p.unitCost)]), el("td", { class: "r" }, [money((p.consumedQty != null ? p.consumedQty : p.reservedQty || 0) * (p.unitCost || 0))])]); });
+  var pTotal = (wo.parts || []).reduce(function (s, p) { return s + (p.consumedQty != null ? p.consumedQty : p.reservedQty || 0) * (p.unitCost || 0); }, 0);
+  var partsTbl = el("table", { class: "tbl" }, [
+    el("thead", {}, [el("tr", {}, [el("th", {}, ["Part"]), el("th", { class: "r" }, ["Reserved"]), el("th", { class: "r" }, ["Consumed"]), el("th", { class: "r" }, ["Unit"]), el("th", { class: "r" }, ["Cost"])])]),
+    el("tbody", {}, prows.length ? prows.concat([el("tr", { class: "tot" }, [el("td", { colspan: 4 }, ["Total"]), el("td", { class: "r" }, [money(pTotal)])])]) : [el("tr", {}, [el("td", { colspan: 5, style: "color:var(--faint);font-style:italic" }, ["No parts."])])])
+  ]);
+  wrap.appendChild(sec("Parts", null, [el("div", { class: "infobar i", style: "margin-bottom:2px" }, [el("span", {}, ["Reserve-then-consume: reserved at ", el("b", {}, ["Scheduled"]), ", deducted at ", el("b", {}, ["Completed"]), "."])]), partsTbl]));
+  // total
+  wrap.appendChild(el("div", { style: "text-align:right;font-family:var(--mono);font-size:15px;font-weight:700" }, ["Work order total: " + money(lTotal + pTotal)]));
+}
+
+function renderHistory(wrap, wo) {
+  var evs = (wo.statusHistory || []).slice().reverse();
+  wrap.appendChild(sec("Transition history", wo.statusHistory.length, [
+    el("div", { class: "timeline" }, evs.map(function (e) {
+      var cls = e.to === "rejected" ? "rej" : (e.to === "awaiting_parts_access" ? "hold" : "");
+      return el("div", { class: "tev " + cls }, [el("div", { class: "dot" }), el("div", { class: "tc" }, [
+        el("div", { class: "th" }, [(e.from ? stateOf(e.from).label + " → " : "") + stateOf(e.to).label]),
+        el("div", { class: "tt" }, [fmtDT(e.at) + " · " + (e.by || "—")]),
+        e.reason ? el("div", { class: "tr" }, [e.reason]) : null
+      ])]);
+    }))
+  ]));
+}
+
+function renderRequest() {
+  var wr = S.requests.filter(function (r) { return r.id === S.sel.id; })[0];
+  var host = el("div", { class: "detail", style: "display:flex" });
+  host.appendChild(el("div", { class: "dhead" }, [
+    el("div", {}, [
+      el("div", { class: "dtitle" }, [wr.summary]),
+      el("div", { class: "dsub" }, [el("button", { class: "btn ghost sm back-mobile", onclick: function () { document.getElementById("app").classList.remove("show-detail"); } }, ["‹ List"]), el("span", { class: "code" }, [wr.requestNumber]), el("span", {}, ["· from " + (wr.source || "portal")])])
+    ]),
+    el("div", { class: "dhead-right" }, [el("div", { style: "display:flex;gap:8px" }, [el("span", { class: "prio prio-" + wr.priority }, [wr.priority]), el("span", { class: "chip c-open" }, [wr.status])])])
+  ]));
+  var body = el("div", { class: "dbody" }); var wrap = el("div", { class: "wrap" }); body.appendChild(wrap);
+  wrap.appendChild(sec("Request", null, [
+    el("div", { class: "kv" }, [kv("Asset", wr.assetId || "—", true), kv("Location", wr.locationId || "—", true), kv("Reported by", wr.reportedBy || "—"), kv("Reported", fmtDT(wr.reportedAt), true)]),
+    wr.description ? el("div", { style: "color:var(--muted)" }, [wr.description]) : null
+  ]));
+  if (wr.status === "submitted" || wr.status === "under_review") {
+    wrap.appendChild(el("div", { class: "actionbar", style: "border-radius:14px;border:1px solid var(--line)" }, [
+      el("span", { class: "al" }, ["Triage"]),
+      el("button", { class: "btn primary sm", onclick: function () { convertRequest(wr); } }, ["Convert to work order →"]),
+      el("span", { style: "font-size:12px;color:var(--faint)" }, ["Creates a reactive (RM) order at ", el("b", {}, ["requested"]), ", carrying provenance."])
+    ]));
+  } else {
+    wrap.appendChild(el("div", { class: "infobar i" }, [el("span", {}, ["Converted to ", el("b", {}, [wr.workOrderId]), "."])]));
+  }
+  body && host.appendChild(body);
+  // wrap host so renderDetail can appendChild a single node
+  var container = document.createDocumentFragment(); container.appendChild(host);
+  var m = document.createElement("div"); m.style.display = "contents"; m.appendChild(host);
+  return m;
+}
+
+function renderBoard() {
+  var board = el("div", { class: "board" });
+  CATS.forEach(function (c) {
+    var os = S.orders.filter(function (o) { return stateOf(o.status).category === c.k && matchesQ(o); }).sort(function (a, b) { return (a.dueDate || "").localeCompare(b.dueDate || ""); });
+    var col = el("div", { class: "col" }, [
+      el("header", {}, [el("span", { class: "chip dot c-" + c.k }, [c.l]), el("span", { class: "n" }, [String(os.length)])]),
+      el("div", { class: "colbody" }, os.length ? os.map(woCard) : [el("div", { class: "empty-c" }, ["—"])])
+    ]);
+    board.appendChild(col);
+  });
+  var host = document.createElement("div"); host.style.display = "contents"; host.appendChild(board);
+  return host;
+}
+
+function render() { renderRail(); renderDetail(); }
+
+/* ---------------- wire up ---------------- */
+document.getElementById("q").addEventListener("input", function (e) { S.q = e.target.value; render(); });
+document.getElementById("genBtn").addEventListener("click", generatePM);
+render();
+</script>
+</body>
+</html>

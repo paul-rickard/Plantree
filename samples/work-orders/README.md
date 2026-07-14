@@ -66,9 +66,12 @@ as keys/free text until those modules exist:
   (`pm-generate.js` + demo + tests), with the
   [`maintenance-schedule.schema.json`](../../schemas/maintenance-schedule.schema.json)
   carrying the high-water marks. See [`../maintenance-schedules/`](../maintenance-schedules/).
-- **The app** — a work-order list/board + detail with the state machine driven by
-  the profile (transition buttons gated by guards), mirroring `app.html`.
-- **Convert endpoint** — `WorkRequest` → `WorkOrder` with provenance carried over.
+- **The app** — ✅ done. [`apps/work-orders/app.html`](../../apps/work-orders/README.md)
+  is a board + detail view with the state machine driven by the profile
+  (transition buttons gated by live guard evaluation), task/labour/parts capture,
+  PM generation and request conversion.
+- **Convert flow** — ✅ done in the app: triage a request into a `requested`
+  work order carrying provenance.
 
 See the [roadmap](../../docs/architecture/08-roadmap.md) for how this sits in the
 MVP.

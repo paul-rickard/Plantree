@@ -1,16 +1,45 @@
-# Work orders — PM generation engine
+# Work orders — the app + PM generation engine
 
-The link between the [job-plans module](../job-plans/README.md) and work
-management: it turns a **maintenance schedule** (a plan applied to an asset) into
-`planned` **work orders**, applies task-×-frequency dropping and nesting, and
-advances per-frequency high-water marks so re-running is **idempotent** — the
-behaviour [doc 05](../../docs/architecture/05-work-management-lifecycle.md#pm-generated-vs-requested-work)
+The work-management module: a **work-order app** (board + detail with the
+lifecycle state machine) and the **PM generation engine** that feeds it. Together
+they close the loop from the [job-plans module](../job-plans/README.md) — a plan
+applied to an asset becomes scheduled, dispatched, executed and costed work.
+
+## The app (`app.html`)
+
+A single self-contained app — no server, no build — open it in a browser.
+
+- **Board + list** — work orders grouped by lifecycle category (Open / Active /
+  On hold / Done / Rejected), plus incoming **requests**. Search across both.
+- **The state machine, live** — a selected order shows exactly the transitions
+  its [workflow profile](../../schemas/workflow-profile.schema.json) allows from
+  its current state, each with its **guards** evaluated in place: a transition is
+  disabled until its checkable guards are met (e.g. *Complete* needs *actuals
+  captured*; *Schedule* needs *parts reserved* + *window set*). Role/approval
+  guards show as advisory. Rejections and holds prompt for a reason.
+- **Do the work** — capture task pass/fail and numeric readings (out-of-range is
+  flagged), log labour, watch reserve-then-consume parts and the cost roll-up,
+  and read the audited transition **history** as a timeline. Every order carries
+  its **content snapshot** (pinned plan version + resolved parameters).
+- **Generate PM work** — the topbar button runs the engine below against a seeded
+  generator schedule and drops the due (nested) orders straight onto the board;
+  press it again and nothing happens — it's idempotent.
+- **Convert a request** — triage an incoming request into a reactive work order
+  that enters at `requested`, carrying provenance.
+
+## The generation engine
+
+Turns a **maintenance schedule** (a plan applied to an asset) into `planned`
+**work orders**, applies task-×-frequency dropping and nesting, and advances
+per-frequency high-water marks so re-running is **idempotent** — the behaviour
+[doc 05](../../docs/architecture/05-work-management-lifecycle.md#pm-generated-vs-requested-work)
 calls for in the serverless, lazy-generation deployment.
 
 ## What's here
 
 | File | Purpose |
 |------|---------|
+| `app.html` | **The app** — board + detail, the state machine driven by the workflow profile. Loads `pm-generate.js` for the Generate button. |
 | `pm-generate.js` | **The engine.** Dependency-free, no build. Loads as `window.PMGenerate` (browser `<script>`) or `require("./pm-generate.js")` (Node). |
 | `pm-generate.test.js` | Node test — 85 assertions on nesting, idempotency, deterministic ids and calendar math. Run: `node apps/work-orders/pm-generate.test.js`. |
 | `pm-generation-demo.html` | Self-contained browser demo — set an anchor / horizon / merge window and watch the nested work orders fall out. |
@@ -62,9 +91,12 @@ generate({ plan, schedule, asOf, generatedAt, horizonDays })
 
 ## What's next
 
-- Wire the engine into the job-plans app so opening an asset with applied plans
-  lazily generates its due work.
-- A work-order **list/board + detail** view with the state machine driven by the
-  [workflow profile](../../schemas/workflow-profile.schema.json) (transition
-  buttons gated by guards).
-- The `WorkRequest → WorkOrder` **convert** flow.
+- **The app** — ✅ done (`app.html`): board + detail, guard-gated transitions,
+  task/labour/parts capture, PM generation and request conversion.
+- Wire generation into the **job-plans app** so opening an asset with applied
+  plans lazily generates its due work (the two apps currently share schemas and
+  the engine but not a single shell).
+- **Persistence** — save orders back to JSON files (the File System Access flow
+  the job-plans app already uses), so the board survives a reload.
+- Deeper capture (R2): failure/cause/remedy coding UI, follow-up work orders from
+  out-of-range readings, offline sync.
