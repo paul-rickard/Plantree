@@ -1,0 +1,23 @@
+{
+  "id": "wr_2026_000045",
+  "type": "workRequest",
+  "requestNumber": "WR-2026-000045",
+  "assetId": "ast_ups_a1",
+  "locationId": "site_syd1",
+  "summary": "UPS-A1 cooling fan making grinding noise",
+  "description": "Loud intermittent grinding from the top fan bank since this morning. No alarms on the panel yet.",
+  "reportedBy": "operator@example.com",
+  "reportedAt": "2026-07-14T06:40:00Z",
+  "priority": "high",
+  "status": "converted",
+  "source": "mobile",
+  "workOrderId": "wo_2026_000124",
+  "reviewedBy": "planner@example.com",
+  "reviewedAt": "2026-07-14T07:05:00Z",
+  "rejectionReason": null,
+  "rev": 2,
+  "createdAt": "2026-07-14T06:40:00Z",
+  "createdBy": "operator@example.com",
+  "updatedAt": "2026-07-14T07:10:00Z",
+  "updatedBy": "planner@example.com"
+}

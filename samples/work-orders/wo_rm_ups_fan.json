@@ -1,0 +1,65 @@
+{
+  "id": "wo_2026_000124",
+  "type": "workOrder",
+  "workOrderNumber": "WO-2026-000124",
+  "assetId": "ast_ups_a1",
+  "workOrderTypeCode": "RM",
+  "title": "Replace failing cooling fan — UPS-A1",
+  "description": "Converted from WR-2026-000045. Grinding top-bank fan; replace and verify airflow.",
+  "priority": "high",
+  "status": "completed",
+  "dueDate": "2026-07-15T17:00:00Z",
+  "scheduledStart": "2026-07-14T10:00:00Z",
+  "scheduledEnd": "2026-07-14T11:30:00Z",
+  "workflowProfileKey": "default",
+  "scheduleId": null,
+  "workRequestId": "wr_2026_000045",
+  "jobPlanId": null,
+  "jobPlanVersion": null,
+  "parentWorkOrderId": null,
+  "dependsOn": [],
+  "assignedTo": { "kind": "user", "id": "usr_tech_kim", "name": "Kim Tran" },
+  "estimatedLabourHours": 1.5,
+  "actualLabourHours": 1.25,
+  "onHold": null,
+  "snapshot": null,
+  "tasks": [
+    { "id": "wot1", "jobPlanTaskId": null, "sequence": 1, "instruction": "Isolate on bypass and confirm redundant path covers load.", "responseType": "passfail", "response": true, "completed": true, "completedBy": "usr_tech_kim", "completedAt": "2026-07-14T10:10:00Z" },
+    { "id": "wot2", "jobPlanTaskId": null, "sequence": 2, "instruction": "Replace top-bank cooling fan.", "responseType": "passfail", "response": true, "completed": true, "completedBy": "usr_tech_kim", "completedAt": "2026-07-14T10:55:00Z" },
+    { "id": "wot3", "jobPlanTaskId": null, "sequence": 3, "instruction": "Measure airflow after replacement.", "responseType": "numeric", "unit": "m/s", "acceptableRange": [2.5, 6.0], "response": 4.1, "outOfRange": false, "completed": true, "completedBy": "usr_tech_kim", "completedAt": "2026-07-14T11:05:00Z" }
+  ],
+  "labour": [
+    { "id": "le1", "userId": "usr_tech_kim", "crewId": null, "hours": 1.25, "date": "2026-07-14", "rate": 95, "trade": "Electrical – LV", "startAt": "2026-07-14T10:00:00Z", "endAt": "2026-07-14T11:15:00Z" }
+  ],
+  "parts": [
+    { "id": "pu1", "partRef": null, "description": "Cooling fan, 120mm, UPS top bank", "reservedQty": 1, "consumedQty": 1, "unit": "each", "unitCost": 68 }
+  ],
+  "failure": {
+    "failureCode": "FAN_BEARING",
+    "causeCode": "WEAR",
+    "remedyCode": "REPLACE",
+    "downtimeStart": null,
+    "downtimeEnd": null,
+    "observations": "Bearing failure on top-bank fan; no load transfer, redundant path held."
+  },
+  "requiredPermits": ["Electrical isolation"],
+  "attachments": [],
+  "comments": [
+    { "id": "c1", "author": "planner@example.com", "at": "2026-07-14T07:10:00Z", "body": "Converted from WR-000045; parts in stock at SYD1." }
+  ],
+  "statusHistory": [
+    { "from": null, "to": "requested", "at": "2026-07-14T07:10:00Z", "by": "planner@example.com", "reason": "Converted from WR-2026-000045." },
+    { "from": "requested", "to": "reviewed", "at": "2026-07-14T07:12:00Z", "by": "planner@example.com", "reason": null },
+    { "from": "reviewed", "to": "approved", "at": "2026-07-14T07:15:00Z", "by": "supervisor@example.com", "reason": null },
+    { "from": "approved", "to": "planned", "at": "2026-07-14T07:20:00Z", "by": "planner@example.com", "reason": null },
+    { "from": "planned", "to": "scheduled", "at": "2026-07-14T07:25:00Z", "by": "planner@example.com", "reason": null },
+    { "from": "scheduled", "to": "assigned", "at": "2026-07-14T07:30:00Z", "by": "planner@example.com", "reason": null },
+    { "from": "assigned", "to": "in_progress", "at": "2026-07-14T10:00:00Z", "by": "usr_tech_kim", "reason": null },
+    { "from": "in_progress", "to": "completed", "at": "2026-07-14T11:15:00Z", "by": "usr_tech_kim", "reason": null }
+  ],
+  "rev": 8,
+  "createdAt": "2026-07-14T07:10:00Z",
+  "createdBy": "planner@example.com",
+  "updatedAt": "2026-07-14T11:15:00Z",
+  "updatedBy": "usr_tech_kim"
+}

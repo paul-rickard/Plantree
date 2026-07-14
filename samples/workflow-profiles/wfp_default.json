@@ -1,0 +1,41 @@
+{
+  "id": "wfp_default",
+  "type": "workflowProfile",
+  "key": "default",
+  "name": "Default work-order workflow",
+  "description": "The out-of-the-box lifecycle from doc 05. A small team can adopt this on day one without configuration.",
+  "isDefault": true,
+  "rev": 0,
+  "createdAt": "2026-07-14T00:00:00Z",
+  "updatedAt": "2026-07-14T00:00:00Z",
+  "states": [
+    { "key": "requested", "label": "Requested", "category": "open", "isInitial": true },
+    { "key": "reviewed", "label": "Reviewed", "category": "open" },
+    { "key": "approved", "label": "Approved", "category": "open" },
+    { "key": "planned", "label": "Planned", "category": "open", "isInitial": true },
+    { "key": "scheduled", "label": "Scheduled", "category": "open", "isInitial": true },
+    { "key": "assigned", "label": "Assigned", "category": "open" },
+    { "key": "in_progress", "label": "In progress", "category": "active" },
+    { "key": "awaiting_parts_access", "label": "Awaiting parts/access", "category": "on_hold", "pausesSla": true },
+    { "key": "completed", "label": "Completed", "category": "done" },
+    { "key": "verified", "label": "Verified", "category": "done" },
+    { "key": "closed", "label": "Closed", "category": "done", "isTerminal": true },
+    { "key": "rejected", "label": "Rejected", "category": "rejected", "isTerminal": true }
+  ],
+  "transitions": [
+    { "from": "requested", "to": "reviewed", "label": "Triage" },
+    { "from": "requested", "to": "rejected", "label": "Reject", "guards": [ { "type": "role", "role": "approver" } ] },
+    { "from": "reviewed", "to": "approved", "label": "Approve", "guards": [ { "type": "role", "role": "approver" }, { "type": "within_approval_limit", "note": "Cost within approver's limit." } ] },
+    { "from": "reviewed", "to": "rejected", "label": "Reject", "guards": [ { "type": "role", "role": "approver" } ] },
+    { "from": "approved", "to": "planned", "label": "Plan", "guards": [ { "type": "job_plan_present" }, { "type": "labour_estimate_present" } ] },
+    { "from": "planned", "to": "scheduled", "label": "Schedule", "guards": [ { "type": "parts_reserved" }, { "type": "window_set" } ], "actions": [ { "type": "reserve_parts" } ] },
+    { "from": "scheduled", "to": "assigned", "label": "Assign", "guards": [ { "type": "skills_match" } ], "actions": [ { "type": "notify", "target": "assignee" } ] },
+    { "from": "assigned", "to": "in_progress", "label": "Start work", "guards": [ { "type": "permit_issued" }, { "type": "asset_status_allows" } ] },
+    { "from": "in_progress", "to": "awaiting_parts_access", "label": "Put on hold" },
+    { "from": "awaiting_parts_access", "to": "in_progress", "label": "Resume" },
+    { "from": "in_progress", "to": "completed", "label": "Complete", "guards": [ { "type": "actuals_captured", "note": "Labour, consumed parts and task responses recorded." } ], "actions": [ { "type": "deduct_stock" } ] },
+    { "from": "completed", "to": "in_progress", "label": "Rework" },
+    { "from": "completed", "to": "verified", "label": "Verify", "guards": [ { "type": "role", "role": "supervisor" } ], "actions": [ { "type": "create_follow_up", "note": "Optional follow-up work orders." } ] },
+    { "from": "verified", "to": "closed", "label": "Close", "actions": [ { "type": "finalise_costs" } ] }
+  ]
+}

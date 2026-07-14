@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://plantree/schemas/work-request.json",
+  "title": "WorkRequest",
+  "description": "Reported demand, before commitment — the front door for work that needs triage. A request is submitted, reviewed and either rejected or converted into a WorkOrder (which then enters the lifecycle at 'requested'). Schedule-generated PM work does NOT come through here; it enters the work order directly because the strategy is already approved. One JSON document = one work request.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "type", "requestNumber", "summary", "status", "rev", "createdAt", "updatedAt"],
+  "properties": {
+    "id": { "type": "string", "description": "Opaque unique id, e.g. wr_2026_000045." },
+    "type": { "const": "workRequest" },
+    "requestNumber": { "type": "string", "description": "Human-facing sequential number, e.g. WR-2026-000045." },
+    "assetId": { "type": ["string", "null"], "description": "What the request is about." },
+    "locationId": { "type": ["string", "null"], "description": "Where, when no specific asset applies." },
+    "summary": { "type": "string", "description": "Short problem statement." },
+    "description": { "type": ["string", "null"] },
+    "reportedBy": { "type": ["string", "null"] },
+    "reportedAt": { "type": ["string", "null"], "format": "date-time" },
+    "priority": {
+      "enum": ["low", "medium", "high", "urgent"],
+      "description": "Requester-suggested priority. The planner may override it on the resulting work order (which holds the authoritative value)."
+    },
+    "status": {
+      "enum": ["submitted", "under_review", "approved", "rejected", "converted"],
+      "description": "submitted -> under_review -> approved -> converted, or -> rejected. 'converted' means a WorkOrder was created (see workOrderId)."
+    },
+    "source": {
+      "type": ["string", "null"],
+      "enum": ["portal", "email", "inspection", "alarm", "mobile", null],
+      "description": "How the demand arrived. 'inspection' and 'alarm' feed automatic requests from failed readings / condition alerts."
+    },
+    "workOrderId": { "type": ["string", "null"], "description": "Set when the request is converted — the WorkOrder it became." },
+    "reviewedBy": { "type": ["string", "null"] },
+    "reviewedAt": { "type": ["string", "null"], "format": "date-time" },
+    "rejectionReason": { "type": ["string", "null"], "description": "Required when status = rejected; the requester is notified with it." },
+    "rev": { "type": "integer", "minimum": 0 },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "createdBy": { "type": ["string", "null"] },
+    "updatedAt": { "type": "string", "format": "date-time" },
+    "updatedBy": { "type": ["string", "null"] }
+  }
+}

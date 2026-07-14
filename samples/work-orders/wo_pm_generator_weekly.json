@@ -1,0 +1,57 @@
+{
+  "id": "wo_2026_000123",
+  "type": "workOrder",
+  "workOrderNumber": "WO-2026-000123",
+  "assetId": "ast_gen1",
+  "workOrderTypeCode": "PM",
+  "title": "Weekly generator inspection — GEN-1",
+  "description": "Auto-generated from the Standby Generator weekly schedule.",
+  "priority": "medium",
+  "status": "scheduled",
+  "dueDate": "2026-07-20T17:00:00Z",
+  "scheduledStart": "2026-07-20T08:00:00Z",
+  "scheduledEnd": "2026-07-20T09:00:00Z",
+  "workflowProfileKey": "default",
+  "scheduleId": "sch_gen_weekly",
+  "workRequestId": null,
+  "jobPlanId": "acp_standby_generator",
+  "jobPlanVersion": 1,
+  "parentWorkOrderId": null,
+  "dependsOn": [],
+  "assignedTo": { "kind": "crew", "id": "crew_syd_mech", "name": "Sydney Mechanical" },
+  "estimatedLabourHours": 3,
+  "actualLabourHours": null,
+  "onHold": null,
+  "snapshot": {
+    "jobPlanCode": "GEN",
+    "jobPlanVersion": 1,
+    "safetyInstructions": "Set control to MANUAL/OFF and lock off before intrusive work.",
+    "workOrderTypeCode": "PM",
+    "parameters": [
+      { "key": "maxExhaustTempC", "label": "Max exhaust temp", "value": 600, "unit": "°C" },
+      { "key": "oilGrade", "label": "Oil grade", "value": "Cat DEO 15W-40", "unit": null }
+    ],
+    "takenAt": "2026-07-13T00:00:00Z"
+  },
+  "tasks": [
+    { "id": "wot1", "jobPlanTaskId": "t1", "sequence": 1, "instruction": "Visual inspection for leaks/damage.", "responseType": "passfail", "completed": false },
+    { "id": "wot2", "jobPlanTaskId": "t2", "sequence": 2, "instruction": "Check coolant & oil levels.", "responseType": "passfail", "completed": false }
+  ],
+  "labour": [],
+  "parts": [
+    { "id": "pu1", "partRef": null, "description": "Oil filter", "reservedQty": 1, "consumedQty": null, "unit": "each", "unitCost": 24.5 }
+  ],
+  "failure": null,
+  "requiredPermits": [],
+  "attachments": [],
+  "comments": [],
+  "statusHistory": [
+    { "from": null, "to": "planned", "at": "2026-07-13T00:00:00Z", "by": "system:pm-generator", "reason": "Generated from schedule sch_gen_weekly." },
+    { "from": "planned", "to": "scheduled", "at": "2026-07-13T09:15:00Z", "by": "planner@example.com", "reason": null }
+  ],
+  "rev": 1,
+  "createdAt": "2026-07-13T00:00:00Z",
+  "createdBy": "system:pm-generator",
+  "updatedAt": "2026-07-13T09:15:00Z",
+  "updatedBy": "planner@example.com"
+}
