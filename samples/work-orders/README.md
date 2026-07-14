@@ -60,11 +60,14 @@ as keys/free text until those modules exist:
 
 ## What's next
 
+- **PM generation** — ✅ done. The lazy, idempotent engine that turns a schedule +
+  resolved class-family plan into snapshotted `planned` work orders lives in
+  [`apps/work-orders/`](../../apps/work-orders/README.md)
+  (`pm-generate.js` + demo + tests), with the
+  [`maintenance-schedule.schema.json`](../../schemas/maintenance-schedule.schema.json)
+  carrying the high-water marks. See [`../maintenance-schedules/`](../maintenance-schedules/).
 - **The app** — a work-order list/board + detail with the state machine driven by
   the profile (transition buttons gated by guards), mirroring `app.html`.
-- **PM generation** — the lazy, idempotent generator that turns a schedule +
-  class-family plan into snapshotted `planned` work orders (the missing link
-  between the job-plans module and this one).
 - **Convert endpoint** — `WorkRequest` → `WorkOrder` with provenance carried over.
 
 See the [roadmap](../../docs/architecture/08-roadmap.md) for how this sits in the

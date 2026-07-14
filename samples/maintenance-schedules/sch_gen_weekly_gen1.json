@@ -1,0 +1,23 @@
+{
+  "id": "sch_gen_weekly_gen1",
+  "type": "maintenanceSchedule",
+  "assetId": "ast_gen1",
+  "jobPlanId": "acp_standby_generator",
+  "planLevel": "instance",
+  "anchorDate": "2026-01-01",
+  "mergeWindowDays": 7,
+  "leadTimeDays": 7,
+  "priority": "medium",
+  "responsibleTeamId": "crew_syd_mech",
+  "workflowProfileKey": "default",
+  "active": true,
+  "highWaterMarks": {
+    "w": "2026-07-09",
+    "m": "2026-07-01",
+    "s": "2026-07-01"
+  },
+  "rev": 27,
+  "createdAt": "2026-01-01T00:00:00Z",
+  "updatedAt": "2026-07-13T00:00:00Z",
+  "updatedBy": "system:pm-generator"
+}

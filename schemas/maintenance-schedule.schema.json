@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://plantree/schemas/maintenance-schedule.json",
+  "title": "MaintenanceSchedule",
+  "description": "The WHEN & WHERE that turns a plan applied to an asset into generated work: it binds a job plan (or class-family plan, at a chosen level) to one asset, anchors the cadence in time, and holds the per-frequency high-water marks that keep generation IDEMPOTENT. In the serverless/file-based deployment, PM work is generated lazily when the app opens; the high-water marks are the state that stops the same due date being generated twice. One JSON document = one schedule (one plan applied to one asset).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "type", "assetId", "jobPlanId", "anchorDate", "highWaterMarks", "rev", "createdAt", "updatedAt"],
+  "properties": {
+    "id": { "type": "string", "description": "Opaque unique id, e.g. sch_gen_weekly_gen1." },
+    "type": { "const": "maintenanceSchedule" },
+    "assetId": { "type": "string", "description": "The asset this schedule generates work for." },
+    "jobPlanId": { "type": "string", "description": "The plan applied — a jobPlan or assetClassPlan id." },
+    "planLevel": {
+      "enum": ["class", "model", "instance"],
+      "default": "class",
+      "description": "For a class-family plan, which level's resolved effective plan to snapshot (class base, a model variant, or an instance). Ignored for a single job plan."
+    },
+    "anchorDate": {
+      "type": "string",
+      "format": "date",
+      "description": "The date the cadence is measured from (commissioning / last-done). The k-th occurrence of a frequency falls at anchorDate + k x (interval x unit); the first due is one interval after the anchor."
+    },
+    "mergeWindowDays": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 0,
+      "description": "Nesting (cannibalism) window: frequencies whose due dates fall within this many days of each other collapse into ONE work order — the longest-interval frequency drives it and absorbs the shorter ones (the de-duplicated union of their tasks). 0 = merge only exact-coincident due dates."
+    },
+    "leadTimeDays": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 0,
+      "description": "How far ahead of the due date a work order is generated, so planning/parts have runway. Generation covers due dates up to (asOf + leadTimeDays)."
+    },
+    "priority": {
+      "enum": ["low", "medium", "high", "urgent"],
+      "default": "medium",
+      "description": "Priority stamped on generated work orders. Combines with asset criticality downstream."
+    },
+    "responsibleTeamId": { "type": ["string", "null"], "description": "Default team generated work is assigned to." },
+    "workflowProfileKey": { "type": ["string", "null"], "description": "Workflow profile generated orders follow; null = the org default." },
+    "active": { "type": "boolean", "default": true, "description": "When false, no work is generated (the schedule is suspended without losing its high-water marks)." },
+    "highWaterMarks": {
+      "type": "object",
+      "description": "Per-frequency generation cursor: frequencyId -> the ISO date of the last due date already generated (or covered by a merge). Generation only emits due dates strictly after the mark, then advances it. Absent frequency = never generated yet (start from the anchor).",
+      "additionalProperties": { "type": "string", "format": "date" }
+    },
+    "rev": { "type": "integer", "minimum": 0, "description": "Optimistic-concurrency revision; bumped on every save." },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "createdBy": { "type": ["string", "null"] },
+    "updatedAt": { "type": "string", "format": "date-time" },
+    "updatedBy": { "type": ["string", "null"] }
+  }
+}

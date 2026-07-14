@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Plantree · PM generation</title>
+<style>
+  :root {
+    --bg:#0f1115; --panel:#171a21; --panel-2:#1f232c; --line:#2a2f3a; --line-2:#353b47;
+    --ink:#e7eaf0; --muted:#9aa4b2; --faint:#6b7482; --accent:#5b9dff; --accent-soft:#16233b;
+    --good:#4ec9a5; --good-soft:#12271f; --warn:#e0a83d; --warn-soft:#2a2110; --info:#8b7ff0;
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --bg:#f6f7f9; --panel:#fff; --panel-2:#f0f2f5; --line:#e2e5ea; --line-2:#d5d9e0;
+      --ink:#1c2129; --muted:#5a6472; --faint:#8a94a2; --accent-soft:#e8f0ff; --good-soft:#e4f5ee; --warn-soft:#fbf1dc; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--ink); }
+  header { padding:16px 20px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  header h1 { font-size:16px; margin:0; font-weight:600; }
+  header small { color:var(--muted); font-weight:400; }
+  .wrap { max-width:1000px; margin:0 auto; padding:20px; }
+  .controls { display:flex; gap:14px; flex-wrap:wrap; align-items:flex-end; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px; margin-bottom:16px; }
+  .controls label { display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--muted); }
+  .controls input { background:var(--panel-2); border:1px solid var(--line-2); color:var(--ink); border-radius:7px; padding:7px 9px; font:inherit; }
+  .controls button { background:var(--accent); color:#fff; border:0; border-radius:7px; padding:9px 16px; font:inherit; font-weight:600; cursor:pointer; align-self:flex-end; }
+  .summary { color:var(--muted); margin:0 0 14px; }
+  .summary b { color:var(--ink); }
+  .cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:12px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px; }
+  .card .top { display:flex; justify-content:space-between; align-items:baseline; gap:8px; margin-bottom:6px; }
+  .card .num { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; color:var(--faint); }
+  .card .title { font-weight:600; margin:0 0 8px; }
+  .chip { display:inline-block; font-size:11px; padding:1px 7px; border-radius:20px; border:1px solid var(--line-2); }
+  .chip.pm { color:var(--good); background:var(--good-soft); border-color:transparent; }
+  .chip.absorb { color:var(--warn); background:var(--warn-soft); border-color:transparent; margin-left:6px; }
+  .card ul { margin:6px 0 0; padding-left:18px; color:var(--muted); }
+  .card .due { color:var(--accent); font-weight:600; }
+  .log { margin-top:18px; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px 14px; }
+  .log h3 { margin:0 0 6px; font-size:13px; color:var(--muted); font-weight:600; }
+  .log pre { margin:0; white-space:pre-wrap; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; color:var(--faint); }
+  .note { color:var(--faint); font-size:12px; margin-top:18px; }
+  .note code { background:var(--panel-2); padding:1px 5px; border-radius:4px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Plantree · PM generation</h1>
+  <small>schedule + resolved plan → nested <code>planned</code> work orders</small>
+</header>
+<div class="wrap">
+  <div class="controls">
+    <label>Anchor date
+      <input id="anchor" type="date" value="2026-01-01" />
+    </label>
+    <label>Generate through (asOf)
+      <input id="asOf" type="date" value="2027-01-31" />
+    </label>
+    <label>Merge window (days)
+      <input id="merge" type="number" min="0" value="0" style="width:90px" />
+    </label>
+    <button id="run">Generate</button>
+  </div>
+
+  <p class="summary" id="summary"></p>
+  <div class="cards" id="cards"></div>
+
+  <div class="log">
+    <h3>Generation log</h3>
+    <pre id="log"></pre>
+  </div>
+
+  <p class="note">
+    A generator service programme (monthly / quarterly / 6-monthly / annual) applied to
+    GEN-1 from the anchor. Coincident cadences <b>nest</b>: the longest-interval frequency
+    drives one work order and absorbs the shorter ones (the de-duplicated union of tasks).
+    Re-running with the same <code>asOf</code> generates nothing — the schedule's
+    <code>highWaterMarks</code> keep it idempotent. Engine:
+    <code>apps/work-orders/pm-generate.js</code>.
+  </p>
+</div>
+
+<script src="pm-generate.js"></script>
+<script>
+  // A resolved effective plan (what the job-plans app computes by walking inheritance).
+  var PLAN = {
+    id: "acp_gen_demo", code: "GEN", version: 1, workOrderTypeCode: "PM",
+    safetyInstructions: "Set control to MANUAL/OFF and lock off before intrusive work.",
+    estimatedLabourHours: 3, requiredPermits: [],
+    parameters: [{ key: "oilGrade", label: "Oil grade", value: "Cat DEO 15W-40", unit: null }],
+    frequencies: [
+      { id: "m", unit: "month", interval: 1 },
+      { id: "q", unit: "month", interval: 3 },
+      { id: "s", unit: "month", interval: 6 },
+      { id: "y", unit: "year", interval: 1 }
+    ],
+    tasks: [
+      { id: "t1", instruction: "Check coolant & oil levels.", responseType: "passfail", frequencyIds: ["m"] },
+      { id: "t2", instruction: "Change oil & oil filter.", responseType: "passfail", frequencyIds: ["q"] },
+      { id: "t3", instruction: "Major service — injectors, valves.", responseType: "passfail", frequencyIds: ["s"] },
+      { id: "t4", instruction: "Full-load / building-load test.", responseType: "numeric", unit: "kW", acceptableRange: [400, 600], frequencyIds: ["y"] },
+      { id: "t5", instruction: "Visual inspection for leaks/damage.", responseType: "passfail", frequencyIds: ["m", "q", "s", "y"] }
+    ]
+  };
+
+  function esc(s) { return String(s).replace(/[&<>]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]; }); }
+
+  function run() {
+    var schedule = {
+      id: "sch_demo", type: "maintenanceSchedule", assetId: "GEN-1", jobPlanId: PLAN.id,
+      planLevel: "class", anchorDate: document.getElementById("anchor").value,
+      mergeWindowDays: parseInt(document.getElementById("merge").value, 10) || 0,
+      leadTimeDays: 0, priority: "medium", responsibleTeamId: "crew_syd_mech",
+      workflowProfileKey: "default", active: true, highWaterMarks: {}, rev: 0,
+      createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z"
+    };
+    var asOf = document.getElementById("asOf").value;
+    var r = PMGenerate.generate({ plan: PLAN, schedule: schedule, asOf: asOf, generatedAt: "2026-01-01T00:00:00Z" });
+
+    // naive occurrence count for the "collapsed from N" framing
+    var naive = r.log.length; // one log line per emitted WO — use absorbed count instead
+    var absorbed = r.workOrders.reduce(function (n, w) { var m = w.title.match(/absorbs ([^)]*)/); return n + (m ? m[1].split(",").length : 0); }, 0);
+    document.getElementById("summary").innerHTML =
+      "<b>" + r.workOrders.length + "</b> work orders generated through " + esc(asOf) +
+      " — <b>" + absorbed + "</b> shorter cadence drops absorbed by nesting.";
+
+    var cards = document.getElementById("cards");
+    cards.innerHTML = "";
+    r.workOrders.forEach(function (w) {
+      var absorb = w.title.match(/\(absorbs ([^)]*)\)/);
+      var baseTitle = w.title.replace(/\s*\(absorbs [^)]*\)/, "");
+      var div = document.createElement("div");
+      div.className = "card";
+      div.innerHTML =
+        '<div class="top"><span class="num">' + esc(w.workOrderNumber) + '</span>' +
+        '<span class="chip pm">' + esc(w.workOrderTypeCode) + '</span></div>' +
+        '<p class="title">' + esc(baseTitle) +
+        (absorb ? '<span class="chip absorb">absorbs ' + esc(absorb[1]) + '</span>' : '') + '</p>' +
+        '<div class="due">Due ' + esc(w.dueDate.slice(0, 10)) + '</div>' +
+        '<ul>' + w.tasks.map(function (t) { return '<li>' + esc(t.instruction) + '</li>'; }).join("") + '</ul>';
+      cards.appendChild(div);
+    });
+
+    document.getElementById("log").textContent = r.log.join("\n") +
+      "\n\nHigh-water marks after run: " + JSON.stringify(r.schedule.highWaterMarks);
+  }
+
+  document.getElementById("run").addEventListener("click", run);
+  run();
+</script>
+</body>
+</html>
