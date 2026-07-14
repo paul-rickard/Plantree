@@ -1,0 +1,235 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://plantree/schemas/asset-class-plan.json",
+  "title": "AssetClassPlan",
+  "description": "A class-family maintenance plan: one document holding an asset CLASS's base plan (versioned, like a job plan) plus the MODEL and INSTANCE override layers that inherit from it. The class defines the shared procedure once; models and instances derive from it at read time, taking local ownership only where they override, add or exclude. This extends the single-plan job-plan.schema.json — the class's versioned content mirrors a JobPlan version — and folds the version lifecycle back on top of Class -> Model -> Instance inheritance. One JSON document = one class family (all its models, instances and versions).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "type", "code", "name", "versions", "createdAt", "updatedAt", "rev"],
+  "properties": {
+    "id": { "type": "string", "description": "Opaque unique id, e.g. acp_standby_generator." },
+    "type": { "const": "assetClassPlan" },
+    "code": { "type": "string", "description": "Human-facing unique class code, e.g. GEN, UPS, CHILLER." },
+    "name": { "type": "string", "description": "Asset class name, e.g. Standby Generator." },
+    "description": { "type": ["string", "null"] },
+    "workOrderTypeCode": {
+      "type": ["string", "null"],
+      "pattern": "^[A-Z][A-Z0-9]{1,5}$",
+      "description": "The kind of work this plan drops, referencing a WorkOrderType by code (see work-order-type.schema.json). Work orders generated from this family take this type. Null defaults to PM (preventative)."
+    },
+    "rev": { "type": "integer", "minimum": 0, "description": "Optimistic-concurrency revision; bumped on every save." },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "createdBy": { "type": ["string", "null"] },
+    "updatedAt": { "type": "string", "format": "date-time" },
+    "updatedBy": { "type": ["string", "null"] },
+    "activeVersion": {
+      "type": ["integer", "null"],
+      "description": "Version number of the class base plan currently in the 'active' state, if any. At most one version is active. Model/instance overrides layer on top of the resolved active version."
+    },
+    "versions": {
+      "type": "array",
+      "minItems": 1,
+      "description": "All versions of the CLASS base plan, retained forever. A version is immutable once it leaves 'draft'. This is the shared procedure that models and instances inherit from and override.",
+      "items": { "$ref": "#/$defs/classVersion" }
+    },
+    "models": {
+      "type": "array",
+      "description": "Model-level override layers within this class (e.g. Caterpillar 3512 under Standby Generator). Each is a delta over the class's active version, and each carries its own instances. Overrides are current-state, not versioned — the work-order snapshot pins the class version and captures the resolved model/instance result.",
+      "items": { "$ref": "#/$defs/modelNode" }
+    }
+  },
+  "$defs": {
+    "classVersion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "lifecycleState", "tasks"],
+      "description": "One version of the class base plan. Mirrors job-plan.schema.json#/$defs/version, adding attribute-level 'enforced' locks so the class can forbid descendants from overriding safety-critical items.",
+      "properties": {
+        "version": { "type": "integer", "minimum": 1 },
+        "lifecycleState": {
+          "enum": ["draft", "approved", "active", "superseded", "retired"],
+          "description": "draft -> approved -> active -> superseded -> retired. Only 'draft' is editable."
+        },
+        "attrs": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Class-level plan attributes, each lockable. A locked (enforced) attribute cannot be overridden by any model or instance.",
+          "properties": {
+            "estimatedLabourHours": { "$ref": "#/$defs/lockableAttr" },
+            "safety": { "$ref": "#/$defs/lockableAttr" }
+          }
+        },
+        "frequencies": {
+          "type": "array",
+          "description": "Work-order generation frequencies the class plan can drop at (task x frequency matrix; each task maps via task.frequencyIds).",
+          "items": { "$ref": "https://plantree/schemas/job-plan.json#/$defs/frequency" }
+        },
+        "tasks": {
+          "type": "array",
+          "description": "The class's ordered task list. Each task may be enforced (descendants cannot exclude or re-map it).",
+          "items": { "$ref": "#/$defs/task" }
+        },
+        "plannedParts": { "type": "array", "items": { "$ref": "https://plantree/schemas/job-plan.json#/$defs/plannedPart" } },
+        "requiredSkills": { "type": "array", "items": { "type": "string" } },
+        "requiredTools": { "type": "array", "items": { "type": "string" } },
+        "requiredPermits": { "type": "array", "items": { "type": "string" } },
+        "parameters": {
+          "type": "array",
+          "description": "Named values the class plan is parameterised on. Each may be enforced (locked at the class value) or left open for models/instances to override.",
+          "items": { "$ref": "#/$defs/parameter" }
+        },
+        "approvedBy": { "type": ["string", "null"] },
+        "approvedAt": { "type": ["string", "null"] },
+        "notes": { "type": ["string", "null"] }
+      }
+    },
+    "lockableAttr": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value"],
+      "properties": {
+        "value": { "description": "The class default for this attribute." },
+        "enforced": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, the class locks this value; no model or instance may override it. Enforcing clears any existing overrides below."
+        }
+      }
+    },
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "instruction", "responseType"],
+      "description": "A class task. Extends job-plan.schema.json#/$defs/task (which keys on 'seq') with a stable 'id' — overrides and exclusions reference tasks by id, not position — and an 'enforced' lock.",
+      "properties": {
+        "id": { "type": "string", "description": "Stable task id, referenced by model/instance exclusions and mapOverrides." },
+        "instruction": { "type": "string" },
+        "responseType": {
+          "enum": ["none", "passfail", "numeric", "text", "choice"],
+          "description": "Expected response captured when the task is performed."
+        },
+        "unit": { "type": ["string", "null"], "description": "Unit for a numeric reading, e.g. V, A, mOhm." },
+        "acceptableRange": {
+          "type": ["array", "null"],
+          "items": { "type": "number" },
+          "minItems": 2,
+          "maxItems": 2,
+          "description": "[low, high] acceptance bounds for a numeric reading."
+        },
+        "choices": {
+          "type": ["array", "null"],
+          "items": { "type": "string" },
+          "description": "Options for a 'choice' response."
+        },
+        "requiredSkills": { "type": "array", "items": { "type": "string" } },
+        "frequencyIds": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Ids of the frequencies this task drops at (its ticked cells in the matrix). A task may belong to several frequencies."
+        },
+        "enforced": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, the class locks this task: descendants cannot exclude it or re-map its frequencies."
+        }
+      }
+    },
+    "parameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "key", "label", "valueType"],
+      "description": "A class parameter. Extends job-plan.schema.json#/$defs/parameter with a stable 'id' (override keys reference it) and an 'enforced' lock.",
+      "properties": {
+        "id": { "type": "string", "description": "Stable parameter id, referenced by model/instance paramOverrides." },
+        "key": { "type": "string" },
+        "label": { "type": "string" },
+        "valueType": { "enum": ["number", "text", "boolean"] },
+        "defaultValue": {},
+        "unit": { "type": ["string", "null"] },
+        "enforced": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, the class locks this parameter at defaultValue; no model or instance may override it."
+        }
+      }
+    },
+    "modelNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "code", "name"],
+      "description": "A model-level override layer (e.g. Caterpillar 3512). Holds only its deltas over the resolved class version (see $defs/overrideLayer for the field semantics), plus its instances.",
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string" },
+        "name": { "type": "string" },
+        "attrOverrides": { "$ref": "#/$defs/overrideLayer/properties/attrOverrides" },
+        "paramOverrides": { "$ref": "#/$defs/overrideLayer/properties/paramOverrides" },
+        "addedFreqs": { "$ref": "#/$defs/overrideLayer/properties/addedFreqs" },
+        "addedTasks": { "$ref": "#/$defs/overrideLayer/properties/addedTasks" },
+        "exclusions": { "$ref": "#/$defs/overrideLayer/properties/exclusions" },
+        "mapOverrides": { "$ref": "#/$defs/overrideLayer/properties/mapOverrides" },
+        "instances": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/instanceNode" }
+        }
+      }
+    },
+    "instanceNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "code", "name"],
+      "description": "An instance-level override layer (a physical unit, e.g. GEN-1 @ SYD1). Same deltas as a model (see $defs/overrideLayer), plus its site; instances have no children.",
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string" },
+        "name": { "type": "string" },
+        "site": { "type": ["string", "null"], "description": "Site code where this instance lives, e.g. SYD1." },
+        "attrOverrides": { "$ref": "#/$defs/overrideLayer/properties/attrOverrides" },
+        "paramOverrides": { "$ref": "#/$defs/overrideLayer/properties/paramOverrides" },
+        "addedFreqs": { "$ref": "#/$defs/overrideLayer/properties/addedFreqs" },
+        "addedTasks": { "$ref": "#/$defs/overrideLayer/properties/addedTasks" },
+        "exclusions": { "$ref": "#/$defs/overrideLayer/properties/exclusions" },
+        "mapOverrides": { "$ref": "#/$defs/overrideLayer/properties/mapOverrides" }
+      }
+    },
+    "overrideLayer": {
+      "$comment": "Not used directly as a node type; it is the canonical definition of the delta fields a model or instance may apply over its parent. modelNode and instanceNode reference these property schemas by pointer so the semantics are declared once. Empty layer = pure inheritance. An override is frozen against parent change until reverted; an enforced parent field cannot be overridden.",
+      "type": "object",
+      "properties": {
+        "attrOverrides": {
+          "type": "object",
+          "description": "Attribute value overrides, keyed by attribute name (e.g. estimatedLabourHours). Only unlocked class attributes may appear.",
+          "additionalProperties": true
+        },
+        "paramOverrides": {
+          "type": "object",
+          "description": "Parameter value overrides, keyed by class parameter id. Only unlocked class parameters may appear.",
+          "additionalProperties": true
+        },
+        "addedFreqs": {
+          "type": "array",
+          "description": "Frequencies added at this level, on top of the inherited matrix columns.",
+          "items": { "$ref": "https://plantree/schemas/job-plan.json#/$defs/frequency" }
+        },
+        "addedTasks": {
+          "type": "array",
+          "description": "Tasks added at this level, beyond the inherited class tasks.",
+          "items": { "$ref": "#/$defs/task" }
+        },
+        "exclusions": {
+          "type": "array",
+          "description": "Ids of inherited (non-enforced) class tasks this level removes.",
+          "items": { "type": "string" }
+        },
+        "mapOverrides": {
+          "type": "object",
+          "description": "Per-task frequency re-mapping, keyed by inherited task id -> array of frequency ids. Replaces that task's inherited ticked cells at this level. Enforced tasks cannot be re-mapped.",
+          "additionalProperties": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

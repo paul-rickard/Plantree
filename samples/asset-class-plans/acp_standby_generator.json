@@ -1,0 +1,76 @@
+{
+  "id": "acp_standby_generator",
+  "type": "assetClassPlan",
+  "code": "GEN",
+  "name": "Standby Generator",
+  "description": "Standby diesel generators. Class base plan with Caterpillar 3512 model and GEN-1 @ SYD1 instance override layers.",
+  "workOrderTypeCode": "PM",
+  "rev": 0,
+  "createdAt": "2026-07-14T00:00:00Z",
+  "updatedAt": "2026-07-14T00:00:00Z",
+  "activeVersion": 1,
+  "versions": [
+    {
+      "version": 1,
+      "lifecycleState": "active",
+      "attrs": {
+        "estimatedLabourHours": { "value": 3, "enforced": false },
+        "safety": { "value": "Set control to MANUAL/OFF and lock off before intrusive work.", "enforced": true }
+      },
+      "frequencies": [
+        { "id": "w", "unit": "week", "interval": 1 },
+        { "id": "m", "unit": "month", "interval": 1 },
+        { "id": "s", "unit": "month", "interval": 6 },
+        { "id": "y", "unit": "year", "interval": 1 }
+      ],
+      "tasks": [
+        { "id": "t1", "instruction": "Visual inspection for leaks/damage.", "responseType": "passfail", "frequencyIds": ["w"] },
+        { "id": "t2", "instruction": "Check coolant & oil levels.", "responseType": "passfail", "frequencyIds": ["w", "m"] },
+        { "id": "t3", "instruction": "No-load test run (15 min).", "responseType": "passfail", "frequencyIds": ["m"] },
+        { "id": "t4", "instruction": "Change oil & oil filter.", "responseType": "passfail", "frequencyIds": ["s"] },
+        { "id": "t5", "instruction": "Full-load / building-load test.", "responseType": "numeric", "frequencyIds": ["y"], "enforced": true }
+      ],
+      "plannedParts": [
+        { "partRef": null, "description": "Oil filter", "quantity": 1, "unit": "each" }
+      ],
+      "requiredSkills": ["Mechanical", "Electrical – LV"],
+      "requiredTools": [],
+      "requiredPermits": [],
+      "parameters": [
+        { "id": "p_exh", "key": "maxExhaustTempC", "label": "Max exhaust temp", "valueType": "number", "defaultValue": 600, "unit": "°C", "enforced": true },
+        { "id": "p_oil", "key": "oilGrade", "label": "Oil grade", "valueType": "text", "defaultValue": "15W-40", "unit": null, "enforced": false }
+      ]
+    }
+  ],
+  "models": [
+    {
+      "id": "gm1",
+      "code": "CAT-3512",
+      "name": "Caterpillar 3512",
+      "attrOverrides": {},
+      "paramOverrides": { "p_oil": "Cat DEO 15W-40" },
+      "addedFreqs": [],
+      "addedTasks": [
+        { "id": "gm1t1", "instruction": "Verify ECM firmware ≥ 4.2.", "responseType": "passfail", "frequencyIds": ["s"] }
+      ],
+      "exclusions": [],
+      "mapOverrides": {},
+      "instances": [
+        {
+          "id": "gi1",
+          "code": "GEN-1",
+          "name": "GEN-1",
+          "site": "SYD1",
+          "attrOverrides": { "estimatedLabourHours": 3.5 },
+          "paramOverrides": {},
+          "addedFreqs": [],
+          "addedTasks": [
+            { "id": "gi1t1", "instruction": "Clean radiator core (dusty site).", "responseType": "passfail", "frequencyIds": ["m"] }
+          ],
+          "exclusions": [],
+          "mapOverrides": { "t2": ["m"] }
+        }
+      ]
+    }
+  ]
+}

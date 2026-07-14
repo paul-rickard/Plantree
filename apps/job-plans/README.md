@@ -14,7 +14,9 @@ schedules exist.
 | `apps/job-plans/inheritance-demo.html` | Working demo of **Class → Model → Instance** template inheritance with attribute-level locks (see below). |
 | `apps/job-plans/matrix-demo.html` | Working demo of the **task × frequency matrix** — one plan, every cadence (see below). |
 | `apps/job-plans/pm-model-demo.html` | **Combined** demo: inheritance + matrix + work-order nesting in one view (see below). |
-| `schemas/job-plan.schema.json` | The job-plan document contract (JSON Schema, draft 2020-12). This is the architecture, made executable. |
+| `schemas/job-plan.schema.json` | The single-plan document contract (JSON Schema, draft 2020-12). This is the architecture, made executable. |
+| `schemas/asset-class-plan.schema.json` | The **class-family** contract (`assetClassPlan`): a versioned class base plan + Class → Model → Instance override layers. Extends `job-plan.schema.json`. |
+| `samples/asset-class-plans/acp_standby_generator.json` | Worked class-family example (Standby Generator → Caterpillar 3512 → GEN-1) — also a schema fixture. |
 | `samples/job-plans/jp_ups_quarterly_inspection.json` | Worked example (Quarterly UPS Inspection) — also a schema fixture. |
 | `samples/job-plans/jp_generator_maintenance.json` | Worked example with a full frequency matrix (generator programme). |
 
@@ -118,9 +120,13 @@ inheritance + its own) and lists the plans applied to it — the snapshot a work
 order would freeze.
 
 > This app models the **class-family inheritance** (`assetClassPlan`), which
-> extends the single-plan `job-plan.schema.json`. Formalising the family schema
-> (and folding version lifecycle back in on top of inheritance) is the next
-> architecture step.
+> extends the single-plan `job-plan.schema.json`. The family document is now
+> formalised in [`schemas/asset-class-plan.schema.json`](../../schemas/asset-class-plan.schema.json)
+> — the class base plan is versioned (folding the version lifecycle back on top of
+> inheritance), with model/instance override layers on top — and described in
+> [maintenance strategy application](../../docs/architecture/10-maintenance-strategy-application.md#the-class-family-plan-class--model--instance).
+> A worked fixture lives at
+> [`samples/asset-class-plans/acp_standby_generator.json`](../../samples/asset-class-plans/acp_standby_generator.json).
 
 ## Template inheritance (`inheritance-demo.html`)
 
@@ -143,9 +149,9 @@ by walking the tree, in one of three states:
 
 The side panel shows each node's **effective plan** — the resolved snapshot a
 work order would freeze at creation, so upstream edits never rewrite history.
-This model is a candidate to formalise in
-[`docs/architecture/10-maintenance-strategy-application.md`](../../docs/architecture/10-maintenance-strategy-application.md)
-once it's settled; it is not yet in the architecture docs.
+This model is now formalised in
+[`docs/architecture/10-maintenance-strategy-application.md`](../../docs/architecture/10-maintenance-strategy-application.md#the-class-family-plan-class--model--instance)
+and its schema, [`schemas/asset-class-plan.schema.json`](../../schemas/asset-class-plan.schema.json).
 
 ## Maintenance matrix (`matrix-demo.html`)
 

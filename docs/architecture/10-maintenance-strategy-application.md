@@ -106,6 +106,57 @@ Two non-negotiable behaviours:
    Explainability is a first-class feature, not a debug aid: it makes maintenance
    reviews safe.
 
+## The class-family plan: Class → Model → Instance
+
+The rule above — *apply at the highest level, override downward* — is made
+concrete by the **class-family plan** (`assetClassPlan`, see
+[`schemas/asset-class-plan.schema.json`](../../schemas/asset-class-plan.schema.json)).
+One document holds an asset **class's** base plan plus the **model** and
+**instance** override layers that inherit from it, so the shared procedure is
+maintained once and specialised downward without copying.
+
+```
+Class   Standby Generator     base plan (tasks, matrix, parameters, safety)
+  └ Model   Caterpillar 3512     deltas: adds ECM-firmware check, sets oil grade
+      └ Instance   GEN-1 @ SYD1     deltas: +radiator clean, longer labour hours
+```
+
+Every field resolves by walking the family from the class down, in one of four
+states:
+
+- **Inherited** — follows the parent; a class edit flows down automatically,
+  because models and instances *derive* at read time (no batch push, no drift).
+- **Overridden** — a model or instance has taken local ownership of a value,
+  added a task, excluded an inherited task, or re-mapped a task's frequencies; it
+  is now frozen against parent change until reverted.
+- **Enforced** — the class has *locked* a value or task so no descendant can
+  override it (for safety-critical items). Enforcing clears any existing
+  overrides below.
+- **Added** — a task or frequency introduced at the model/instance level, beyond
+  what the class defines.
+
+A model/instance holds **only its deltas** (`attrOverrides`, `paramOverrides`,
+`addedTasks`, `exclusions`, `mapOverrides`, `addedFreqs`) — never a copy of the
+plan. An empty layer is pure inheritance. This is the same *exceptions, not
+copies* discipline as the section below, expressed as the physical document
+shape, and it is why the system can always
+[explain **why**](#apply-at-the-highest-sensible-level-override-downward) a value
+holds: the resolved state carries the level it came from.
+
+### Version lifecycle folds on top of inheritance
+
+Inheritance and the [version lifecycle](#versioning--never-silently-alter-history)
+are orthogonal, and the family document layers them: the **class base plan is
+versioned** (`versions[]`, each a `draft → approved → active → superseded →
+retired` snapshot that mirrors a [`JobPlan`](../../schemas/job-plan.schema.json)
+version), while **model and instance overrides are current-state deltas**, not
+independently versioned. Resolution reads the class's **active** version and
+applies the override layers on top. When a schedule generates a work order, the
+[snapshot](#the-work-order-snapshot) pins that class version *and* freezes the
+resolved model/instance result — so history stays truthful even as the class is
+revised or an override is later changed. This keeps one immutable procedure
+lineage per class while letting each unit's specialisation stay live.
+
 ## Handle variations as parameters first
 
 Before creating another job plan, ask whether the difference is just **data**. A
