@@ -14,6 +14,11 @@
     "description": { "type": ["string", "null"] },
     "assetClass": { "type": ["string", "null"], "description": "Asset class this plan belongs to (e.g. UPS, Generator, Chiller). Plans roll up under their class in the gallery, alphabetically." },
     "assetModel": { "type": ["string", "null"], "description": "Optional asset model within the class (e.g. Schneider Galaxy VX). When present, plans sub-group by model under the class." },
+    "workOrderTypeCode": {
+      "type": ["string", "null"],
+      "pattern": "^[A-Z][A-Z0-9]{1,5}$",
+      "description": "The kind of work this plan drops, referencing a WorkOrderType by code (see work-order-type.schema.json). Not everything a job plan generates is preventive — a plan might raise administrative (AD) or operations (OP) work, e.g. a monthly compliance return or an operator round. Work orders generated from this plan take this type. Null defaults to PM (preventative)."
+    },
     "rev": { "type": "integer", "minimum": 0, "description": "Optimistic-concurrency revision; bumped on every save." },
     "createdAt": { "type": "string", "format": "date-time" },
     "createdBy": { "type": ["string", "null"] },

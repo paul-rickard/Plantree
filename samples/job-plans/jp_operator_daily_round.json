@@ -1,0 +1,67 @@
+{
+  "id": "jp_operator_daily_round",
+  "type": "jobPlan",
+  "code": "JP-OPS-ROUND",
+  "name": "Daily Operator Round — Plant Room",
+  "description": "Start-of-shift operator walk of the plant room: read gauges, confirm running state, log observations. Operational work, not maintenance — drops as an OP work order, so it is excluded from maintenance-cost and PM-compliance reporting.",
+  "assetClass": "Plant Room",
+  "assetModel": null,
+  "workOrderTypeCode": "OP",
+  "rev": 0,
+  "createdAt": "2026-07-14T00:00:00Z",
+  "createdBy": null,
+  "updatedAt": "2026-07-14T00:00:00Z",
+  "updatedBy": null,
+  "activeVersion": 1,
+  "versions": [
+    {
+      "version": 1,
+      "lifecycleState": "active",
+      "estimatedLabourHours": 0.25,
+      "safetyInstructions": "Hearing protection in the plant room. Do not open panels — reading and observation only.",
+      "frequencies": [
+        { "id": "freq_daily", "label": "Daily", "unit": "day", "interval": 1, "basis": "calendar" }
+      ],
+      "tasks": [
+        {
+          "seq": 1,
+          "instruction": "Confirm all running plant is in its expected state (running / standby).",
+          "responseType": "passfail",
+          "unit": null,
+          "acceptableRange": null,
+          "choices": null,
+          "requiredSkills": [],
+          "frequencyIds": ["freq_daily"]
+        },
+        {
+          "seq": 2,
+          "instruction": "Record chilled-water flow temperature.",
+          "responseType": "numeric",
+          "unit": "degC",
+          "acceptableRange": [4, 9],
+          "choices": null,
+          "requiredSkills": [],
+          "frequencyIds": ["freq_daily"]
+        },
+        {
+          "seq": 3,
+          "instruction": "Note any abnormal noise, leak, alarm or observation.",
+          "responseType": "text",
+          "unit": null,
+          "acceptableRange": null,
+          "choices": null,
+          "requiredSkills": [],
+          "frequencyIds": ["freq_daily"]
+        }
+      ],
+      "plannedParts": [],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "requiredPermits": [],
+      "parameters": [],
+      "approvedBy": null,
+      "approvedAt": null,
+      "notes": "Failed checks or logged abnormalities raise a work request, which a planner may convert into RM (reactive) work."
+    }
+  ]
+}

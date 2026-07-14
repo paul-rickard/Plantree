@@ -206,7 +206,10 @@ work-order snapshot (below).
 When a schedule generates a work order, Plantree **snapshots** the applicable
 content onto the work order: the pinned job-plan version, the resolved parameter
 values (from asset/model), the tasks, readings and acceptance criteria, and any
-active exception. The snapshot is what the technician executes and what history
+active exception. The generated work order also takes the plan's
+[`workOrderTypeCode`](03-data-dictionary.md#jobplan-versioned), so a plan raising
+administrative or operations work is classified correctly rather than defaulting
+to preventive. The snapshot is what the technician executes and what history
 retains.
 
 Consequently:
