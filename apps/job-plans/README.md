@@ -54,8 +54,11 @@ inheritance state.
   model/instance auto-creates a local override), a **what-generates** card per
   frequency, and the **nested 12-month schedule** (coincident drops collapse into
   one work order — the cannibalism model).
-- **Details** — node identity; **Attributes** (labour, safety) and
-  **Parameters** each shown as **Inherited / Overridden / Enforced**:
+- **Details** — node identity, including the **work-order type** the plan drops
+  (`PM` / `RM` / `AD` / `OP`, set at the class and shown as a coloured chip in
+  the header) — not all recurring work is preventive, so an operator round can
+  drop as `OP`; **Attributes** (labour, safety) and **Parameters** each shown as
+  **Inherited / Overridden / Enforced**:
   - at a **class**, edit the value and toggle **🔒 Enforce** (locks it for all
     models/instances; enforcing clears any existing overrides below);
   - at a **model/instance**, **Override** an unlocked value or **Revert** to

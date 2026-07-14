@@ -194,6 +194,17 @@
   "use strict";
   var UNIT = { day: "Daily", week: "Weekly", month: "Monthly", year: "Annual" };
   var RESP = ["none", "passfail", "numeric", "text", "choice"];
+  // Seeded work-order type catalogue (mirrors samples/work-order-types). A plan
+  // drops work orders of the selected type — not everything is preventive.
+  var WORK_ORDER_TYPES = [
+    { code: "PM", name: "Preventative Maintenance", colour: "#2e7d32" },
+    { code: "RM", name: "Reactive Maintenance", colour: "#c62828" },
+    { code: "AD", name: "Administrative", colour: "#607d8b" },
+    { code: "OP", name: "Operations", colour: "#1565c0" }
+  ];
+  function wotByCode(c) { return WORK_ORDER_TYPES.filter(function (w) { return w.code === c; })[0] || null; }
+  function wotChip(code) { var w = wotByCode(code) || { code: code || "PM", name: "", colour: "#607d8b" }; return el("span", { class: "prov", title: "Work-order type — work generated from this plan is raised as " + w.code + (w.name ? " (" + w.name + ")" : ""), style: "color:" + w.colour + ";background:color-mix(in srgb," + w.colour + " 14%,transparent);border:1px solid color-mix(in srgb," + w.colour + " 34%,transparent)" }, [w.code]); }
+  function wotSelect(obj, key) { var cur = obj[key] || "PM"; var s = el("select", {}, WORK_ORDER_TYPES.map(function (w) { return el("option", { value: w.code, selected: w.code === cur }, [w.code + " — " + w.name]); })); s.addEventListener("change", function () { obj[key] = s.value; renderDetail(); refreshInspect(); }); return s; }
   var fsaSupported = typeof window.showDirectoryPicker === "function";
   var families = [], folderHandle = null;
   var G = { q: "", collapsed: {} };
@@ -214,7 +225,7 @@
   function T(id, i, r, f, opt) { return Object.assign({ id: id, instruction: i, responseType: r, unit: null, acceptableRange: null, choices: null, requiredSkills: [], frequencyIds: f || [], enforced: false }, opt || {}); }
   function seed() {
     return [
-      { id: "gen", code: "GEN", name: "Standby Generator", description: "Standby diesel generators.",
+      { id: "gen", code: "GEN", name: "Standby Generator", description: "Standby diesel generators.", workOrderTypeCode: "PM",
         attrs: { estimatedLabourHours: { value: 3, enforced: false }, safety: { value: "Set control to MANUAL/OFF and lock off before intrusive work.", enforced: true } },
         parameters: [ { id: "p_exh", key: "maxExhaustTempC", label: "Max exhaust temp", valueType: "number", defaultValue: 600, unit: "°C", enforced: true }, { id: "p_oil", key: "oilGrade", label: "Oil grade", valueType: "text", defaultValue: "15W-40", unit: null, enforced: false } ],
         frequencies: [ { id: "w", unit: "week", interval: 1 }, { id: "m", unit: "month", interval: 1 }, { id: "s", unit: "month", interval: 6 }, { id: "y", unit: "year", interval: 1 } ],
@@ -222,7 +233,7 @@
         plannedParts: [ { partRef: null, description: "Oil filter", quantity: 1, unit: "each" } ], requiredSkills: ["Mechanical", "Electrical – LV"], requiredTools: [], requiredPermits: [],
         models: [ { id: "gm1", code: "CAT-3512", name: "Caterpillar 3512", attrOverrides: {}, paramOverrides: { p_oil: "Cat DEO 15W-40" }, addedFreqs: [], addedTasks: [ T("gm1t1", "Verify ECM firmware ≥ 4.2.", "passfail", ["s"]) ], exclusions: [], mapOverrides: {},
           instances: [ { id: "gi1", code: "GEN-1", name: "GEN-1", site: "SYD1", attrOverrides: { estimatedLabourHours: 3.5 }, paramOverrides: {}, addedFreqs: [], addedTasks: [ T("gi1t1", "Clean radiator core (dusty site).", "passfail", ["m"]) ], exclusions: [], mapOverrides: { t2: ["m"] } } ] } ] },
-      { id: "ups", code: "UPS", name: "Uninterruptible Power Supply", description: "Static UPS units.",
+      { id: "ups", code: "UPS", name: "Uninterruptible Power Supply", description: "Static UPS units.", workOrderTypeCode: "PM",
         attrs: { estimatedLabourHours: { value: 1.5, enforced: false }, safety: { value: "Confirm bypass or redundant path covers the load before intrusive work.", enforced: true } },
         parameters: [ { id: "p_imp", key: "maxImpedanceMilliOhm", label: "Max cell impedance", valueType: "number", defaultValue: 5.0, unit: "mΩ", enforced: false } ],
         frequencies: [ { id: "q", label: "Quarterly", unit: "month", interval: 3 } ],
@@ -325,7 +336,7 @@
     return el("div", { class: "dhead" }, [
       el("div", { style: "display:flex;align-items:center;gap:10px;min-width:0" }, [
         el("button", { class: "btn sm ghost back-mobile", onclick: mobileBack, title: "Back to tree" }, ["‹ Tree"]),
-        el("div", { style: "min-width:0" }, [el("div", { class: "dtitle", id: "dTitle" }, [node.name || "Untitled"]), el("div", { class: "dsub" }, [el("span", { class: "nbadge nb-" + lvl }, [lvl]), el("span", { class: "code" }, [node.code || "—"]), crumb])])
+        el("div", { style: "min-width:0" }, [el("div", { class: "dtitle", id: "dTitle" }, [node.name || "Untitled"]), el("div", { class: "dsub" }, [el("span", { class: "nbadge nb-" + lvl }, [lvl]), el("span", { class: "code" }, [node.code || "—"]), wotChip(f.workOrderTypeCode), crumb])])
       ]),
       el("div", { class: "dhead-right" }, [ el("span", { class: "dirty", id: "dirtyTag", style: dirty() ? "" : "display:none" }, ["Unsaved"]), lvl !== "class" ? el("button", { class: "btn sm", onclick: addInstanceOrModelHint }, [lvl === "model" ? "+ Instance" : ""]) : el("button", { class: "btn sm", onclick: addModel }, ["+ Model"]), el("button", { class: "btn sm ghost", onclick: function () { openInspect(); } }, ["Effective plan { }"]), el("button", { class: "btn primary", onclick: save }, ["Save"]) ])
     ]);
@@ -427,7 +438,11 @@
     /* identity */
     var idf = [el("div", { class: "g2" }, [labeled(lvl === "class" ? "Class code" : lvl === "model" ? "Model code" : "Instance code", bindInput(node, "code", { placeholder: "CODE", after: syncHead })), labeled("Name", bindInput(node, "name", { placeholder: "Name", after: syncHead }))])];
     if (lvl === "instance") idf.push(labeled("Site", bindInput(node, "site", { placeholder: "SYD1" })));
-    if (lvl === "class") idf.push(labeled("Description", bindInput(node, "description", { tag: "textarea", placeholder: "Optional…" })));
+    if (lvl === "class") {
+      idf.push(labeled("Work-order type", wotSelect(f, "workOrderTypeCode")));
+      idf.push(el("div", { class: "hint" }, ["Work orders generated from this plan are raised as this type. Most maintenance plans are PM; use OP for operational routines (operator rounds), AD for administrative work, RM for standing corrective plans."]));
+      idf.push(labeled("Description", bindInput(node, "description", { tag: "textarea", placeholder: "Optional…" })));
+    }
     w.appendChild(sec(lvl === "class" ? "Class identity" : lvl === "model" ? "Model identity" : "Instance identity", null, null, idf));
 
     /* attributes with locking */
@@ -490,7 +505,7 @@
   function pull(a, id) { var i = a.indexOf(id); if (i >= 0) a.splice(i, 1); } function pullBy(a, id) { for (var i = 0; i < a.length; i++) if (a[i].id === id) { a.splice(i, 1); return; } }
 
   /* ---------- effective plan + dirty ---------- */
-  function effectivePlan() { var ch = chain(), a = {}; ["estimatedLabourHours", "safety"].forEach(function (k) { a[k] = effAttr(ch, k).value; }); var params = {}; selFamily().parameters.forEach(function (p) { params[p.key] = effParam(ch, p).value; }); var tasks = effTasks(ch).filter(function (r) { return !r.excluded; }).map(function (r, i) { return { seq: i + 1, instruction: r.task.instruction, responseType: r.task.responseType, frequencyIds: effTicks(ch, r) }; }); return { node: selNode().code, level: level(), estimatedLabourHours: a.estimatedLabourHours, safetyInstructions: a.safety, parameters: params, frequencies: effFreqs(ch).map(function (f) { return { id: f.id, label: freqLabel(f), unit: f.unit, interval: f.interval }; }), tasks: tasks }; }
+  function effectivePlan() { var ch = chain(), a = {}; ["estimatedLabourHours", "safety"].forEach(function (k) { a[k] = effAttr(ch, k).value; }); var params = {}; selFamily().parameters.forEach(function (p) { params[p.key] = effParam(ch, p).value; }); var tasks = effTasks(ch).filter(function (r) { return !r.excluded; }).map(function (r, i) { return { seq: i + 1, instruction: r.task.instruction, responseType: r.task.responseType, frequencyIds: effTicks(ch, r) }; }); var wcode = selFamily().workOrderTypeCode || "PM", wt = wotByCode(wcode); return { node: selNode().code, level: level(), workOrderType: wt ? { code: wt.code, name: wt.name } : wcode, estimatedLabourHours: a.estimatedLabourHours, safetyInstructions: a.safety, parameters: params, frequencies: effFreqs(ch).map(function (f) { return { id: f.id, label: freqLabel(f), unit: f.unit, interval: f.interval }; }), tasks: tasks }; }
   var _clean = {};
   function famKey() { return E.fam < 0 ? "" : selFamily().id; }
   function snapshotClean() { _clean[famKey()] = JSON.stringify(selFamily()); }
@@ -706,11 +721,11 @@
   function famDoc(f) { return Object.assign({ type: "assetClassPlan" }, f); }
   async function save() { if (E.fam < 0) return; var f = selFamily(); var out = famDoc(f); var text = JSON.stringify(out, null, 2), fname = (f.code || f.id || "class").toLowerCase() + ".json"; try { var handle = f._handle || null; if (!handle && folderHandle && fsaSupported) handle = await folderHandle.getFileHandle(fname, { create: true }); if (!handle && fsaSupported) handle = await window.showSaveFilePicker({ suggestedName: fname, types: [{ description: "JSON", accept: { "application/json": [".json"] } }] }); if (handle) { if (!(await verify(handle))) return; var wt = await handle.createWritable(); await wt.write(text); await wt.close(); f._handle = handle; } else { var blob = new Blob([text], { type: "application/json" }); var url = URL.createObjectURL(blob); var a = el("a", { href: url, download: fname }); document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); } snapshotClean(); renderDetail(); } catch (e) { if (e.name !== "AbortError") alert("Save failed: " + e.message); } }
   function ingest(list, fh) { var fams = list.filter(function (o) { return o && (o.type === "assetClassPlan" || o.models); }).map(function (o) { normalizeFam(o); return o; }); if (!fams.length) { alert("No asset-class plans found (files need \"type\": \"assetClassPlan\")."); return; } families = fams; folderHandle = fh || null; E = { fam: -1, mi: -1, ii: -1, tab: "tasks" }; _clean = {}; renderAll(); }
-  function normalizeFam(f) { f.models = f.models || []; f.parameters = f.parameters || []; f.frequencies = f.frequencies || []; f.tasks = f.tasks || []; f.attrs = f.attrs || {}; ["plannedParts", "requiredSkills", "requiredTools", "requiredPermits"].forEach(function (k) { f[k] = f[k] || []; }); f.models.forEach(function (m) { ["addedFreqs", "addedTasks", "exclusions", "instances"].forEach(function (k) { m[k] = m[k] || []; }); m.attrOverrides = m.attrOverrides || {}; m.paramOverrides = m.paramOverrides || {}; m.mapOverrides = m.mapOverrides || {}; m.instances.forEach(function (i) { ["addedFreqs", "addedTasks", "exclusions"].forEach(function (k) { i[k] = i[k] || []; }); i.attrOverrides = i.attrOverrides || {}; i.paramOverrides = i.paramOverrides || {}; i.mapOverrides = i.mapOverrides || {}; }); }); }
+  function normalizeFam(f) { f.workOrderTypeCode = f.workOrderTypeCode || "PM"; f.models = f.models || []; f.parameters = f.parameters || []; f.frequencies = f.frequencies || []; f.tasks = f.tasks || []; f.attrs = f.attrs || {}; ["plannedParts", "requiredSkills", "requiredTools", "requiredPermits"].forEach(function (k) { f[k] = f[k] || []; }); f.models.forEach(function (m) { ["addedFreqs", "addedTasks", "exclusions", "instances"].forEach(function (k) { m[k] = m[k] || []; }); m.attrOverrides = m.attrOverrides || {}; m.paramOverrides = m.paramOverrides || {}; m.mapOverrides = m.mapOverrides || {}; m.instances.forEach(function (i) { ["addedFreqs", "addedTasks", "exclusions"].forEach(function (k) { i[k] = i[k] || []; }); i.attrOverrides = i.attrOverrides || {}; i.paramOverrides = i.paramOverrides || {}; i.mapOverrides = i.mapOverrides || {}; }); }); }
   async function walk(dir, out, depth) { if (depth > 6) return; for await (var entry of dir.values()) { if (entry.kind === "file" && entry.name.toLowerCase().endsWith(".json")) { try { var file = await entry.getFile(); var o = JSON.parse(await file.text()); if (o && (o.type === "assetClassPlan" || o.models)) { o._handle = entry; out.push(o); } } catch (e) {} } else if (entry.kind === "directory") await walk(entry, out, depth + 1); } }
   async function openFolder() { try { var dir = await window.showDirectoryPicker({ mode: "readwrite" }); var out = []; await walk(dir, out, 0); ingest(out, dir); } catch (e) { if (e.name !== "AbortError") alert("Could not open folder: " + e.message); } }
   function readFiles(fl) { var files = Array.prototype.slice.call(fl).filter(function (f) { return f.name.toLowerCase().endsWith(".json"); }); var out = [], pend = files.length; if (!pend) return; files.forEach(function (f) { var r = new FileReader(); r.onload = function () { try { var o = JSON.parse(r.result); out.push(o); } catch (e) {} finally { if (--pend === 0) ingest(out, null); } }; r.onerror = function () { if (--pend === 0) ingest(out, null); }; r.readAsText(f); }); }
-  function newClass() { var f = { id: nid("class"), code: "NEW", name: "New class", description: "", attrs: { estimatedLabourHours: { value: null, enforced: false }, safety: { value: "", enforced: false } }, parameters: [], frequencies: [], tasks: [], plannedParts: [], requiredSkills: [], requiredTools: [], requiredPermits: [], models: [] }; families.push(f); select(families.length - 1, -1, -1); }
+  function newClass() { var f = { id: nid("class"), code: "NEW", name: "New class", description: "", workOrderTypeCode: "PM", attrs: { estimatedLabourHours: { value: null, enforced: false }, safety: { value: "", enforced: false } }, parameters: [], frequencies: [], tasks: [], plannedParts: [], requiredSkills: [], requiredTools: [], requiredPermits: [], models: [] }; families.push(f); select(families.length - 1, -1, -1); }
 
   /* ---------- wire ---------- */
   Array.prototype.forEach.call(document.getElementById("modeToggle").querySelectorAll("button"), function (bt) {
