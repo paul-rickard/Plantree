@@ -24,12 +24,6 @@
       "enum": ["proactive", "reactive", "not_applicable"],
       "description": "Analytical nature of the work, driving the proactive-vs-reactive maintenance KPI. Preventive work is 'proactive'; breakdown/corrective work is 'reactive'; non-maintenance work is 'not_applicable'."
     },
-    "defaultPriority": {
-      "type": ["integer", "null"],
-      "minimum": 1,
-      "maximum": 5,
-      "description": "Priority pre-filled on a new work order of this type, on the org's 1-5 scale (1 = most urgent). Null = no default; the planner sets it."
-    },
     "requiresAsset": {
       "type": "boolean",
       "default": true,

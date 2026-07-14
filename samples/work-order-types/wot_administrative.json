@@ -6,7 +6,6 @@
   "description": "Non-maintenance overhead work — meetings, training, documentation, travel and other time that needs booking but is not performed against an asset.",
   "category": "administrative",
   "nature": "not_applicable",
-  "defaultPriority": 4,
   "requiresAsset": false,
   "requiresFailureReport": false,
   "workflowProfile": null,

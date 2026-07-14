@@ -6,7 +6,6 @@
   "description": "Operational work involved in running the plant — operator rounds, adjustments, changeovers and setup. Often against an asset or location but not aimed at its maintenance.",
   "category": "operations",
   "nature": "not_applicable",
-  "defaultPriority": 4,
   "requiresAsset": false,
   "requiresFailureReport": false,
   "workflowProfile": null,

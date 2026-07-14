@@ -6,7 +6,6 @@
   "description": "Planned, schedule- or meter-driven work intended to prevent failure — inspections, servicing and condition checks generated from maintenance strategies.",
   "category": "maintenance",
   "nature": "proactive",
-  "defaultPriority": 3,
   "requiresAsset": true,
   "requiresFailureReport": false,
   "workflowProfile": null,

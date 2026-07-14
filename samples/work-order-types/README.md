@@ -10,12 +10,16 @@ Work-order types are **data, not a fixed enum** — an organisation can add its 
 deactivate them. The four seeded (`system: true`) types below can be deactivated
 but not deleted, so history and reporting stay stable.
 
-| Code | Name | Category | Nature | Asset? | Failure coding? | Default priority |
-|------|------|----------|--------|--------|-----------------|------------------|
-| `PM` | Preventative Maintenance | maintenance | proactive | required | no | 3 |
-| `RM` | Reactive Maintenance | maintenance | reactive | required | yes | 2 |
-| `AD` | Administrative | administrative | not_applicable | optional | no | 4 |
-| `OP` | Operations | operations | not_applicable | optional | no | 4 |
+| Code | Name | Category | Nature | Asset? | Failure coding? |
+|------|------|----------|--------|--------|-----------------|
+| `PM` | Preventative Maintenance | maintenance | proactive | required | no |
+| `RM` | Reactive Maintenance | maintenance | reactive | required | yes |
+| `AD` | Administrative | administrative | not_applicable | optional | no |
+| `OP` | Operations | operations | not_applicable | optional | no |
+
+Priority is **not** a property of the type — the person opening the work order
+sets it per work order from their own criteria (asset criticality, SLA, business
+impact). The type only classifies the *kind* of work.
 
 - **`category`** groups types for cost rollups and dashboards.
 - **`nature`** feeds the proactive-vs-reactive (PM/RM) KPI — a core maintenance

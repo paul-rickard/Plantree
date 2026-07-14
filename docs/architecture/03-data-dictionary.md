@@ -206,7 +206,6 @@ and reporting stay stable.
 | `name`, *`description`* | Display name and explanation. |
 | `category` | `maintenance \| operations \| administrative` — top-level grouping for cost rollups and dashboards. |
 | `nature` | `proactive \| reactive \| not_applicable` — drives the proactive-vs-reactive (PM/RM) maintenance KPI. |
-| *`defaultPriority`* | Priority pre-filled on a new work order of this type (org's 1–5 scale). |
 | `requiresAsset` | Whether the type must name an asset (maintenance yes; admin/ops often no). |
 | `requiresFailureReport` | Whether close-out expects failure/cause/remedy coding (true for reactive). |
 | *`workflowProfile`* | Lifecycle profile the type follows; null = the org default (see [doc 05](05-work-management-lifecycle.md#configurability)). |

@@ -6,7 +6,6 @@
   "description": "Unplanned corrective work raised in response to a breakdown, fault or defect. Captures failure/cause/remedy coding so breakdowns feed reliability analysis.",
   "category": "maintenance",
   "nature": "reactive",
-  "defaultPriority": 2,
   "requiresAsset": true,
   "requiresFailureReport": true,
   "workflowProfile": null,
