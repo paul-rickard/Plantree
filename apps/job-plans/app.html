@@ -180,7 +180,7 @@
   <div class="app" id="app">
     <aside class="rail">
       <div class="rail-top">
-        <div class="seg" id="modeToggle"><button data-mode="classes" class="on">Asset classes</button><button data-mode="assets">Assets</button></div>
+        <div class="seg" id="modeToggle"><button data-mode="classes" class="on">Job Plans</button><button data-mode="assets">Assets</button></div>
         <div id="railTopExtra"></div>
         <div class="search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--faint)"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2" stroke-linecap="round"/></svg><input id="q" placeholder="Search…" /></div>
       </div>
@@ -208,7 +208,7 @@
   var fsaSupported = typeof window.showDirectoryPicker === "function";
   var families = [], folderHandle = null;
   var G = { q: "", collapsed: {} };
-  var E = { fam: -1, mi: -1, ii: -1, tab: "tasks" }; // selection: fam idx, model idx (-1=class level), instance idx (-1)
+  var E = { fam: -1, mi: -1, ii: -1, tab: "details" }; // selection: fam idx, model idx (-1=class level), instance idx (-1)
   var idSeq = 1;
   var mode = "classes", assetsView = "location";
   var locations = [], assets = [];
@@ -280,7 +280,7 @@
   function levelName(i) { return i === 0 ? "class" : i === 1 ? "model" : "instance"; }
 
   /* ---------- rail ---------- */
-  function setSamples() { families = seed(); locations = seedLocations(); assets = seedAssets(); folderHandle = null; E = { fam: -1, mi: -1, ii: -1, tab: "tasks" }; Asel = null; bulkSel = {}; renderAll(); }
+  function setSamples() { families = seed(); locations = seedLocations(); assets = seedAssets(); folderHandle = null; E = { fam: -1, mi: -1, ii: -1, tab: "details" }; Asel = null; bulkSel = {}; renderAll(); }
   function renderAll() { renderRail(); renderDetail(); }
   function caret(o) { return el("svg", { class: "caret" + (o ? " open" : ""), width: "11", height: "11", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2.5", html: '<path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/>' }); }
   function matchFam(f) { var q = G.q.toLowerCase(); if (!q) return true; var hay = f.code + " " + f.name; f.models.forEach(function (m) { hay += " " + m.code + " " + m.name; m.instances.forEach(function (i) { hay += " " + i.code + " " + i.name + " " + (i.site || ""); }); }); return hay.toLowerCase().indexOf(q) >= 0; }
@@ -319,7 +319,7 @@
       });
     });
   }
-  function select(fam, mi, ii) { E.fam = fam; E.mi = mi; E.ii = ii; E.tab = "tasks"; renderRail(); renderDetail(); document.getElementById("app").classList.add("show-detail"); }
+  function select(fam, mi, ii) { E.fam = fam; E.mi = mi; E.ii = ii; E.tab = "details"; renderRail(); renderDetail(); document.getElementById("app").classList.add("show-detail"); }
   function mobileBack() { document.getElementById("app").classList.remove("show-detail"); }
 
   /* ---------- detail ---------- */
@@ -345,7 +345,7 @@
   function detailTabs() {
     var ch = chain(), nt = effTasks(ch).filter(function (r) { return !r.excluded; }).length, nf = effFreqs(ch).length;
     function tab(id, label, pill) { return el("button", { class: "dtab" + (E.tab === id ? " on" : ""), onclick: function () { E.tab = id; renderDetail(); } }, [label, pill != null ? el("span", { class: "pill" }, [String(pill)]) : null]); }
-    return el("div", { class: "dtabs" }, [tab("tasks", "Tasks", nt), tab("schedule", "Schedule", nf), tab("details", "Details")]);
+    return el("div", { class: "dtabs" }, [tab("details", "Details"), tab("tasks", "Tasks", nt), tab("schedule", "Schedule", nf)]);
   }
   function renderBody() { var w = document.getElementById("wrap"); w.innerHTML = ""; if (level() !== "class") w.appendChild(el("div", { class: "infobar i" }, [el("span", { html: "&#9432;" }), el("span", { html: "This is " + (level() === "model" ? "a <b>model</b>" : "an <b>instance</b>") + " — it <b>inherits</b> from its parent. Override unlocked fields here; <b>🔒 Enforced</b> fields are locked by the class. The resolved plan is what a work order uses." })])); if (E.tab === "tasks") tasksTab(w); else if (E.tab === "schedule") scheduleTab(w); else detailsTab(w); }
   function sec(title, ct, hact, kids) { return el("div", { class: "sec" }, [el("header", {}, [el("h3", {}, [title]), ct != null ? el("span", { class: "ct" }, [ct]) : null, hact ? el("div", { class: "hact" }, hact) : null]), el("div", { class: "sec-body" }, kids)]); }
@@ -720,7 +720,7 @@
   async function verify(h) { if (!h.queryPermission) return true; if ((await h.queryPermission({ mode: "readwrite" })) === "granted") return true; return (await h.requestPermission({ mode: "readwrite" })) === "granted"; }
   function famDoc(f) { return Object.assign({ type: "assetClassPlan" }, f); }
   async function save() { if (E.fam < 0) return; var f = selFamily(); var out = famDoc(f); var text = JSON.stringify(out, null, 2), fname = (f.code || f.id || "class").toLowerCase() + ".json"; try { var handle = f._handle || null; if (!handle && folderHandle && fsaSupported) handle = await folderHandle.getFileHandle(fname, { create: true }); if (!handle && fsaSupported) handle = await window.showSaveFilePicker({ suggestedName: fname, types: [{ description: "JSON", accept: { "application/json": [".json"] } }] }); if (handle) { if (!(await verify(handle))) return; var wt = await handle.createWritable(); await wt.write(text); await wt.close(); f._handle = handle; } else { var blob = new Blob([text], { type: "application/json" }); var url = URL.createObjectURL(blob); var a = el("a", { href: url, download: fname }); document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); } snapshotClean(); renderDetail(); } catch (e) { if (e.name !== "AbortError") alert("Save failed: " + e.message); } }
-  function ingest(list, fh) { var fams = list.filter(function (o) { return o && (o.type === "assetClassPlan" || o.models); }).map(function (o) { normalizeFam(o); return o; }); if (!fams.length) { alert("No asset-class plans found (files need \"type\": \"assetClassPlan\")."); return; } families = fams; folderHandle = fh || null; E = { fam: -1, mi: -1, ii: -1, tab: "tasks" }; _clean = {}; renderAll(); }
+  function ingest(list, fh) { var fams = list.filter(function (o) { return o && (o.type === "assetClassPlan" || o.models); }).map(function (o) { normalizeFam(o); return o; }); if (!fams.length) { alert("No asset-class plans found (files need \"type\": \"assetClassPlan\")."); return; } families = fams; folderHandle = fh || null; E = { fam: -1, mi: -1, ii: -1, tab: "details" }; _clean = {}; renderAll(); }
   function normalizeFam(f) { f.workOrderTypeCode = f.workOrderTypeCode || "PM"; f.models = f.models || []; f.parameters = f.parameters || []; f.frequencies = f.frequencies || []; f.tasks = f.tasks || []; f.attrs = f.attrs || {}; ["plannedParts", "requiredSkills", "requiredTools", "requiredPermits"].forEach(function (k) { f[k] = f[k] || []; }); f.models.forEach(function (m) { ["addedFreqs", "addedTasks", "exclusions", "instances"].forEach(function (k) { m[k] = m[k] || []; }); m.attrOverrides = m.attrOverrides || {}; m.paramOverrides = m.paramOverrides || {}; m.mapOverrides = m.mapOverrides || {}; m.instances.forEach(function (i) { ["addedFreqs", "addedTasks", "exclusions"].forEach(function (k) { i[k] = i[k] || []; }); i.attrOverrides = i.attrOverrides || {}; i.paramOverrides = i.paramOverrides || {}; i.mapOverrides = i.mapOverrides || {}; }); }); }
   async function walk(dir, out, depth) { if (depth > 6) return; for await (var entry of dir.values()) { if (entry.kind === "file" && entry.name.toLowerCase().endsWith(".json")) { try { var file = await entry.getFile(); var o = JSON.parse(await file.text()); if (o && (o.type === "assetClassPlan" || o.models)) { o._handle = entry; out.push(o); } } catch (e) {} } else if (entry.kind === "directory") await walk(entry, out, depth + 1); } }
   async function openFolder() { try { var dir = await window.showDirectoryPicker({ mode: "readwrite" }); var out = []; await walk(dir, out, 0); ingest(out, dir); } catch (e) { if (e.name !== "AbortError") alert("Could not open folder: " + e.message); } }
