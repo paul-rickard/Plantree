@@ -192,6 +192,10 @@
 <script>
 (function () {
   "use strict";
+  // When hosted inside the unified shell (apps/plantree.html) the shell owns the
+  // top bar, so hide this app's own and let it fill the frame.
+  var EMBED = /[?&]embed=1/.test(location.search);
+  if (EMBED) { var _tb = document.querySelector(".topbar"); if (_tb) _tb.style.display = "none"; var _ap = document.querySelector(".app"); if (_ap) _ap.style.height = "100vh"; }
   var UNIT = { day: "Daily", week: "Weekly", month: "Monthly", year: "Annual" };
   var RESP = ["none", "passfail", "numeric", "text", "choice"];
   // Seeded work-order type catalogue (mirrors samples/work-order-types). A plan
@@ -661,7 +665,10 @@
     applied.forEach(function (ref) { var st = planStats(ref), lvl = planLevel(ref); jb.push(el("div", { class: "rowline" }, [el("span", { class: "cls-chip" }, [planLabel(ref)]), el("span", { class: "nbadge nb-" + lvl }, [lvl]), el("span", { class: "hint" }, [st ? st.tasks + " tasks · " + st.freqs + " freq" : "missing plan"]), el("button", { class: "x", style: "margin-left:auto", onclick: function () { a.appliedPlans = applied.filter(function (x) { return x !== ref; }); renderDetail(); } }, ["✕"])])); });
     var as = buildPlanSelect();
     as.addEventListener("change", function () { if (!as.value) return; a.appliedPlans = (a.appliedPlans || []); if (a.appliedPlans.indexOf(as.value) < 0) a.appliedPlans.push(as.value); renderDetail(); });
-    w.appendChild(sec("Applied job plans", applied.length + "", [as], jb));
+    var head = [as];
+    // Cross-link into the Work section (only when hosted in the unified shell).
+    if (EMBED) head.push(el("button", { class: "btn sm", title: "See this asset's work orders in the Work section", onclick: function () { window.parent.postMessage({ type: "plantree:openWork", assetId: a.id, assetCode: a.code }, "*"); } }, ["Work orders ›"]));
+    w.appendChild(sec("Applied job plans", applied.length + "", head, jb));
   }
   function assetParamRow(a, ch, p) {
     var eff = effParam(ch, p);

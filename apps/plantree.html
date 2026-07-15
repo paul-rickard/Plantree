@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Plantree</title>
+<style>
+  :root {
+    --bg:#eef1ef; --panel:#fff; --panel-2:#f7f9f7; --ink:#15201d; --muted:#5a6a65; --faint:#8a9a94;
+    --line:#e2e7e4; --line-2:#d2dad6; --accent:#0f6f66; --accent-h:#148a7e; --accent-soft:#e4f1ee;
+    --good:#1e8e5a; --good-soft:color-mix(in srgb,#1e8e5a 14%,transparent);
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace; --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0d1512; --panel:#141f1b; --panel-2:#111b17; --ink:#e8eeeb; --muted:#9aaaa4; --faint:#6c7d77;
+      --line:#25322d; --line-2:#33433d; --accent:#38b4a4; --accent-h:#54c6b7; --accent-soft:#16302c;
+      --good:#37b37a; --good-soft:color-mix(in srgb,#37b37a 16%,transparent); }
+  }
+  * { box-sizing:border-box; }
+  html,body { height:100%; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans); font-size:14px; overflow:hidden; -webkit-font-smoothing:antialiased; }
+  .topbar { height:52px; display:flex; align-items:center; gap:16px; padding:0 16px; background:var(--panel); border-bottom:1px solid var(--line); }
+  .brand { display:flex; align-items:center; gap:9px; font-weight:700; font-size:15.5px; letter-spacing:-.01em; } .brand .mark { color:var(--accent); }
+  .nav { display:flex; background:var(--panel-2); border:1px solid var(--line); border-radius:10px; padding:3px; gap:3px; }
+  .nav button { border:0; background:transparent; font:inherit; font-size:13px; font-weight:600; color:var(--muted); padding:6px 16px; border-radius:7px; cursor:pointer; display:flex; align-items:center; gap:7px; }
+  .nav button.on { background:var(--panel); color:var(--accent); box-shadow:0 1px 2px rgba(16,32,28,.06); }
+  .nav button .ic { width:15px; height:15px; }
+  .right { margin-left:auto; display:flex; align-items:center; gap:10px; }
+  .btn { font:inherit; font-weight:600; font-size:13px; padding:7px 13px; border-radius:9px; border:1px solid var(--line-2); background:var(--panel); color:var(--ink); cursor:pointer; display:inline-flex; align-items:center; gap:7px; }
+  .btn:hover { border-color:var(--faint); } .btn.primary { background:var(--accent); color:#fff; border-color:transparent; } .btn.primary:hover { background:var(--accent-h); }
+  .frames { position:relative; height:calc(100vh - 52px); }
+  .frames iframe { position:absolute; inset:0; width:100%; height:100%; border:0; display:none; }
+  .frames iframe.on { display:block; }
+  @media (max-width:520px){ .brand small { display:none; } .nav button { padding:6px 11px; } }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand"><svg class="mark" width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 22V12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M12 12L6.5 7.5M12 12l5.5-4.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="6" cy="7" r="2" fill="currentColor"/><circle cx="18" cy="7" r="2" fill="currentColor"/></svg>Plantree</div>
+    <div class="nav" id="nav">
+      <button data-sec="jobs" class="on"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5h10M9 12h10M9 19h10" stroke-linecap="round"/><circle cx="4" cy="5" r="1.6"/><circle cx="4" cy="12" r="1.6"/><circle cx="4" cy="19" r="1.6"/></svg>Job Plans &amp; Assets</button>
+      <button data-sec="work"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="5" height="16" rx="1.2"/><rect x="9.5" y="4" width="5" height="10" rx="1.2"/><rect x="16" y="4" width="5" height="13" rx="1.2"/></svg>Work</button>
+    </div>
+    <div class="right">
+      <button class="btn primary" id="genBtn" style="display:none" title="Run the PM generation engine for the seeded generator schedule">⚙ Generate PM work</button>
+    </div>
+  </div>
+  <div class="frames">
+    <iframe id="fJobs" class="on" src="job-plans/app.html?embed=1"></iframe>
+    <iframe id="fWork" src="work-orders/app.html?embed=1"></iframe>
+  </div>
+<script>
+  var frames = { jobs: document.getElementById("fJobs"), work: document.getElementById("fWork") };
+  var genBtn = document.getElementById("genBtn");
+  var current = "jobs";
+
+  function show(sec) {
+    current = sec;
+    Object.keys(frames).forEach(function (k) { frames[k].classList.toggle("on", k === sec); });
+    document.querySelectorAll("#nav button").forEach(function (b) { b.classList.toggle("on", b.getAttribute("data-sec") === sec); });
+    genBtn.style.display = sec === "work" ? "inline-flex" : "none";
+  }
+  function post(frame, msg) {
+    var w = frame.contentWindow; if (!w) return;
+    // fire now and once more after load, in case the frame hasn't finished booting
+    try { w.postMessage(msg, "*"); } catch (e) {}
+    frame.addEventListener("load", function once() { frame.removeEventListener("load", once); try { w.postMessage(msg, "*"); } catch (e) {} });
+  }
+
+  document.querySelectorAll("#nav button").forEach(function (b) {
+    b.addEventListener("click", function () { show(b.getAttribute("data-sec")); });
+  });
+  genBtn.addEventListener("click", function () { post(frames.work, { type: "plantree:generate" }); });
+
+  // Cross-link: the Job Plans app asks to open an asset's work orders.
+  window.addEventListener("message", function (e) {
+    var d = e.data; if (!d || typeof d !== "object") return;
+    if (d.type === "plantree:openWork") {
+      show("work");
+      post(frames.work, { type: "plantree:filterAsset", assetId: d.assetId });
+    }
+  });
+</script>
+</body>
+</html>
