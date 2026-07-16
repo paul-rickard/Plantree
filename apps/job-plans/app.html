@@ -195,7 +195,19 @@
   // When hosted inside the unified shell (apps/plantree.html) the shell owns the
   // top bar, so hide this app's own and let it fill the frame.
   var EMBED = /[?&]embed=1/.test(location.search);
-  if (EMBED) { var _tb = document.querySelector(".topbar"); if (_tb) _tb.style.display = "none"; var _ap = document.querySelector(".app"); if (_ap) _ap.style.height = "100vh"; }
+  if (EMBED) {
+    var _tb = document.querySelector(".topbar"); if (_tb) _tb.style.display = "none";
+    var _ap = document.querySelector(".app"); if (_ap) _ap.style.height = "100vh";
+    // The unified shell's sidebar owns Job Plans / Assets switching, so hide the in-rail toggle.
+    var mt = document.getElementById("modeToggle"); if (mt) mt.style.display = "none";
+  }
+  // Shell ↔ module bridge: mode switch, search forwarding, and dashboard stats.
+  window.addEventListener("message", function (e) {
+    var d = e.data; if (!d || typeof d !== "object") return;
+    if (d.type === "plantree:statsRequest") sendStats();
+    else if (d.type === "plantree:setMode") setMode(d.mode);
+    else if (d.type === "plantree:search") { G.q = d.q || ""; document.getElementById("q").value = G.q; renderRail(); if (mode === "assets" && Asel && Asel.kind !== "asset") renderDetail(); }
+  });
   var UNIT = { day: "Daily", week: "Weekly", month: "Monthly", year: "Annual" };
   var RESP = ["none", "passfail", "numeric", "text", "choice"];
   // Seeded work-order type catalogue (mirrors samples/work-order-types). A plan
@@ -285,7 +297,16 @@
 
   /* ---------- rail ---------- */
   function setSamples() { families = seed(); locations = seedLocations(); assets = seedAssets(); folderHandle = null; E = { fam: -1, mi: -1, ii: -1, tab: "details" }; Asel = null; bulkSel = {}; renderAll(); }
-  function renderAll() { renderRail(); renderDetail(); }
+  function renderAll() { renderRail(); renderDetail(); sendStats(); }
+
+  /* Report a compact summary up to the shell dashboard. */
+  function collectStats() {
+    var models = 0, instances = 0;
+    families.forEach(function (f) { models += f.models.length; f.models.forEach(function (m) { instances += m.instances.length; }); });
+    function countSites(nodes) { var n = 0; (nodes || []).forEach(function (x) { if (x.kind === "site") n++; n += countSites(x.children); }); return n; }
+    return { classes: families.length, models: models, instances: instances, assets: assets.length, sites: countSites(locations) };
+  }
+  function sendStats() { if (!EMBED) return; try { window.parent.postMessage({ type: "plantree:stats", source: "jobs", data: collectStats() }, "*"); } catch (e) {} }
   function caret(o) { return el("svg", { class: "caret" + (o ? " open" : ""), width: "11", height: "11", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2.5", html: '<path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/>' }); }
   function matchFam(f) { var q = G.q.toLowerCase(); if (!q) return true; var hay = f.code + " " + f.name; f.models.forEach(function (m) { hay += " " + m.code + " " + m.name; m.instances.forEach(function (i) { hay += " " + i.code + " " + i.name + " " + (i.site || ""); }); }); return hay.toLowerCase().indexOf(q) >= 0; }
   function renderRail() { renderRailExtra(); if (mode === "classes") renderRailClasses(); else renderRailAssets(); }
@@ -735,14 +756,16 @@
   function newClass() { var f = { id: nid("class"), code: "NEW", name: "New class", description: "", workOrderTypeCode: "PM", attrs: { estimatedLabourHours: { value: null, enforced: false }, safety: { value: "", enforced: false } }, parameters: [], frequencies: [], tasks: [], plannedParts: [], requiredSkills: [], requiredTools: [], requiredPermits: [], models: [] }; families.push(f); select(families.length - 1, -1, -1); }
 
   /* ---------- wire ---------- */
+  function setMode(m) {
+    if (m !== "classes" && m !== "assets") return;
+    mode = m;
+    Array.prototype.forEach.call(document.getElementById("modeToggle").querySelectorAll("button"), function (x) { x.classList.toggle("on", x.getAttribute("data-mode") === mode); });
+    G.q = ""; document.getElementById("q").value = "";
+    document.getElementById("app").classList.remove("show-detail");
+    renderAll();
+  }
   Array.prototype.forEach.call(document.getElementById("modeToggle").querySelectorAll("button"), function (bt) {
-    bt.addEventListener("click", function () {
-      mode = bt.getAttribute("data-mode");
-      Array.prototype.forEach.call(document.getElementById("modeToggle").querySelectorAll("button"), function (x) { x.classList.toggle("on", x.getAttribute("data-mode") === mode); });
-      G.q = ""; document.getElementById("q").value = "";
-      document.getElementById("app").classList.remove("show-detail");
-      renderAll();
-    });
+    bt.addEventListener("click", function () { setMode(bt.getAttribute("data-mode")); });
   });
   document.getElementById("fileInput").addEventListener("change", function (e) { readFiles(e.target.files); e.target.value = ""; });
   document.getElementById("q").addEventListener("input", function (e) { G.q = e.target.value; renderRail(); if (mode === "assets" && Asel && Asel.kind !== "asset") renderDetail(); });

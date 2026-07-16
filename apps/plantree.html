@@ -9,77 +9,443 @@
     --bg:#eef1ef; --panel:#fff; --panel-2:#f7f9f7; --ink:#15201d; --muted:#5a6a65; --faint:#8a9a94;
     --line:#e2e7e4; --line-2:#d2dad6; --accent:#0f6f66; --accent-h:#148a7e; --accent-soft:#e4f1ee;
     --good:#1e8e5a; --good-soft:color-mix(in srgb,#1e8e5a 14%,transparent);
+    --warn:#b3760f; --warn-soft:color-mix(in srgb,#b3760f 15%,transparent);
+    --crit:#c0453b; --crit-soft:color-mix(in srgb,#c0453b 12%,transparent);
+    --info:#3a6ea5; --info-soft:color-mix(in srgb,#3a6ea5 13%,transparent);
+    --side:#0e1f1b; --side-ink:#dbe7e3; --side-muted:#7f938c; --side-line:#20332d;
+    --side-active:#163029; --side-active-ink:#5fd0bf;
     --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace; --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --sh:0 1px 2px rgba(16,32,28,.05); --sh-2:0 10px 34px rgba(16,32,28,.13);
   }
   @media (prefers-color-scheme: dark) {
     :root { --bg:#0d1512; --panel:#141f1b; --panel-2:#111b17; --ink:#e8eeeb; --muted:#9aaaa4; --faint:#6c7d77;
       --line:#25322d; --line-2:#33433d; --accent:#38b4a4; --accent-h:#54c6b7; --accent-soft:#16302c;
-      --good:#37b37a; --good-soft:color-mix(in srgb,#37b37a 16%,transparent); }
+      --good:#37b37a; --good-soft:color-mix(in srgb,#37b37a 16%,transparent);
+      --warn:#d69b3a; --warn-soft:color-mix(in srgb,#d69b3a 15%,transparent);
+      --crit:#e0685d; --crit-soft:color-mix(in srgb,#e0685d 15%,transparent);
+      --info:#6c9fd6; --info-soft:color-mix(in srgb,#6c9fd6 15%,transparent);
+      --side:#0a1310; --side-ink:#d3e0db; --side-muted:#71857e; --side-line:#1a2621;
+      --side-active:#12241f; --side-active-ink:#54c6b7; --sh-2:0 12px 38px rgba(0,0,0,.5); }
   }
   * { box-sizing:border-box; }
   html,body { height:100%; }
   body { margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans); font-size:14px; overflow:hidden; -webkit-font-smoothing:antialiased; }
-  .topbar { height:52px; display:flex; align-items:center; gap:16px; padding:0 16px; background:var(--panel); border-bottom:1px solid var(--line); }
-  .brand { display:flex; align-items:center; gap:9px; font-weight:700; font-size:15.5px; letter-spacing:-.01em; } .brand .mark { color:var(--accent); }
-  .nav { display:flex; background:var(--panel-2); border:1px solid var(--line); border-radius:10px; padding:3px; gap:3px; }
-  .nav button { border:0; background:transparent; font:inherit; font-size:13px; font-weight:600; color:var(--muted); padding:6px 16px; border-radius:7px; cursor:pointer; display:flex; align-items:center; gap:7px; }
-  .nav button.on { background:var(--panel); color:var(--accent); box-shadow:0 1px 2px rgba(16,32,28,.06); }
-  .nav button .ic { width:15px; height:15px; }
-  .right { margin-left:auto; display:flex; align-items:center; gap:10px; }
-  .btn { font:inherit; font-weight:600; font-size:13px; padding:7px 13px; border-radius:9px; border:1px solid var(--line-2); background:var(--panel); color:var(--ink); cursor:pointer; display:inline-flex; align-items:center; gap:7px; }
+  button { font:inherit; cursor:pointer; }
+  .num { font-variant-numeric:tabular-nums; } .mono { font-family:var(--mono); }
+
+  /* ---------- shell grid ---------- */
+  .shell { display:grid; grid-template-columns:236px 1fr; height:100vh; transition:grid-template-columns .16s ease; }
+  .shell.collapsed { grid-template-columns:64px 1fr; }
+
+  /* ---------- sidebar ---------- */
+  .sidebar { background:var(--side); color:var(--side-ink); display:flex; flex-direction:column; min-width:0; overflow:hidden; }
+  .side-brand { display:flex; align-items:center; gap:10px; height:56px; padding:0 16px; flex:none; border-bottom:1px solid var(--side-line); }
+  .side-brand .mark { color:var(--accent); flex:none; }
+  .side-brand .bt { font-weight:700; font-size:16px; letter-spacing:-.01em; white-space:nowrap; }
+  .side-brand .collapse { margin-left:auto; border:0; background:transparent; color:var(--side-muted); padding:6px; border-radius:8px; display:flex; }
+  .side-brand .collapse:hover { color:var(--side-ink); background:var(--side-line); }
+  .shell.collapsed .side-brand { padding:0; justify-content:center; } .shell.collapsed .side-brand .bt, .shell.collapsed .side-brand .collapse { display:none; }
+
+  .side-nav { flex:1; overflow-y:auto; padding:12px 12px; display:flex; flex-direction:column; gap:2px; }
+  .side-grp { font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--side-muted); font-weight:700; padding:14px 10px 6px; white-space:nowrap; }
+  .shell.collapsed .side-grp { text-align:center; padding:12px 0 4px; font-size:0; } .shell.collapsed .side-grp::before { content:"·"; font-size:14px; }
+  .nav-item { display:flex; align-items:center; gap:11px; width:100%; border:0; background:transparent; color:var(--side-ink); padding:9px 10px; border-radius:9px; font-weight:560; font-size:13.5px; text-align:left; white-space:nowrap; position:relative; }
+  .nav-item:hover { background:var(--side-line); }
+  .nav-item.on { background:var(--side-active); color:var(--side-active-ink); font-weight:640; }
+  .nav-item.on::before { content:""; position:absolute; left:-12px; top:8px; bottom:8px; width:3px; border-radius:0 3px 3px 0; background:var(--side-active-ink); }
+  .nav-item .ic { width:18px; height:18px; flex:none; }
+  .nav-item .cnt { margin-left:auto; font-family:var(--mono); font-size:11px; font-weight:700; color:var(--side-muted); background:var(--side-line); border-radius:999px; padding:1px 8px; min-width:22px; text-align:center; }
+  .nav-item.on .cnt { color:var(--side-active-ink); background:color-mix(in srgb,var(--side-active-ink) 16%,transparent); }
+  .nav-item .cnt.alert { color:#fff; background:var(--crit); }
+  .shell.collapsed .nav-item { justify-content:center; padding:10px 0; } .shell.collapsed .nav-item .lbl, .shell.collapsed .nav-item .cnt { display:none; }
+  .shell.collapsed .nav-item.on::before { display:none; }
+
+  .side-foot { flex:none; border-top:1px solid var(--side-line); padding:12px; }
+  .ws { display:flex; align-items:center; gap:10px; padding:6px 6px; border-radius:9px; }
+  .ws .avatar { width:32px; height:32px; border-radius:9px; flex:none; background:linear-gradient(135deg,var(--accent),var(--accent-h)); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; letter-spacing:.02em; }
+  .ws .wt { min-width:0; line-height:1.25; } .ws .wt .n { font-weight:640; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .ws .wt .s { font-size:11px; color:var(--side-muted); white-space:nowrap; }
+  .shell.collapsed .side-foot { padding:10px 0; } .shell.collapsed .ws { justify-content:center; } .shell.collapsed .ws .wt { display:none; }
+
+  /* ---------- main ---------- */
+  .main { display:flex; flex-direction:column; min-width:0; }
+  .topbar { height:56px; flex:none; display:flex; align-items:center; gap:14px; padding:0 18px; background:var(--panel); border-bottom:1px solid var(--line); }
+  .hamburger { display:none; border:1px solid var(--line-2); background:var(--panel); color:var(--muted); border-radius:9px; padding:7px; }
+  .page-title { font-size:16px; font-weight:700; letter-spacing:-.01em; white-space:nowrap; }
+  .topbar .search { display:flex; align-items:center; gap:9px; background:var(--bg); border:1px solid var(--line-2); border-radius:10px; padding:8px 12px; max-width:420px; flex:1; margin:0 4px; }
+  .topbar .search:focus-within { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+  .topbar .search input { border:0; background:transparent; outline:0; font:inherit; font-size:13.5px; color:var(--ink); width:100%; }
+  .topbar .search svg { color:var(--faint); flex:none; }
+  .top-actions { margin-left:auto; display:flex; align-items:center; gap:10px; }
+  .btn { font-weight:600; font-size:13px; padding:8px 14px; border-radius:10px; border:1px solid var(--line-2); background:var(--panel); color:var(--ink); display:inline-flex; align-items:center; gap:8px; white-space:nowrap; transition:border-color .12s, background .12s; }
   .btn:hover { border-color:var(--faint); } .btn.primary { background:var(--accent); color:#fff; border-color:transparent; } .btn.primary:hover { background:var(--accent-h); }
-  .frames { position:relative; height:calc(100vh - 52px); }
+  .iconbtn { border:1px solid var(--line-2); background:var(--panel); color:var(--muted); border-radius:10px; padding:8px; display:flex; position:relative; }
+  .iconbtn:hover { color:var(--ink); border-color:var(--faint); }
+  .iconbtn .dot { position:absolute; top:6px; right:6px; width:7px; height:7px; border-radius:50%; background:var(--crit); border:1.5px solid var(--panel); }
+
+  .stage { flex:1; position:relative; min-height:0; overflow:hidden; }
+  .frames { position:absolute; inset:0; display:none; }
+  .frames.on { display:block; }
   .frames iframe { position:absolute; inset:0; width:100%; height:100%; border:0; display:none; }
   .frames iframe.on { display:block; }
-  @media (max-width:520px){ .brand small { display:none; } .nav button { padding:6px 11px; } }
+
+  /* ---------- dashboard ---------- */
+  .dash { position:absolute; inset:0; overflow-y:auto; display:none; }
+  .dash.on { display:block; }
+  .dash-in { max-width:1160px; margin:0 auto; padding:24px 28px 40px; display:flex; flex-direction:column; gap:22px; }
+  .dash-hero { display:flex; align-items:flex-end; gap:16px; flex-wrap:wrap; }
+  .dash-hero h1 { margin:0; font-size:22px; font-weight:720; letter-spacing:-.02em; }
+  .dash-hero p { margin:3px 0 0; color:var(--muted); font-size:13.5px; }
+  .dash-hero .hact { margin-left:auto; display:flex; gap:9px; flex-wrap:wrap; }
+
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(168px,1fr)); gap:14px; }
+  .kpi { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:15px 16px; box-shadow:var(--sh); display:flex; flex-direction:column; gap:8px; text-align:left; position:relative; }
+  button.kpi { cursor:pointer; } button.kpi:hover { border-color:var(--faint); }
+  .kpi .kh { display:flex; align-items:center; gap:8px; }
+  .kpi .kh .kic { width:30px; height:30px; border-radius:9px; display:flex; align-items:center; justify-content:center; flex:none; }
+  .kpi .kh .kic svg { width:16px; height:16px; }
+  .kpi .kl { font-size:11.5px; color:var(--muted); font-weight:600; letter-spacing:.01em; }
+  .kpi .kv { font-size:28px; font-weight:730; letter-spacing:-.02em; line-height:1; font-variant-numeric:tabular-nums; }
+  .kpi .ks { font-size:11.5px; color:var(--faint); }
+  .kpi.hl-crit .kic { color:var(--crit); background:var(--crit-soft); } .kpi.hl-crit .kv { color:var(--crit); }
+  .kpi.hl-accent .kic { color:var(--accent); background:var(--accent-soft); }
+  .kpi.hl-info .kic { color:var(--info); background:var(--info-soft); }
+  .kpi.hl-warn .kic { color:var(--warn); background:var(--warn-soft); }
+  .kpi.hl-good .kic { color:var(--good); background:var(--good-soft); }
+
+  .dash-grid { display:grid; grid-template-columns:1.55fr 1fr; gap:18px; align-items:start; }
+  @media (max-width:900px){ .dash-grid { grid-template-columns:1fr; } }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:16px; box-shadow:var(--sh); }
+  .card > header { display:flex; align-items:center; gap:10px; padding:14px 18px; border-bottom:1px solid var(--line); }
+  .card > header h3 { margin:0; font-size:14px; font-weight:660; } .card > header .see { margin-left:auto; }
+  .card > header .see button { border:0; background:transparent; color:var(--accent); font-weight:640; font-size:12.5px; padding:4px 6px; border-radius:7px; } .card > header .see button:hover { background:var(--accent-soft); }
+
+  .wo-row { display:flex; align-items:center; gap:12px; padding:12px 18px; border-bottom:1px solid var(--line); text-align:left; width:100%; background:transparent; border-left:0; border-right:0; border-top:0; }
+  .wo-row:last-child { border-bottom:0; } .wo-row:hover { background:var(--panel-2); }
+  .wo-row .st { width:9px; height:9px; border-radius:50%; flex:none; }
+  .wo-row .wm { min-width:0; flex:1; } .wo-row .wm .t { display:block; font-weight:580; font-size:13.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .wo-row .wm .m { display:block; font-family:var(--mono); font-size:11px; color:var(--faint); margin-top:2px; }
+  .wo-row .due { font-family:var(--mono); font-size:11px; color:var(--muted); white-space:nowrap; } .wo-row .due.over { color:var(--crit); font-weight:700; }
+  .chip { font-family:var(--mono); font-size:9.5px; letter-spacing:.04em; text-transform:uppercase; font-weight:700; padding:2px 8px; border-radius:6px; white-space:nowrap; flex:none; }
+  .c-open { color:var(--info); background:var(--info-soft); } .c-active { color:var(--accent); background:var(--accent-soft); }
+  .c-on_hold { color:var(--warn); background:var(--warn-soft); } .c-done { color:var(--good); background:var(--good-soft); } .c-rejected { color:var(--crit); background:var(--crit-soft); }
+  .st.c-open { background:var(--info); } .st.c-active { background:var(--accent); } .st.c-on_hold { background:var(--warn); } .st.c-done { background:var(--good); } .st.c-rejected { background:var(--crit); }
+
+  .statusbars { padding:16px 18px; display:flex; flex-direction:column; gap:13px; }
+  .sbar .sl { display:flex; align-items:center; gap:8px; font-size:12.5px; margin-bottom:5px; } .sbar .sl .n { margin-left:auto; font-family:var(--mono); font-weight:700; color:var(--muted); }
+  .sbar .track { height:8px; border-radius:6px; background:var(--panel-2); overflow:hidden; } .sbar .fill { height:100%; border-radius:6px; }
+  .quick { padding:8px; display:flex; flex-direction:column; gap:2px; }
+  .quick button { display:flex; align-items:center; gap:12px; width:100%; border:0; background:transparent; color:var(--ink); padding:11px 12px; border-radius:11px; text-align:left; font-weight:560; font-size:13.5px; }
+  .quick button:hover { background:var(--panel-2); }
+  .quick button .qic { width:34px; height:34px; border-radius:10px; background:var(--accent-soft); color:var(--accent); display:flex; align-items:center; justify-content:center; flex:none; }
+  .quick button .qs { display:block; font-weight:450; font-size:11.5px; color:var(--faint); margin-top:1px; }
+  .quick button .go { margin-left:auto; color:var(--faint); }
+  .empty-row { padding:22px 18px; color:var(--faint); font-size:13px; text-align:center; }
+
+  /* ---------- mobile drawer ---------- */
+  .scrim { display:none; position:fixed; inset:0; background:rgba(10,18,15,.5); z-index:40; }
+  @media (max-width:820px){
+    .shell { grid-template-columns:1fr; }
+    .sidebar { position:fixed; z-index:50; top:0; left:0; bottom:0; width:264px; transform:translateX(-100%); transition:transform .2s ease; box-shadow:var(--sh-2); }
+    .shell.drawer .sidebar { transform:none; } .shell.drawer .scrim { display:block; }
+    .shell.collapsed { grid-template-columns:1fr; } .shell.collapsed .sidebar .bt, .shell.collapsed .sidebar .lbl, .shell.collapsed .sidebar .cnt, .shell.collapsed .sidebar .wt { display:revert; }
+    .shell.collapsed .side-brand { padding:0 16px; justify-content:flex-start; } .shell.collapsed .nav-item { justify-content:flex-start; padding:9px 10px; }
+    .hamburger { display:flex; } .side-brand .collapse { display:none; }
+    .dash-in { padding:18px 16px 32px; }
+  }
+  @media (max-width:560px){ .topbar .search { display:none; } .page-title { font-size:15px; } }
 </style>
 </head>
 <body>
-  <div class="topbar">
-    <div class="brand"><svg class="mark" width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 22V12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M12 12L6.5 7.5M12 12l5.5-4.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="6" cy="7" r="2" fill="currentColor"/><circle cx="18" cy="7" r="2" fill="currentColor"/></svg>Plantree</div>
-    <div class="nav" id="nav">
-      <button data-sec="jobs" class="on"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5h10M9 12h10M9 19h10" stroke-linecap="round"/><circle cx="4" cy="5" r="1.6"/><circle cx="4" cy="12" r="1.6"/><circle cx="4" cy="19" r="1.6"/></svg>Job Plans &amp; Assets</button>
-      <button data-sec="work"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="5" height="16" rx="1.2"/><rect x="9.5" y="4" width="5" height="10" rx="1.2"/><rect x="16" y="4" width="5" height="13" rx="1.2"/></svg>Work</button>
-    </div>
-    <div class="right">
-      <button class="btn primary" id="genBtn" style="display:none" title="Run the PM generation engine for the seeded generator schedule">⚙ Generate PM work</button>
-    </div>
-  </div>
-  <div class="frames">
-    <iframe id="fJobs" class="on" src="job-plans/app.html?embed=1"></iframe>
-    <iframe id="fWork" src="work-orders/app.html?embed=1"></iframe>
-  </div>
-<script>
-  var frames = { jobs: document.getElementById("fJobs"), work: document.getElementById("fWork") };
-  var genBtn = document.getElementById("genBtn");
-  var current = "jobs";
+  <div class="shell" id="shell">
+    <div class="scrim" id="scrim"></div>
+    <aside class="sidebar">
+      <div class="side-brand">
+        <svg class="mark" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 22V12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M12 12L6.5 7.5M12 12l5.5-4.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="6" cy="7" r="2" fill="currentColor"/><circle cx="18" cy="7" r="2" fill="currentColor"/></svg>
+        <span class="bt">Plantree</span>
+        <button class="collapse" id="collapseBtn" title="Collapse sidebar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </div>
+      <nav class="side-nav" id="nav"></nav>
+      <div class="side-foot">
+        <div class="ws">
+          <div class="avatar">PT</div>
+          <div class="wt"><div class="n">Demo workspace</div><div class="s">Sample data · local only</div></div>
+        </div>
+      </div>
+    </aside>
 
-  function show(sec) {
-    current = sec;
-    Object.keys(frames).forEach(function (k) { frames[k].classList.toggle("on", k === sec); });
-    document.querySelectorAll("#nav button").forEach(function (b) { b.classList.toggle("on", b.getAttribute("data-sec") === sec); });
-    genBtn.style.display = sec === "work" ? "inline-flex" : "none";
+    <div class="main">
+      <header class="topbar">
+        <button class="hamburger" id="hamburger" title="Menu"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round"/></svg></button>
+        <div class="page-title" id="pageTitle">Dashboard</div>
+        <label class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2" stroke-linecap="round"/></svg><input id="globalSearch" placeholder="Search work orders, assets, plans…" autocomplete="off" /></label>
+        <div class="top-actions">
+          <button class="btn primary" id="genBtn" style="display:none" title="Run the PM generation engine for the seeded generator schedule">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/><circle cx="12" cy="12" r="3.4"/></svg>
+            Generate PM
+          </button>
+        </div>
+      </header>
+
+      <div class="stage">
+        <section class="dash on" id="dash"></section>
+        <div class="frames" id="frames">
+          <iframe id="fJobs" src="job-plans/app.html?embed=1"></iframe>
+          <iframe id="fWork" src="work-orders/app.html?embed=1"></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+  var shell = document.getElementById("shell");
+  var frames = { jobs: document.getElementById("fJobs"), work: document.getElementById("fWork") };
+  var framesWrap = document.getElementById("frames");
+  var dash = document.getElementById("dash");
+  var genBtn = document.getElementById("genBtn");
+  var pageTitle = document.getElementById("pageTitle");
+
+  function ic(paths) { return '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' + paths + '</svg>'; }
+  var ICONS = {
+    dashboard: ic('<rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="5" rx="1.5"/><rect x="13.5" y="11" width="7.5" height="10" rx="1.5"/><rect x="3" y="13" width="7.5" height="8" rx="1.5"/>'),
+    work: ic('<rect x="3" y="4" width="5" height="16" rx="1.2"/><rect x="9.5" y="4" width="5" height="10" rx="1.2"/><rect x="16" y="4" width="5" height="13" rx="1.2"/>'),
+    requests: ic('<path d="M21 11.5a8.4 8.4 0 0 1-11.9 7.6L3 21l1.9-6.1A8.4 8.4 0 1 1 21 11.5z"/>'),
+    assets: ic('<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/>'),
+    plans: ic('<path d="M9 5h10M9 12h10M9 19h10"/><circle cx="4.5" cy="5" r="1.4"/><circle cx="4.5" cy="12" r="1.4"/><circle cx="4.5" cy="19" r="1.4"/>')
+  };
+
+  // view → title, which frame (or dashboard), and the message to send
+  var VIEWS = {
+    dashboard: { title: "Dashboard" },
+    work:      { title: "Work Orders", frame: "work", msg: { type: "plantree:board" }, gen: true },
+    requests:  { title: "Requests",    frame: "work", msg: { type: "plantree:requests" }, gen: true },
+    assets:    { title: "Assets",      frame: "jobs", msg: { type: "plantree:setMode", mode: "assets" } },
+    plans:     { title: "Job Plans",   frame: "jobs", msg: { type: "plantree:setMode", mode: "classes" } }
+  };
+  var current = "dashboard";
+  var stats = { work: null, jobs: null };
+
+  /* ---------- sidebar nav ---------- */
+  var NAV = [
+    { grp: "Overview" },
+    { view: "dashboard", label: "Dashboard", icon: "dashboard" },
+    { grp: "Maintenance" },
+    { view: "work", label: "Work Orders", icon: "work", cnt: function (s) { return s.work ? s.work.open + s.work.active + s.work.on_hold : null; } },
+    { view: "requests", label: "Requests", icon: "requests", cnt: function (s) { return s.work ? s.work.requests : null; }, alert: function (s) { return s.work && s.work.requests > 0; } },
+    { grp: "Assets & Plans" },
+    { view: "assets", label: "Assets", icon: "assets", cnt: function (s) { return s.jobs ? s.jobs.assets : null; } },
+    { view: "plans", label: "Job Plans", icon: "plans", cnt: function (s) { return s.jobs ? s.jobs.classes : null; } }
+  ];
+  function renderNav() {
+    var host = document.getElementById("nav"); host.innerHTML = "";
+    NAV.forEach(function (n) {
+      if (n.grp) { host.appendChild(mk("div", "side-grp", n.grp)); return; }
+      var b = document.createElement("button");
+      b.className = "nav-item" + (current === n.view ? " on" : "");
+      b.title = n.label;
+      b.innerHTML = ICONS[n.icon] + '<span class="lbl">' + n.label + '</span>';
+      var c = n.cnt ? n.cnt(stats) : null;
+      if (c != null) { var s = document.createElement("span"); s.className = "cnt" + (n.alert && n.alert(stats) ? " alert" : ""); s.textContent = String(c); b.appendChild(s); }
+      b.addEventListener("click", function () { go(n.view); closeDrawer(); });
+      host.appendChild(b);
+    });
   }
+  function mk(t, c, txt) { var n = document.createElement(t); if (c) n.className = c; if (txt != null) n.textContent = txt; return n; }
+
+  /* ---------- navigation ---------- */
   function post(frame, msg) {
     var w = frame.contentWindow; if (!w) return;
-    // fire now and once more after load, in case the frame hasn't finished booting
     try { w.postMessage(msg, "*"); } catch (e) {}
     frame.addEventListener("load", function once() { frame.removeEventListener("load", once); try { w.postMessage(msg, "*"); } catch (e) {} });
   }
+  function go(view) {
+    var v = VIEWS[view]; if (!v) return;
+    current = view;
+    pageTitle.textContent = v.title;
+    if (v.frame) {
+      dash.classList.remove("on"); framesWrap.classList.add("on");
+      Object.keys(frames).forEach(function (k) { frames[k].classList.toggle("on", k === v.frame); });
+      if (v.msg) post(frames[v.frame], v.msg);
+    } else {
+      framesWrap.classList.remove("on"); dash.classList.add("on");
+      requestStats(); renderDash();
+    }
+    genBtn.style.display = v.gen ? "inline-flex" : "none";
+    renderNav();
+  }
 
-  document.querySelectorAll("#nav button").forEach(function (b) {
-    b.addEventListener("click", function () { show(b.getAttribute("data-sec")); });
-  });
-  genBtn.addEventListener("click", function () { post(frames.work, { type: "plantree:generate" }); });
-
-  // Cross-link: the Job Plans app asks to open an asset's work orders.
+  /* ---------- stats plumbing ---------- */
+  function requestStats() {
+    post(frames.work, { type: "plantree:statsRequest" });
+    post(frames.jobs, { type: "plantree:statsRequest" });
+  }
   window.addEventListener("message", function (e) {
     var d = e.data; if (!d || typeof d !== "object") return;
-    if (d.type === "plantree:openWork") {
-      show("work");
-      post(frames.work, { type: "plantree:filterAsset", assetId: d.assetId });
+    if (d.type === "plantree:stats" && d.source) {
+      stats[d.source] = d.data; renderNav();
+      if (current === "dashboard") renderDash();
+    } else if (d.type === "plantree:openWork") {   // asset → its work orders (from Job Plans)
+      go("work"); post(frames.work, { type: "plantree:filterAsset", assetId: d.assetId });
     }
   });
+
+  /* ---------- dashboard ---------- */
+  var CAT = [
+    { k: "open", l: "Open" }, { k: "active", l: "In progress" }, { k: "on_hold", l: "On hold" },
+    { k: "done", l: "Done" }, { k: "rejected", l: "Rejected" }
+  ];
+  function kpi(cls, iconKey, label, value, sub, onClick) {
+    var tag = onClick ? "button" : "div";
+    var extra = iconKey === "overdue"
+      ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" stroke-linecap="round"/></svg>'
+      : ICONS[iconKey] ? ICONS[iconKey].replace('class="ic"', "") : "";
+    var el = document.createElement(tag);
+    el.className = "kpi " + cls;
+    el.innerHTML = '<div class="kh"><span class="kic">' + extra + '</span><span class="kl">' + label + '</span></div>' +
+      '<div class="kv">' + (value == null ? "—" : value) + '</div>' +
+      (sub ? '<div class="ks">' + sub + '</div>' : "");
+    if (onClick) el.addEventListener("click", onClick);
+    return el;
+  }
+  function renderDash() {
+    var w = stats.work, j = stats.jobs;
+    dash.innerHTML = "";
+    var root = mk("div", "dash-in");
+
+    // hero
+    var hero = mk("div", "dash-hero");
+    hero.innerHTML = '<div><h1>Maintenance overview</h1><p>Live snapshot of work, requests and your asset base.</p></div>';
+    var hact = mk("div", "hact");
+    var genq = document.createElement("button"); genq.className = "btn primary";
+    genq.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/><circle cx="12" cy="12" r="3.4"/></svg> Generate PM work';
+    genq.addEventListener("click", triggerGenerate);
+    var viewq = document.createElement("button"); viewq.className = "btn"; viewq.textContent = "Open board";
+    viewq.addEventListener("click", function () { go("work"); });
+    hact.appendChild(genq); hact.appendChild(viewq); hero.appendChild(hact);
+    root.appendChild(hero);
+
+    // KPI tiles
+    var kpis = mk("div", "kpis");
+    var openWO = w ? w.open : null, active = w ? w.active : null, overdue = w ? w.overdue : null;
+    kpis.appendChild(kpi("hl-info", "work", "Open work orders", openWO, w ? "awaiting scheduling & start" : "", function () { go("work"); }));
+    kpis.appendChild(kpi("hl-accent", "work", "In progress", active, w ? "currently being worked" : "", function () { go("work"); }));
+    kpis.appendChild(kpi("hl-crit", "overdue", "Overdue", overdue, w ? "past due date" : "", function () { go("work"); }));
+    kpis.appendChild(kpi("hl-warn", "requests", "Open requests", w ? w.requests : null, w ? "awaiting triage" : "", function () { go("requests"); }));
+    kpis.appendChild(kpi("hl-good", "assets", "Assets", j ? j.assets : null, j ? j.sites + " site" + (j.sites === 1 ? "" : "s") : "", function () { go("assets"); }));
+    kpis.appendChild(kpi("hl-accent", "plans", "Job plans", j ? j.classes : null, j ? j.models + " models · " + j.instances + " instances" : "", function () { go("plans"); }));
+    root.appendChild(kpis);
+
+    // two-column: recent work + (status breakdown, quick actions)
+    var grid = mk("div", "dash-grid");
+
+    var recent = mk("div", "card");
+    var rh = mk("div"); rh.style.cssText = "";
+    recent.appendChild((function () {
+      var h = document.createElement("header");
+      h.innerHTML = '<h3>Recent work orders</h3><div class="see"><button>View board →</button></div>';
+      h.querySelector("button").addEventListener("click", function () { go("work"); });
+      return h;
+    })());
+    if (w && w.recent && w.recent.length) {
+      w.recent.forEach(function (r) {
+        var row = document.createElement("button"); row.className = "wo-row";
+        row.innerHTML = '<span class="st c-' + r.cat + '"></span>' +
+          '<span class="wm"><span class="t">' + esc(r.title) + '</span><span class="m">' + esc(r.num) + ' · ' + esc(r.type || "") + '</span></span>' +
+          '<span class="chip c-' + r.cat + '">' + esc(r.label) + '</span>' +
+          '<span class="due' + (r.overdue ? " over" : "") + '">' + (r.overdue ? "⚠ " : "") + esc(r.due) + '</span>';
+        row.addEventListener("click", function () { go("work"); });
+        recent.appendChild(row);
+      });
+    } else {
+      recent.appendChild(mk("div", "empty-row", w ? "No work orders yet — generate PM work to get started." : "Loading…"));
+    }
+    grid.appendChild(recent);
+
+    var side = mk("div"); side.style.cssText = "display:flex;flex-direction:column;gap:18px";
+
+    // status breakdown
+    var brk = mk("div", "card");
+    brk.appendChild((function () { var h = document.createElement("header"); h.innerHTML = "<h3>Work by status</h3>"; return h; })());
+    var bars = mk("div", "statusbars");
+    var total = w ? (w.open + w.active + w.on_hold + w.done + w.rejected) : 0;
+    if (w && total) {
+      CAT.forEach(function (c) {
+        var val = w[c.k] || 0; if (!val && c.k === "rejected") return;
+        var pct = total ? Math.round(val / total * 100) : 0;
+        var sb = mk("div", "sbar");
+        sb.innerHTML = '<div class="sl"><span class="chip c-' + c.k + '">' + c.l + '</span><span class="n">' + val + '</span></div>' +
+          '<div class="track"><div class="fill" style="width:' + pct + '%;background:var(--' + barColor(c.k) + ')"></div></div>';
+        bars.appendChild(sb);
+      });
+    } else {
+      bars.appendChild(mk("div", "empty-row", w ? "No work orders yet." : "Loading…"));
+    }
+    brk.appendChild(bars); side.appendChild(brk);
+
+    // quick actions
+    var qa = mk("div", "card");
+    qa.appendChild((function () { var h = document.createElement("header"); h.innerHTML = "<h3>Quick actions</h3>"; return h; })());
+    var quick = mk("div", "quick");
+    quick.appendChild(quickBtn("requests", "Triage requests", "Review incoming work requests", function () { go("requests"); }));
+    quick.appendChild(quickBtn("work", "Open work board", "Kanban across every status", function () { go("work"); }));
+    quick.appendChild(quickBtn("assets", "Browse assets", "Asset register by site & class", function () { go("assets"); }));
+    quick.appendChild(quickBtn("plans", "Manage job plans", "Class → model → instance library", function () { go("plans"); }));
+    qa.appendChild(quick); side.appendChild(qa);
+
+    grid.appendChild(side);
+    root.appendChild(grid);
+    dash.appendChild(root);
+  }
+  function quickBtn(icon, label, sub, onClick) {
+    var b = document.createElement("button");
+    b.innerHTML = '<span class="qic">' + (ICONS[icon] || "").replace('class="ic"', "") + '</span>' +
+      '<span>' + esc(label) + '<span class="qs">' + esc(sub) + '</span></span>' +
+      '<span class="go"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
+    b.addEventListener("click", onClick);
+    return b;
+  }
+  function barColor(k) { return k === "open" ? "info" : k === "active" ? "accent" : k === "on_hold" ? "warn" : k === "done" ? "good" : "crit"; }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+
+  /* ---------- actions ---------- */
+  function triggerGenerate() {
+    if (current !== "work") go("work");
+    post(frames.work, { type: "plantree:generate" });
+    // refresh dashboard numbers shortly after generation
+    setTimeout(requestStats, 120);
+  }
+  genBtn.addEventListener("click", triggerGenerate);
+
+  document.getElementById("globalSearch").addEventListener("input", function (e) {
+    var q = e.target.value;
+    if (current === "dashboard") return; // search targets the active module
+    var v = VIEWS[current];
+    if (v && v.frame) post(frames[v.frame], { type: "plantree:search", q: q });
+  });
+
+  /* ---------- sidebar collapse + mobile drawer ---------- */
+  var collapsed = false;
+  try { collapsed = localStorage.getItem("pt.side") === "1"; } catch (e) {}
+  if (collapsed) shell.classList.add("collapsed");
+  document.getElementById("collapseBtn").addEventListener("click", function () {
+    collapsed = !shell.classList.toggle("collapsed") ? false : true;
+    collapsed = shell.classList.contains("collapsed");
+    try { localStorage.setItem("pt.side", collapsed ? "1" : "0"); } catch (e) {}
+  });
+  function openDrawer() { shell.classList.add("drawer"); }
+  function closeDrawer() { shell.classList.remove("drawer"); }
+  document.getElementById("hamburger").addEventListener("click", openDrawer);
+  document.getElementById("scrim").addEventListener("click", closeDrawer);
+
+  /* ---------- boot ---------- */
+  renderNav();
+  renderDash();
+  // pull stats as soon as the frames are alive
+  frames.work.addEventListener("load", requestStats);
+  frames.jobs.addEventListener("load", requestStats);
+  setTimeout(requestStats, 300);
+})();
 </script>
 </body>
 </html>
