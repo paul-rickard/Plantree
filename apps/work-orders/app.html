@@ -659,7 +659,7 @@ function renderBoard() {
   return host;
 }
 
-function render() { renderRail(); renderDetail(); }
+function render() { renderRail(); renderDetail(); if (typeof EMBED !== "undefined" && EMBED) sendStats(); }
 
 /* ---------------- wire up ---------------- */
 document.getElementById("q").addEventListener("input", function (e) { S.q = e.target.value; render(); });
@@ -669,10 +669,30 @@ var _gen = document.getElementById("genBtn"); if (_gen) _gen.addEventListener("c
 var EMBED = /[?&]embed=1/.test(location.search);
 if (EMBED) { var _tb = document.querySelector(".topbar"); if (_tb) _tb.style.display = "none"; var _ap = document.querySelector(".app"); if (_ap) _ap.style.height = "100vh"; }
 (function () { var m = /[?&]asset=([^&]+)/.exec(location.search); if (m) { S.q = decodeURIComponent(m[1]); document.getElementById("q").value = S.q; } })();
+
+/* Report a compact, live summary up to the shell dashboard (truthful seeded counts). */
+function collectStats() {
+  function cat(k) { return S.orders.filter(function (o) { return stateOf(o.status).category === k; }).length; }
+  var recent = S.orders.slice()
+    .sort(function (a, b) { return (b.statusHistory && b.statusHistory.length ? b.statusHistory[b.statusHistory.length - 1].at : b.dueDate || "").localeCompare(a.statusHistory && a.statusHistory.length ? a.statusHistory[a.statusHistory.length - 1].at : a.dueDate || ""); })
+    .slice(0, 5).map(function (wo) { var st = stateOf(wo.status); return { num: wo.workOrderNumber, title: wo.title, cat: st.category, label: st.label, priority: wo.priority, type: wo.workOrderTypeCode, due: fmtDate(wo.dueDate), overdue: overdue(wo) }; });
+  return {
+    open: cat("open"), active: cat("active"), on_hold: cat("on_hold"), done: cat("done"), rejected: cat("rejected"),
+    total: S.orders.length, overdue: S.orders.filter(overdue).length,
+    requests: S.requests.filter(function (r) { return r.status !== "converted" && r.status !== "rejected"; }).length,
+    recent: recent
+  };
+}
+function sendStats() { if (!EMBED) return; try { window.parent.postMessage({ type: "plantree:stats", source: "work", data: collectStats() }, "*"); } catch (e) {} }
+
 window.addEventListener("message", function (e) {
   var d = e.data; if (!d || typeof d !== "object") return;
   if (d.type === "plantree:generate") generatePM();
-  else if (d.type === "plantree:filterAsset") { S.q = d.assetId || ""; document.getElementById("q").value = S.q; S.sel = null; render(); }
+  else if (d.type === "plantree:filterAsset") { S.q = d.assetId || ""; document.getElementById("q").value = S.q; S.sel = null; render(); document.getElementById("app").classList.remove("show-detail"); }
+  else if (d.type === "plantree:statsRequest") sendStats();
+  else if (d.type === "plantree:board") { S.sel = null; document.getElementById("app").classList.remove("show-detail"); render(); }
+  else if (d.type === "plantree:requests") { var r = S.requests.filter(function (x) { return x.status !== "converted" && x.status !== "rejected"; })[0]; S.sel = r ? { kind: "wr", id: r.id } : null; document.getElementById("app").classList.toggle("show-detail", !!r); render(); }
+  else if (d.type === "plantree:search") { S.q = d.q || ""; document.getElementById("q").value = S.q; S.sel = null; render(); }
 });
 render();
 </script>
