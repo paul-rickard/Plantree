@@ -410,9 +410,11 @@
 
   /* ---------- actions ---------- */
   function triggerGenerate() {
-    if (current !== "work") go("work");
+    // Generate in place: the work module adds the due orders (even while its
+    // frame is hidden) and reports fresh stats, so the dashboard KPIs tick up
+    // live and the board updates when you open it. "Open board" navigates on
+    // demand — generating shouldn't yank you off the dashboard.
     post(frames.work, { type: "plantree:generate" });
-    // refresh dashboard numbers shortly after generation
     setTimeout(requestStats, 120);
   }
   genBtn.addEventListener("click", triggerGenerate);
