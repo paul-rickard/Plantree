@@ -6,22 +6,22 @@
 <title>Plantree — Job Plans</title>
 <style>
   :root {
-    --bg:#eef1ef; --panel:#fff; --panel-2:#f7f9f7; --ink:#15201d; --muted:#5a6a65; --faint:#8a9a94;
-    --line:#e2e7e4; --line-2:#d2dad6; --accent:#0f6f66; --accent-h:#148a7e; --accent-soft:#e4f1ee;
+    --bg:#eef1f6; --panel:#fff; --panel-2:#f5f7fb; --ink:#161b26; --muted:#5a6472; --faint:#8a93a2;
+    --line:#e4e8ef; --line-2:#d3d9e4; --accent:#2f6bed; --accent-h:#245fd6; --accent-soft:#e9effe;
     --good:#1e8e5a; --good-soft:color-mix(in srgb,#1e8e5a 14%,transparent);
     --warn:#b3760f; --warn-soft:color-mix(in srgb,#b3760f 15%,transparent);
     --crit:#c0453b; --crit-soft:color-mix(in srgb,#c0453b 12%,transparent);
-    --info:#3a6ea5; --info-soft:color-mix(in srgb,#3a6ea5 13%,transparent);
+    --info:#0e93ce; --info-soft:color-mix(in srgb,#0e93ce 14%,transparent);
     --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace; --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
     --sh:0 1px 2px rgba(16,32,28,.05); --sh-2:0 8px 30px rgba(16,32,28,.10);
   }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#0d1512; --panel:#141f1b; --panel-2:#111b17; --ink:#e8eeeb; --muted:#9aaaa4; --faint:#6c7d77;
-      --line:#25322d; --line-2:#33433d; --accent:#38b4a4; --accent-h:#54c6b7; --accent-soft:#16302c;
+    :root { --bg:#0d1117; --panel:#151a22; --panel-2:#11151c; --ink:#e7eaf1; --muted:#9aa3b4; --faint:#6c7688;
+      --line:#242b36; --line-2:#333c4a; --accent:#5b8dff; --accent-h:#79a3ff; --accent-soft:#182643;
       --good:#37b37a; --good-soft:color-mix(in srgb,#37b37a 16%,transparent);
       --warn:#d69b3a; --warn-soft:color-mix(in srgb,#d69b3a 15%,transparent);
       --crit:#e0685d; --crit-soft:color-mix(in srgb,#e0685d 15%,transparent);
-      --info:#6c9fd6; --info-soft:color-mix(in srgb,#6c9fd6 15%,transparent); --sh-2:0 10px 34px rgba(0,0,0,.4); }
+      --info:#4bb8e6; --info-soft:color-mix(in srgb,#4bb8e6 16%,transparent); --sh-2:0 10px 34px rgba(0,0,0,.4); }
   }
   * { box-sizing:border-box; }
   html,body { height:100%; }
@@ -134,11 +134,14 @@
   .seg button.on { background:var(--panel); color:var(--accent); box-shadow:var(--sh); }
   .node .kind { flex:none; color:var(--faint); display:flex; align-items:center; }
   .atable { width:100%; border-collapse:collapse; }
-  .atable th { text-align:left; font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--faint); font-family:var(--mono); font-weight:700; padding:8px 10px; border-bottom:1px solid var(--line); white-space:nowrap; }
-  .atable td { padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  .atable th { text-align:left; font-size:11px; letter-spacing:.02em; color:var(--muted); font-weight:600; padding:11px 14px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  .atable th .sortc { color:var(--faint); margin-left:5px; font-size:10px; }
+  .atable td { padding:12px 14px; border-bottom:1px solid var(--line); vertical-align:middle; }
   .atable tbody tr:last-child td { border-bottom:0; }
   .atable tbody tr.click { cursor:pointer; } .atable tbody tr.click:hover { background:var(--panel-2); }
   .atable .acode { font-family:var(--mono); font-size:12px; color:var(--muted); } .atable .aname { font-weight:600; }
+  .atable .nmcell { display:flex; align-items:center; gap:11px; }
+  .aav { width:32px; height:32px; border-radius:50%; flex:none; display:flex; align-items:center; justify-content:center; font-size:11.5px; font-weight:700; letter-spacing:.02em; }
   .loc-vec { font-family:var(--mono); font-size:11px; color:var(--faint); }
   .cls-chip { display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:600; color:var(--accent); background:var(--accent-soft); border-radius:999px; padding:2px 9px; }
   .chk { width:17px; height:17px; accent-color:var(--accent); cursor:pointer; vertical-align:middle; }
@@ -662,6 +665,10 @@
       sec("Contents", (n.children || []).length + "", null, kids.length ? kids : [el("div", { class: "empty-in" }, ["Empty — add a folder or site."])])
     ])]));
   }
+  var AAVC = ["accent", "good", "warn", "info", "crit"];
+  function initials(s) { var p = (s || "").trim().split(/\s+/); return (((p[0] || "")[0] || "") + ((p[1] || "")[0] || "")).toUpperCase(); }
+  function avatarFor(s) { var h = 0; for (var i = 0; i < (s || "").length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; var c = AAVC[h % AAVC.length]; return el("span", { class: "aav", style: "color:var(--" + c + ");background:var(--" + c + "-soft)" }, [initials(s) || "?"]); }
+  function sortTh(label) { return el("th", {}, [label, el("span", { class: "sortc" }, ["↕"])]); }
   function renderAssetList(host, title, sub, list, site) {
     host.appendChild(alHead(title, sub, site ? [el("button", { class: "btn primary", onclick: function () { addAssetModal(site.id); } }, ["+ Add asset"])] : []));
     var w = el("div", { class: "wrap" }, []);
@@ -673,11 +680,11 @@
     if (q) w.appendChild(el("div", { class: "hint", style: "margin:-2px 0 4px" }, [list.length + " of " + full.length + " match “" + G.q.trim() + "”"]));
     if (!list.length) w.appendChild(sec("Assets", "0", null, [el("div", { class: "empty-in" }, [q ? "No assets match the search." : (site ? "No assets in this site yet — add one." : "No assets of this class.")])]));
     else {
-      var head = el("tr", {}, [el("th", { style: "width:30px" }, [(function () { var cb = el("input", { type: "checkbox", class: "chk" }); cb.addEventListener("change", function () { list.forEach(function (a) { bulkSel[a.id] = cb.checked; }); renderDetail(); }); return cb; })()]), el("th", {}, ["Code"]), el("th", {}, ["Name"]), el("th", {}, ["Class"]), el("th", {}, ["Model"]), el("th", {}, ["Location"]), el("th", {}, ["Plans"])]);
+      var head = el("tr", {}, [el("th", { style: "width:30px" }, [(function () { var cb = el("input", { type: "checkbox", class: "chk" }); cb.addEventListener("change", function () { list.forEach(function (a) { bulkSel[a.id] = cb.checked; }); renderDetail(); }); return cb; })()]), sortTh("Name"), sortTh("Code"), sortTh("Class"), el("th", {}, ["Model"]), sortTh("Location"), sortTh("Plans")]);
       var tb = el("tbody", {}, []);
       list.forEach(function (a) { var f = classById(a.classId), m = f && a.modelId ? modelById(f, a.modelId) : null;
         var cb = el("input", { type: "checkbox", class: "chk", checked: !!bulkSel[a.id] }); cb.addEventListener("click", function (e) { e.stopPropagation(); }); cb.addEventListener("change", function () { bulkSel[a.id] = cb.checked; renderDetail(); });
-        tb.appendChild(el("tr", { class: "click", onclick: function () { selAsset({ kind: "asset", id: a.id }); } }, [el("td", {}, [cb]), el("td", { class: "acode" }, [a.code]), el("td", { class: "aname" }, [a.name]), el("td", {}, [f ? el("span", { class: "cls-chip" }, [f.name]) : "—"]), el("td", {}, [m ? m.name : "—"]), el("td", { class: "loc-vec" }, [locVector(a.locationId)]), el("td", { class: "num" }, [String((a.appliedPlans || []).length)])]));
+        tb.appendChild(el("tr", { class: "click", onclick: function () { selAsset({ kind: "asset", id: a.id }); } }, [el("td", {}, [cb]), el("td", {}, [el("div", { class: "nmcell" }, [avatarFor(a.name), el("span", { class: "aname" }, [a.name])])]), el("td", { class: "acode" }, [a.code]), el("td", {}, [f ? el("span", { class: "cls-chip" }, [f.name]) : "—"]), el("td", {}, [m ? m.name : "—"]), el("td", { class: "loc-vec" }, [locVector(a.locationId)]), el("td", { class: "num" }, [String((a.appliedPlans || []).length)])]));
       });
       w.appendChild(el("div", { class: "sec" }, [el("div", { style: "overflow-x:auto" }, [el("table", { class: "atable" }, [el("thead", {}, [head]), tb])])]));
     }
