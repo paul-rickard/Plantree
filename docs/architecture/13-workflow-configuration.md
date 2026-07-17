@@ -24,7 +24,7 @@ initial/terminal/pauses-SLA flags. Everything that used to live there is either
 |----------|-----------------------------|
 | Where can work be created? | `entryStates` (explicit) — creation is an action that targets one of these. Requested-style work enters at the first state; PM/scheduled work enters mid-graph (e.g. `planned`). |
 | Which states are terminal? | **Derived from the graph**: a state with no outgoing transition (e.g. `closed`, `rejected`). This handles multiple terminals naturally, and a transient state like `cancelled` — which has an outgoing `onEntry` to `closed` — is correctly *not* terminal. |
-| Is this state "open" / "in progress" / overdue? | **Downstream rules**, not a property. Board columns are the states themselves; KPIs, overdue and SLA are configurable filters/rules evaluated over the recorded transition history (see below). |
+| Is this state "open" / "in progress" / overdue? | **Downstream rules**, not a property — see [Board segments](#board-segments-grouping-as-rules) below. |
 
 Renaming a state = change `label`. Adding/removing = edit `states[]` and the
 transitions; deleting a state that records occupy needs a remap.
@@ -103,16 +103,41 @@ SLA clocks (including pauses, expressed as rules that reference states), overdue
 and dashboard segments. States stay pure; behaviour is rules over the log. This
 is what lets a site rename or re-shape its lifecycle without touching the engine.
 
+## Board segments: grouping as rules
+
+Board columns, dashboard buckets, and "is this finished / overdue" are **not**
+properties of a state — they're **segments**: an ordered list of rules, each with
+a `label`, a `colour`, an optional `finished` flag, and a `where` expression over
+the order (same engine as guards). First match wins. The seeded set:
+
+| Segment | `where` |
+|---------|---------|
+| Open | `!inState('in_progress') && !onHold() && !isTerminal() && !inState('completed') && !inState('verified')` |
+| In progress | `inState('in_progress')` |
+| On hold | `onHold()` |
+| Done | `(isTerminal() \|\| inState('completed') \|\| inState('verified')) && !inState('rejected')` *(finished)* |
+| Rejected | `inState('rejected')` *(finished)* |
+
+The scope exposes `inState('id')`, `isTerminal()`, `onHold()`, `overdue()`,
+`status` and `priority`. Because the rules lean on `isTerminal()` (derived from
+the graph) rather than a per-state map, **a custom state groups itself** — add a
+new terminal state and it lands in Done automatically; add a mid-graph state and
+it falls to Open — with no grouping table to maintain. `overdue` is likewise a
+rule (`dueDate` in the past and the order's segment is not `finished`), not a flag
+on the state. This is what "semantics live downstream" means concretely: the
+[`WorkflowProfile`](../../schemas/workflow-profile.schema.json) stays pure, and
+the view/analytics layer is rules over the current state + history.
+
 ## Editing it
 
 The work-orders app ships a **visual editor** for the profile (the ⚙ button in
 the Work rail, or **Settings → Workflow → Open editor** in the shell). It lists
 states with add / rename / reorder / delete (showing which are terminal, derived
-live) and transitions with from / to / label / trigger (+ its parameter) / guard
-expressions / actions. Saving applies the profile immediately and persists it
-locally (`localStorage["pt.workflow"]`); **Reset to default** restores the
-built-in lifecycle. Custom states with no explicit grouping fall to the default
-board bucket until the filters/rules layer lands.
+live), transitions with from / to / label / trigger (+ its parameter) / guard
+expressions / actions, and the **board segments** (label / colour / `where` rule /
+finished). Saving applies both immediately and persists them locally
+(`localStorage["pt.workflow"]` and `["pt.segments"]`); **Reset to default**
+restores the built-in lifecycle and segments.
 
 ## Mapping to the code
 

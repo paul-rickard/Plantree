@@ -55,16 +55,19 @@ not code. States are `{id,label}`; transitions are first-class with a **trigger*
 **actions**. Terminality is derived from the graph. Automatic transitions fire
 **lazily** on load — e.g. cancelling an order cascades `cancelled → closed`
 on-entry (recorded as `system`), and `completed → closed` auto-fires after 5 days.
-The app renders the action bar and its guard chips straight from the engine; the
-board's 5-bucket grouping is a presentation-only `STATE_GROUP` map (a view
-concern), so states stay pure. Full model in
-[doc 13](../../docs/architecture/13-workflow-configuration.md).
+The app renders the action bar and its guard chips straight from the engine.
+Board columns and dashboard buckets are **segments** — ordered rules whose
+`where` is an expression over the order (`inState('id')`, `isTerminal()`,
+`onHold()`, `overdue()`), first match wins — so a custom state groups by rule
+(any terminal state → Done) rather than a hardcoded map, and states stay pure.
+Full model in [doc 13](../../docs/architecture/13-workflow-configuration.md).
 
 **Editor** — the ⚙ button in the rail (or **Settings → Workflow** in the shell)
 opens a visual editor for the profile: add/rename/reorder/delete states (terminal
-badges derived live), and add/edit transitions (from · to · label · trigger +
-param · guard expressions · actions). Save applies it live and persists to
-`localStorage`; Reset restores the built-in default.
+badges derived live), add/edit transitions (from · to · label · trigger + param ·
+guard expressions · actions), and edit the **board segments** (label · colour ·
+`where` rule · finished). Save applies it live and persists to `localStorage`;
+Reset restores the built-in default.
 
 Related contracts: [`maintenance-schedule.schema.json`](../../schemas/maintenance-schedule.schema.json)
 (the per-asset schedule + high-water marks) and

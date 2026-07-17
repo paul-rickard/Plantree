@@ -245,17 +245,44 @@ var PROFILE = {
 var DEFAULT_PROFILE = JSON.parse(JSON.stringify(PROFILE));
 (function () { try { var s = localStorage.getItem("pt.workflow"); if (s) PROFILE = JSON.parse(s); } catch (e) {} })();
 
-// Presentation-only grouping (a VIEW concern, not a state property): maps each
-// state id to a board/dashboard bucket. Doc 13 — semantics live downstream, not on states.
-var STATE_GROUP = {
-  requested: "open", reviewed: "open", approved: "open", planned: "open", scheduled: "open", assigned: "open",
-  in_progress: "active", awaiting_parts_access: "on_hold",
-  completed: "done", verified: "done", closed: "done", rejected: "rejected", cancelled: "rejected"
-};
+// Board grouping is a VIEW concern expressed as RULES, not a per-state map
+// (doc 13). Each segment is an ordered {id,label,colour,where,finished} — the
+// `where` is an expression over the order (evaluated by the workflow engine), so
+// custom states group correctly by rule (e.g. any terminal state → Done) instead
+// of needing a hardcoded entry. First matching segment wins.
+var DEFAULT_SEGMENTS = [
+  { id: "open", label: "Open", colour: "info", where: "!inState('in_progress') && !onHold() && !isTerminal() && !inState('completed') && !inState('verified')" },
+  { id: "active", label: "In progress", colour: "accent", where: "inState('in_progress')" },
+  { id: "on_hold", label: "On hold", colour: "warn", where: "onHold()" },
+  { id: "done", label: "Done", colour: "good", where: "(isTerminal() || inState('completed') || inState('verified')) && !inState('rejected')", finished: true },
+  { id: "rejected", label: "Rejected", colour: "crit", where: "inState('rejected')", finished: true }
+];
+var SEGMENTS = JSON.parse(JSON.stringify(DEFAULT_SEGMENTS));
+(function () { try { var s = localStorage.getItem("pt.segments"); if (s) SEGMENTS = JSON.parse(s); } catch (e) {} })();
+
 function labelOf(id) { for (var i = 0; i < PROFILE.states.length; i++) if (PROFILE.states[i].id === id) return PROFILE.states[i].label; return id; }
-function catOf(id) { return STATE_GROUP[id] || "open"; }
-// Compatibility shape so the board / stats / chips keep reading .category/.label/.isTerminal.
-function stateOf(k) { return { key: k, label: labelOf(k), category: catOf(k), isTerminal: Workflow.isTerminal(PROFILE, k) }; }
+function segScope(wo) {
+  return {
+    inState: function (id) { return wo.status === id; },
+    isTerminal: function () { return Workflow.isTerminal(PROFILE, wo.status); },
+    onHold: function () { return wo.onHold != null; },
+    overdue: function () { return isOverdue(wo); },
+    status: wo.status, priority: wo.priority
+  };
+}
+// The segment a work order belongs to (first whose `where` evaluates true).
+function segFor(wo) {
+  var sc = segScope(wo);
+  for (var i = 0; i < SEGMENTS.length; i++) {
+    try { if (Workflow.evalExpr(SEGMENTS[i].where || "false", sc)) return SEGMENTS[i]; } catch (e) { /* skip malformed */ }
+  }
+  return SEGMENTS[SEGMENTS.length - 1] || { id: "open", label: "Open", colour: "info" };
+}
+function segId(wo) { return segFor(wo).id; }
+function segStyle(seg) { var c = (seg && seg.colour) || "info"; return "color:var(--" + c + ");background:var(--" + c + "-soft)"; }
+function isOverdue(wo) { return !!(wo.dueDate && new Date(wo.dueDate) < new Date() && !segFor(wo).finished); }
+// Kept for the few callers that only need a state's label / terminality.
+function stateOf(k) { return { key: k, label: labelOf(k), isTerminal: Workflow.isTerminal(PROFILE, k) }; }
 
 // Domain predicate scope the guard expressions evaluate against for a work order.
 function woScope(wo) {
@@ -496,6 +523,7 @@ var WF_ACTIONS = ["notify", "reserve_parts", "deduct_stock", "create_follow_up",
 function openWorkflowEditor() {
   var host = document.getElementById("modalHost");
   var draft = JSON.parse(JSON.stringify(PROFILE));
+  var draftSeg = JSON.parse(JSON.stringify(SEGMENTS));
   var body = el("div", { class: "mbody" });
   function close() { host.innerHTML = ""; }
   function labelForDraft(id) { var s = draft.states.filter(function (x) { return x.id === id; })[0]; return s ? s.label : id; }
@@ -578,6 +606,34 @@ function openWorkflowEditor() {
     } }, ["+ Add transition"]), el("span", { class: "hint", style: "font-size:11px;color:var(--faint)" }, ["actions: " + WF_ACTIONS.join(" · ")])]));
     wrap.appendChild(tr);
 
+    // Board segments (grouping RULES — expressions over the order)
+    var COLOURS = ["info", "accent", "warn", "good", "crit"];
+    var sg = el("div", { class: "wf-sec" });
+    sg.appendChild(el("h4", {}, ["Board segments", el("span", { class: "ct" }, [String(draftSeg.length)])]));
+    sg.appendChild(el("div", { class: "hint", style: "font-size:11.5px;color:var(--faint);margin:-4px 0 8px" }, ["Board columns & dashboard buckets. Each is a rule — first match wins. Scope: inState('id'), isTerminal(), onHold(), overdue(), status, priority."]));
+    draftSeg.forEach(function (seg, i) {
+      var lbl = el("input", { class: "lbl-in", type: "text", value: seg.label }); lbl.addEventListener("input", function () { seg.label = lbl.value; });
+      var col = el("select", {}, COLOURS.map(function (c) { return el("option", { value: c, selected: c === seg.colour }, [c]); })); col.addEventListener("change", function () { seg.colour = col.value; });
+      var fin = el("input", { type: "checkbox", checked: !!seg.finished, class: "chk" }); fin.addEventListener("change", function () { seg.finished = fin.checked; });
+      var where = el("textarea", { value: seg.where || "" }); where.addEventListener("input", function () { seg.where = where.value; });
+      sg.appendChild(el("div", { class: "wf-trans" }, [
+        el("div", { class: "row" }, [
+          el("div", { class: "ord" }, [
+            el("button", { title: "Move up", disabled: i === 0, onclick: function () { var t = draftSeg[i - 1]; draftSeg[i - 1] = seg; draftSeg[i] = t; rerender(); } }, ["▲"]),
+            el("button", { title: "Move down", disabled: i === draftSeg.length - 1, onclick: function () { var t = draftSeg[i + 1]; draftSeg[i + 1] = seg; draftSeg[i] = t; rerender(); } }, ["▼"])
+          ]),
+          lbl, el("span", { class: "lbl" }, ["colour"]), col,
+          el("label", { style: "display:flex;gap:5px;align-items:center;font-size:12px;color:var(--muted)" }, [fin, "finished"]),
+          el("span", { style: "margin-left:auto" }, [el("button", { class: "x", onclick: function () { draftSeg.splice(i, 1); rerender(); } }, ["✕"])])
+        ]),
+        el("div", { class: "wf-field" }, [el("span", { class: "lbl" }, ["where (expression)"]), where])
+      ]));
+    });
+    sg.appendChild(el("div", { class: "wf-add" }, [el("button", { class: "btn sm", onclick: function () {
+      draftSeg.push({ id: idseq("seg"), label: "New segment", colour: "info", where: "true" }); rerender();
+    } }, ["+ Add segment"])]));
+    wrap.appendChild(sg);
+
     // Derived
     wrap.appendChild(el("div", { class: "wf-derived" }, [
       el("div", {}, [el("b", {}, ["Terminal (derived): "]), terminals.map(labelForDraft).join(", ") || "none"]),
@@ -593,10 +649,15 @@ function openWorkflowEditor() {
     if (!draft.entryStates.length && draft.states[0]) draft.entryStates = [draft.states[0].id];
     draft.updatedAt = nowISO(); draft.rev = (draft.rev || 0) + 1;
     PROFILE = draft;
-    try { localStorage.setItem("pt.workflow", JSON.stringify(PROFILE)); } catch (e) {}
+    SEGMENTS = draftSeg.length ? draftSeg : JSON.parse(JSON.stringify(DEFAULT_SEGMENTS));
+    try { localStorage.setItem("pt.workflow", JSON.stringify(PROFILE)); localStorage.setItem("pt.segments", JSON.stringify(SEGMENTS)); } catch (e) {}
     close(); render(); toast("Workflow saved");
   }
-  function resetEditor() { draft = JSON.parse(JSON.stringify(DEFAULT_PROFILE)); try { localStorage.removeItem("pt.workflow"); } catch (e) {} rerender(); toast("Reset to default (unsaved — Save to apply)"); }
+  function resetEditor() {
+    draft = JSON.parse(JSON.stringify(DEFAULT_PROFILE)); draftSeg = JSON.parse(JSON.stringify(DEFAULT_SEGMENTS));
+    try { localStorage.removeItem("pt.workflow"); localStorage.removeItem("pt.segments"); } catch (e) {}
+    rerender(); toast("Reset to default (unsaved — Save to apply)");
+  }
 
   host.appendChild(el("div", { class: "ovl", onclick: function (e) { if (e.target.className === "ovl") close(); } }, [
     el("div", { class: "modal editor" }, [
@@ -653,20 +714,18 @@ function askReason(title, cb) {
 }
 
 /* ---------------- rendering ---------------- */
-var CATS = [{ k: "open", l: "Open" }, { k: "active", l: "Active" }, { k: "on_hold", l: "On hold" }, { k: "done", l: "Done" }, { k: "rejected", l: "Rejected" }];
 function matchesQ(o) {
   if (!S.q) return true; var s = S.q.toLowerCase();
   return (o.title || o.summary || "").toLowerCase().indexOf(s) >= 0 || (o.workOrderNumber || o.requestNumber || "").toLowerCase().indexOf(s) >= 0 || (o.assetId || "").toLowerCase().indexOf(s) >= 0;
 }
-function overdue(wo) { return wo.dueDate && new Date(wo.dueDate) < new Date() && stateOf(wo.status).category !== "done" && stateOf(wo.status).category !== "rejected"; }
+function overdue(wo) { return isOverdue(wo); }
 
 function woCard(wo) {
-  var st = stateOf(wo.status);
   var sel = S.sel && S.sel.kind === "wo" && S.sel.id === wo.id;
   return el("button", { class: "card" + (sel ? " sel" : ""), onclick: function () { S.sel = { kind: "wo", id: wo.id }; S.tab = "overview"; document.getElementById("app").classList.add("show-detail"); render(); } }, [
     el("div", { class: "r1" }, [wotChip(wo.workOrderTypeCode), el("span", { class: "num2" }, [wo.workOrderNumber]), el("span", { class: "sp" }), el("span", { class: "prio prio-" + wo.priority }, [wo.priority])]),
     el("div", { class: "ttl" }, [wo.title]),
-    el("div", { class: "r2" }, [el("span", { class: "chip dot " + "c-" + st.category }, [st.label]), el("span", { class: "due" + (overdue(wo) ? " over" : "") }, ["Due " + fmtDate(wo.dueDate)])])
+    el("div", { class: "r2" }, [el("span", { class: "chip dot", style: segStyle(segFor(wo)) }, [labelOf(wo.status)]), el("span", { class: "due" + (overdue(wo) ? " over" : "") }, ["Due " + fmtDate(wo.dueDate)])])
   ]);
 }
 function wrCard(wr) {
@@ -685,11 +744,11 @@ function renderRail() {
     host.appendChild(el("div", { class: "grp" }, [el("span", { class: "lbl2" }, ["Requests"]), el("span", { class: "n" }, [String(openReqs.length)])]));
     openReqs.forEach(function (wr) { host.appendChild(wrCard(wr)); });
   }
-  CATS.forEach(function (c) {
-    var os = S.orders.filter(function (o) { return stateOf(o.status).category === c.k && matchesQ(o); })
+  SEGMENTS.forEach(function (c) {
+    var os = S.orders.filter(function (o) { return segId(o) === c.id && matchesQ(o); })
       .sort(function (a, b) { return (a.dueDate || "").localeCompare(b.dueDate || ""); });
     if (!os.length) return;
-    host.appendChild(el("div", { class: "grp" }, [el("span", { class: "lbl2" }, [c.l]), el("span", { class: "n" }, [String(os.length)])]));
+    host.appendChild(el("div", { class: "grp" }, [el("span", { class: "lbl2" }, [c.label]), el("span", { class: "n" }, [String(os.length)])]));
     os.forEach(function (o) { host.appendChild(woCard(o)); });
   });
 }
@@ -714,7 +773,7 @@ function renderDetail() {
       ])
     ]),
     el("div", { class: "dhead-right" }, [
-      el("div", { style: "display:flex;gap:8px;align-items:center" }, [wotChip(wo.workOrderTypeCode), el("span", { class: "prio prio-" + wo.priority }, [wo.priority]), el("span", { class: "chip dot c-" + st.category }, [st.label])]),
+      el("div", { style: "display:flex;gap:8px;align-items:center" }, [wotChip(wo.workOrderTypeCode), el("span", { class: "prio prio-" + wo.priority }, [wo.priority]), el("span", { class: "chip dot", style: segStyle(segFor(wo)) }, [labelOf(wo.status)])]),
       el("div", { class: "due" + (overdue(wo) ? " over" : ""), style: "font-family:var(--mono);font-size:11px;color:var(--muted)" }, ["Due " + fmtDate(wo.dueDate)])
     ])
   ]));
@@ -772,7 +831,7 @@ function renderOverview(wrap, wo) {
     wo.description ? el("div", { style: "color:var(--muted);font-size:13px" }, [wo.description]) : null
   ]));
   // planning controls (contextual) — help satisfy guards to advance
-  var cat = stateOf(wo.status).category;
+  var cat = segId(wo);
   if (cat === "open" || cat === "active") {
     var controls = [];
     controls.push(el("div", { class: "field" }, [el("span", { class: "lbl" }, ["Estimate (h)"]), el("input", { type: "number", value: wo.estimatedLabourHours != null ? wo.estimatedLabourHours : "", style: "width:110px", onchange: function (e) { setEstimate(wo, e.target.value); } })]));
@@ -795,7 +854,7 @@ function kv(k, v, mono) { return el("div", {}, [el("div", { class: "k" }, [k]), 
 
 function renderTasks(wrap, wo) {
   if (!(wo.tasks || []).length) { wrap.appendChild(sec("Tasks", 0, [el("div", { style: "color:var(--faint);font-style:italic" }, ["No tasks on this order."])])); return; }
-  var canDo = stateOf(wo.status).category === "active";
+  var canDo = segId(wo) === "active";
   var rows = wo.tasks.map(function (t) {
     var top = el("div", { class: "task-top" }, [
       el("span", { class: "tseq" }, [String(t.sequence)]),
@@ -829,7 +888,7 @@ function renderCosts(wrap, wo) {
     el("thead", {}, [el("tr", {}, [el("th", {}, ["Who"]), el("th", {}, ["Trade"]), el("th", { class: "r" }, ["Hours"]), el("th", { class: "r" }, ["Rate"]), el("th", { class: "r" }, ["Cost"])])]),
     el("tbody", {}, lrows.length ? lrows.concat([el("tr", { class: "tot" }, [el("td", { colspan: 2 }, ["Total"]), el("td", { class: "r" }, [String(lHours)]), el("td", {}, [""]), el("td", { class: "r" }, [money(lTotal)])])]) : [el("tr", {}, [el("td", { colspan: 5, style: "color:var(--faint);font-style:italic" }, ["No labour booked."])])])
   ]);
-  var labAct = stateOf(wo.status).category === "active" ? [el("button", { class: "btn sm", onclick: function () { logLabour(wo); } }, ["+ Log 1 h"])] : null;
+  var labAct = segId(wo) === "active" ? [el("button", { class: "btn sm", onclick: function () { logLabour(wo); } }, ["+ Log 1 h"])] : null;
   wrap.appendChild(sec("Labour", null, [labourTbl], labAct));
   // parts
   var prows = (wo.parts || []).map(function (p) { return el("tr", {}, [el("td", {}, [p.description]), el("td", { class: "r" }, [p.reservedQty != null ? String(p.reservedQty) : "—"]), el("td", { class: "r" }, [p.consumedQty != null ? String(p.consumedQty) : "—"]), el("td", { class: "r" }, [money(p.unitCost)]), el("td", { class: "r" }, [money((p.consumedQty != null ? p.consumedQty : p.reservedQty || 0) * (p.unitCost || 0))])]); });
@@ -890,10 +949,10 @@ function renderRequest() {
 
 function renderBoard() {
   var board = el("div", { class: "board" });
-  CATS.forEach(function (c) {
-    var os = S.orders.filter(function (o) { return stateOf(o.status).category === c.k && matchesQ(o); }).sort(function (a, b) { return (a.dueDate || "").localeCompare(b.dueDate || ""); });
+  SEGMENTS.forEach(function (c) {
+    var os = S.orders.filter(function (o) { return segId(o) === c.id && matchesQ(o); }).sort(function (a, b) { return (a.dueDate || "").localeCompare(b.dueDate || ""); });
     var col = el("div", { class: "col" }, [
-      el("header", {}, [el("span", { class: "chip dot c-" + c.k }, [c.l]), el("span", { class: "n" }, [String(os.length)])]),
+      el("header", {}, [el("span", { class: "chip dot", style: segStyle(c) }, [c.label]), el("span", { class: "n" }, [String(os.length)])]),
       el("div", { class: "colbody" }, os.length ? os.map(woCard) : [el("div", { class: "empty-c" }, ["—"])])
     ]);
     board.appendChild(col);
@@ -917,10 +976,10 @@ if (EMBED) { var _tb = document.querySelector(".topbar"); if (_tb) _tb.style.dis
 
 /* Report a compact, live summary up to the shell dashboard (truthful seeded counts). */
 function collectStats() {
-  function cat(k) { return S.orders.filter(function (o) { return stateOf(o.status).category === k; }).length; }
+  function cat(k) { return S.orders.filter(function (o) { return segId(o) === k; }).length; }
   var recent = S.orders.slice()
     .sort(function (a, b) { return (b.statusHistory && b.statusHistory.length ? b.statusHistory[b.statusHistory.length - 1].at : b.dueDate || "").localeCompare(a.statusHistory && a.statusHistory.length ? a.statusHistory[a.statusHistory.length - 1].at : a.dueDate || ""); })
-    .slice(0, 5).map(function (wo) { var st = stateOf(wo.status); return { num: wo.workOrderNumber, title: wo.title, cat: st.category, label: st.label, priority: wo.priority, type: wo.workOrderTypeCode, due: fmtDate(wo.dueDate), overdue: overdue(wo) }; });
+    .slice(0, 5).map(function (wo) { return { num: wo.workOrderNumber, title: wo.title, cat: segId(wo), label: labelOf(wo.status), priority: wo.priority, type: wo.workOrderTypeCode, due: fmtDate(wo.dueDate), overdue: overdue(wo) }; });
   return {
     open: cat("open"), active: cat("active"), on_hold: cat("on_hold"), done: cat("done"), rejected: cat("rejected"),
     total: S.orders.length, overdue: S.orders.filter(overdue).length,
