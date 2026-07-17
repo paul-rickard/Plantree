@@ -42,6 +42,7 @@ explicitly a later-release concern (see the [roadmap](08-roadmap.md)).
 | 10 | [Maintenance strategy application](10-maintenance-strategy-application.md) | How plans reach assets: class/model application, applicability rules, exceptions, routes, snapshots |
 | 11 | [Data storage](11-data-storage.md) | JSON-backed storage: canonical documents, aggregates, schemas, physical layouts, trade-offs |
 | 12 | [Deployment](12-deployment.md) | Serverless, file-based on SharePoint: file workflow, lazy automation, concurrency, trade-offs, evolution path |
+| 13 | [Workflow configuration](13-workflow-configuration.md) | The lifecycle as data: configurable states, first-class transitions, triggers, the guard expression language, lazy automatic firing |
 
 ## Status
 

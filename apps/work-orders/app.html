@@ -152,6 +152,7 @@
   <div id="modalHost"></div>
 
 <script src="pm-generate.js"></script>
+<script src="workflow-engine.js"></script>
 <script>
 /* ---------------- helpers ---------------- */
 function el(t, p, k) {
@@ -181,41 +182,97 @@ var WOT = {
 };
 function wotChip(code) { var w = WOT[code] || { name: code, cls: "c-open" }; return el("span", { class: "chip " + w.cls, title: w.name + " (" + code + ")" }, [code]); }
 
-/* ---------------- seed: default workflow profile ---------------- */
+/* ---------------- seed: default workflow profile (configurable state machine) ----------------
+ * The lifecycle is data — ordered {id,label} states + first-class transitions with
+ * trigger / guards (expressions) / actions. Terminality is derived from the graph by
+ * workflow-engine.js; guards evaluate against woScope(wo). See doc 13. */
 var PROFILE = {
-  key: "default",
+  id: "wfp_default", type: "workflowProfile", key: "default", name: "Default work-order workflow", isDefault: true,
+  entryStates: ["requested", "planned", "scheduled"],
   states: [
-    { key: "requested", label: "Requested", category: "open", isInitial: true },
-    { key: "reviewed", label: "Reviewed", category: "open" },
-    { key: "approved", label: "Approved", category: "open" },
-    { key: "planned", label: "Planned", category: "open", isInitial: true },
-    { key: "scheduled", label: "Scheduled", category: "open", isInitial: true },
-    { key: "assigned", label: "Assigned", category: "open" },
-    { key: "in_progress", label: "In progress", category: "active" },
-    { key: "awaiting_parts_access", label: "Awaiting parts/access", category: "on_hold", pausesSla: true },
-    { key: "completed", label: "Completed", category: "done" },
-    { key: "verified", label: "Verified", category: "done" },
-    { key: "closed", label: "Closed", category: "done", isTerminal: true },
-    { key: "rejected", label: "Rejected", category: "rejected", isTerminal: true }
+    { id: "requested", label: "Requested" }, { id: "reviewed", label: "Reviewed" }, { id: "approved", label: "Approved" },
+    { id: "planned", label: "Planned" }, { id: "scheduled", label: "Scheduled" }, { id: "assigned", label: "Assigned" },
+    { id: "in_progress", label: "In progress" }, { id: "awaiting_parts_access", label: "Awaiting parts/access" },
+    { id: "completed", label: "Completed" }, { id: "verified", label: "Verified" }, { id: "closed", label: "Closed" },
+    { id: "rejected", label: "Rejected" }, { id: "cancelled", label: "Cancelled" }
   ],
   transitions: [
-    { from: "requested", to: "reviewed", label: "Triage" },
-    { from: "requested", to: "rejected", label: "Reject", guards: [{ type: "role", role: "approver" }], needsReason: true },
-    { from: "reviewed", to: "approved", label: "Approve", guards: [{ type: "role", role: "approver" }, { type: "within_approval_limit" }] },
-    { from: "reviewed", to: "rejected", label: "Reject", guards: [{ type: "role", role: "approver" }], needsReason: true },
-    { from: "approved", to: "planned", label: "Plan", guards: [{ type: "job_plan_present" }, { type: "labour_estimate_present" }] },
-    { from: "planned", to: "scheduled", label: "Schedule", guards: [{ type: "parts_reserved" }, { type: "window_set" }], action: "reserve_parts" },
-    { from: "scheduled", to: "assigned", label: "Assign", guards: [{ type: "skills_match" }] },
-    { from: "assigned", to: "in_progress", label: "Start work", guards: [{ type: "permit_issued" }, { type: "asset_status_allows" }] },
-    { from: "in_progress", to: "awaiting_parts_access", label: "Put on hold", needsReason: true },
-    { from: "awaiting_parts_access", to: "in_progress", label: "Resume" },
-    { from: "in_progress", to: "completed", label: "Complete", guards: [{ type: "actuals_captured" }], action: "deduct_stock" },
-    { from: "completed", to: "in_progress", label: "Rework" },
-    { from: "completed", to: "verified", label: "Verify", guards: [{ type: "role", role: "supervisor" }] },
-    { from: "verified", to: "closed", label: "Close", action: "finalise_costs" }
+    { from: "requested", to: "reviewed", label: "Triage", trigger: { type: "manual" } },
+    { from: "requested", to: "rejected", label: "Reject", trigger: { type: "manual" }, guards: ["role('approver')"] },
+    { from: "requested", to: "cancelled", label: "Cancel", trigger: { type: "manual" } },
+    { from: "reviewed", to: "approved", label: "Approve", trigger: { type: "manual" }, guards: ["role('approver')", "withinApprovalLimit()"] },
+    { from: "reviewed", to: "rejected", label: "Reject", trigger: { type: "manual" }, guards: ["role('approver')"] },
+    { from: "approved", to: "planned", label: "Plan", trigger: { type: "manual" }, guards: ["jobPlanPresent()", "labourEstimatePresent()"] },
+    { from: "planned", to: "scheduled", label: "Schedule", trigger: { type: "manual" }, guards: ["partsReserved()", "windowSet()"], actions: [{ type: "reserve_parts" }] },
+    { from: "scheduled", to: "assigned", label: "Assign", trigger: { type: "manual" }, guards: ["skillsMatch()"], actions: [{ type: "notify", target: "assignee" }] },
+    { from: "assigned", to: "in_progress", label: "Start work", trigger: { type: "manual" }, guards: ["permitsIssued()", "assetStatusAllows()"] },
+    { from: "in_progress", to: "awaiting_parts_access", label: "Put on hold", trigger: { type: "manual" } },
+    { from: "awaiting_parts_access", to: "in_progress", label: "Resume", trigger: { type: "manual" } },
+    { from: "in_progress", to: "completed", label: "Complete", trigger: { type: "manual" }, guards: ["actualsCaptured()"], actions: [{ type: "deduct_stock" }] },
+    { from: "in_progress", to: "cancelled", label: "Cancel", trigger: { type: "manual" } },
+    { from: "completed", to: "in_progress", label: "Rework", trigger: { type: "manual" } },
+    { from: "completed", to: "verified", label: "Verify", trigger: { type: "manual" }, guards: ["role('supervisor')"] },
+    { from: "completed", to: "closed", trigger: { type: "timer", afterDays: 5 } },
+    { from: "verified", to: "closed", label: "Close", trigger: { type: "manual" }, actions: [{ type: "finalise_costs" }] },
+    { from: "cancelled", to: "closed", trigger: { type: "onEntry" }, actions: [{ type: "finalise_costs" }] }
   ]
 };
-function stateOf(k) { for (var i = 0; i < PROFILE.states.length; i++) if (PROFILE.states[i].key === k) return PROFILE.states[i]; return { key: k, label: k, category: "open" }; }
+// Presentation-only grouping (a VIEW concern, not a state property): maps each
+// state id to a board/dashboard bucket. Doc 13 — semantics live downstream, not on states.
+var STATE_GROUP = {
+  requested: "open", reviewed: "open", approved: "open", planned: "open", scheduled: "open", assigned: "open",
+  in_progress: "active", awaiting_parts_access: "on_hold",
+  completed: "done", verified: "done", closed: "done", rejected: "rejected", cancelled: "rejected"
+};
+function labelOf(id) { for (var i = 0; i < PROFILE.states.length; i++) if (PROFILE.states[i].id === id) return PROFILE.states[i].label; return id; }
+function catOf(id) { return STATE_GROUP[id] || "open"; }
+// Compatibility shape so the board / stats / chips keep reading .category/.label/.isTerminal.
+function stateOf(k) { return { key: k, label: labelOf(k), category: catOf(k), isTerminal: Workflow.isTerminal(PROFILE, k) }; }
+
+// Domain predicate scope the guard expressions evaluate against for a work order.
+function woScope(wo) {
+  return {
+    jobPlanPresent: function () { return !!wo.jobPlanId || (wo.tasks || []).length > 0; },
+    labourEstimatePresent: function () { return wo.estimatedLabourHours != null; },
+    partsReserved: function () { return (wo.parts || []).every(function (p) { return (p.reservedQty || 0) > 0; }); },
+    windowSet: function () { return !!wo.scheduledStart; },
+    skillsMatch: function () { return !!wo.assignedTo; },
+    permitsIssued: function () { return (wo.requiredPermits || []).length === 0 || !!wo._permitsIssued; },
+    assetStatusAllows: function () { return true; },
+    actualsCaptured: function () { return (wo.tasks || []).every(function (t) { return t.completed; }) && (wo.labour || []).length > 0; },
+    hasFailureReport: function () { return !!wo.failure; },
+    role: function () { return true; },              // advisory in the demo (no auth)
+    withinApprovalLimit: function () { return true; },
+    priority: wo.priority
+  };
+}
+// Friendly label for a guard expression, shown as a chip in the action bar.
+function guardLabel(expr) {
+  var map = {
+    "role('approver')": "approver role", "role('supervisor')": "supervisor role", "withinApprovalLimit()": "approval limit",
+    "jobPlanPresent()": "job plan / tasks", "labourEstimatePresent()": "labour estimate", "partsReserved()": "parts reserved",
+    "windowSet()": "window set", "skillsMatch()": "skills match", "permitsIssued()": "permits issued",
+    "assetStatusAllows()": "asset status", "actualsCaptured()": "actuals captured", "hasFailureReport()": "failure report"
+  };
+  return map[expr] || expr;
+}
+// Run a transition's declared actions + state-derived effects (on-hold, cost finalise).
+function runWoActions(acts, rec, trans, reason) {
+  (acts || []).forEach(function (a) {
+    if (a.type === "reserve_parts") (rec.parts || []).forEach(function (p) { if (!p.reservedQty) p.reservedQty = 1; });
+    if (a.type === "deduct_stock") (rec.parts || []).forEach(function (p) { if (p.consumedQty == null) p.consumedQty = p.reservedQty || 0; });
+    if (a.type === "finalise_costs") rec.actualLabourHours = (rec.labour || []).reduce(function (s, l) { return s + (l.hours || 0); }, 0);
+  });
+  if (trans.to === "awaiting_parts_access") rec.onHold = { reason: "parts", note: reason || null, since: nowISO() };
+  if (trans.from === "awaiting_parts_access") rec.onHold = null;
+  if (trans.to === "completed") rec.actualLabourHours = (rec.labour || []).reduce(function (s, l) { return s + (l.hours || 0); }, 0);
+}
+// Lazily fire any due automatic transitions (onEntry / timer / condition) across all orders.
+function advanceAll() {
+  S.orders.forEach(function (wo) {
+    Workflow.advance(PROFILE, wo, { now: nowISO(), scope: woScope(wo), runActions: function (a, r, t) { runWoActions(a, r, t, null); } });
+  });
+}
 
 /* ---------------- seed: work orders & requests ---------------- */
 function seedOrders() {
@@ -304,47 +361,36 @@ var S = { orders: seedOrders(), requests: seedRequests(), schedule: genSchedule(
 // by default; the shell drives it via plantree:config. Standalone: ?wr=1 to enable.
 var featWR = /[?&]wr=1/.test(location.search);
 
-/* ---------------- guard evaluation ---------------- */
-function evalGuard(wo, g) {
-  switch (g.type) {
-    case "role": return { checkable: false, met: true, label: "role: " + (g.role || "?") };
-    case "within_approval_limit": return { checkable: false, met: true, label: "approval limit" };
-    case "job_plan_present": return { checkable: true, met: !!wo.jobPlanId || (wo.tasks || []).length > 0, label: "job plan / tasks" };
-    case "labour_estimate_present": return { checkable: true, met: wo.estimatedLabourHours != null, label: "labour estimate" };
-    case "parts_reserved": return { checkable: true, met: (wo.parts || []).every(function (p) { return (p.reservedQty || 0) > 0; }), label: "parts reserved" };
-    case "window_set": return { checkable: true, met: !!wo.scheduledStart, label: "window set" };
-    case "skills_match": return { checkable: false, met: !!wo.assignedTo, label: "skills match" };
-    case "permit_issued": return { checkable: true, met: (wo.requiredPermits || []).length === 0 || !!wo._permitsIssued, label: "permits issued" };
-    case "asset_status_allows": return { checkable: false, met: true, label: "asset status" };
-    case "actuals_captured": return { checkable: true, met: (wo.tasks || []).every(function (t) { return t.completed; }) && (wo.labour || []).length > 0, label: "actuals captured" };
-    case "failure_report_present": return { checkable: true, met: !!wo.failure, label: "failure report" };
-    default: return { checkable: false, met: true, label: g.type };
-  }
-}
+/* ---------------- transitions (via the workflow engine) ---------------- */
+// Manual transitions leaving the current state, each with its guard-expression
+// results. Shape kept compatible with the action-bar renderer ({t, guards, enabled}).
 function availableTransitions(wo) {
-  return PROFILE.transitions.filter(function (t) { return t.from === wo.status; }).map(function (t) {
-    var gs = (t.guards || []).map(function (g) { return evalGuard(wo, g); });
-    var blocked = gs.some(function (g) { return g.checkable && !g.met; });
-    return { t: t, guards: gs, enabled: !blocked };
+  return Workflow.available(PROFILE, wo, { now: nowISO(), scope: woScope(wo) }).map(function (a) {
+    return {
+      t: a.transition,
+      enabled: a.enabled,
+      guards: a.guards.map(function (g) { return { checkable: true, met: g.ok, label: guardLabel(g.expr) }; })
+    };
   });
 }
 
 /* ---------------- actions ---------------- */
 function applyTransition(wo, tr) {
   var t = tr.t;
+  // Rejections, cancellations and holds record a reason.
+  var needsReason = t.to === "rejected" || t.to === "cancelled" || t.to === "awaiting_parts_access";
   function commit(reason) {
-    // side-effect actions
-    if (t.action === "reserve_parts") (wo.parts || []).forEach(function (p) { if (!p.reservedQty) p.reservedQty = 1; });
-    if (t.action === "deduct_stock") (wo.parts || []).forEach(function (p) { if (p.consumedQty == null) p.consumedQty = p.reservedQty || 0; });
-    if (t.to === "awaiting_parts_access") wo.onHold = { reason: "parts", note: reason || null, since: nowISO() };
-    if (t.from === "awaiting_parts_access") wo.onHold = null;
-    if (t.to === "completed") wo.actualLabourHours = (wo.labour || []).reduce(function (s, l) { return s + (l.hours || 0); }, 0);
-    wo.statusHistory.push({ from: wo.status, to: t.to, at: nowISO(), by: "you@plantree", reason: reason || null });
-    wo.status = t.to;
+    // Engine performs the transition (records history, runs actions) and cascades
+    // any due automatic transitions (e.g. cancelled → closed on entry).
+    var res = Workflow.apply(PROFILE, wo, t, {
+      now: nowISO(), actor: "you@plantree", reason: reason, scope: woScope(wo),
+      runActions: function (acts, rec, trans) { runWoActions(acts, rec, trans, reason); }
+    });
     render();
-    toast(t.label + " → " + stateOf(t.to).label);
+    var last = res.applied[res.applied.length - 1];
+    toast((t.label || "Update") + " → " + labelOf(wo.status) + (res.applied.length > 1 ? " (auto: " + labelOf(last.to) + ")" : ""));
   }
-  if (t.needsReason) askReason(t.label, commit); else commit(null);
+  if (needsReason) askReason(t.label || "Update", commit); else commit(null);
 }
 
 function generatePM() {
@@ -354,6 +400,7 @@ function generatePM() {
   res.workOrders.forEach(function (w) {
     if (!S.orders.some(function (o) { return o.id === w.id; })) { S.orders.push(w); added++; }
   });
+  advanceAll();
   render();
   toast(added ? ("Generated " + added + " work order" + (added > 1 ? "s" : "")) : "Nothing due — schedule up to date (idempotent)");
 }
@@ -529,9 +576,9 @@ function renderDetail() {
   var bar = el("div", { class: "actionbar" }, [el("span", { class: "al" }, ["Actions"])]);
   if (!trans.length) bar.appendChild(el("span", { style: "color:var(--faint);font-size:12.5px" }, [st.isTerminal ? "Terminal state — this work order is closed." : "No transitions available."]));
   trans.forEach(function (tr) {
-    var isReject = tr.t.to === "rejected";
+    var isReject = tr.t.to === "rejected" || tr.t.to === "cancelled";
     var wrap = el("div", { class: "tact" }, [
-      el("button", { class: "btn " + (isReject ? "danger" : "primary") + " sm", disabled: !tr.enabled, onclick: function () { applyTransition(wo, tr); } }, [tr.t.label + " →"]),
+      el("button", { class: "btn " + (isReject ? "danger" : "primary") + " sm", disabled: !tr.enabled, onclick: function () { applyTransition(wo, tr); } }, [(tr.t.label || "Update") + " →"]),
       tr.guards.length ? el("div", { class: "guards" }, tr.guards.map(function (g) {
         var cls = !g.checkable ? "adv" : (g.met ? "met" : "unmet");
         return el("span", { class: "gd " + cls }, [(g.checkable ? (g.met ? "✓ " : "• ") : "· ") + g.label]);
@@ -744,6 +791,7 @@ window.addEventListener("message", function (e) {
   else if (d.type === "plantree:requests" && featWR) { var r = S.requests.filter(function (x) { return x.status !== "converted" && x.status !== "rejected"; })[0]; S.sel = r ? { kind: "wr", id: r.id } : null; document.getElementById("app").classList.toggle("show-detail", !!r); render(); }
   else if (d.type === "plantree:search") { S.q = d.q || ""; document.getElementById("q").value = S.q; S.sel = null; render(); }
 });
+advanceAll();  // fire any due automatic transitions on load (lazy)
 render();
 </script>
 </body>

@@ -35,6 +35,7 @@ model, module breakdown, work-order lifecycle, API surface and release roadmap.
 | [Maintenance strategy application](docs/architecture/10-maintenance-strategy-application.md) | How maintenance plans reach assets: class/model application, rules, exceptions, snapshots |
 | [Data storage](docs/architecture/11-data-storage.md) | JSON-backed storage: canonical documents, schemas, physical layouts, trade-offs |
 | [Deployment](docs/architecture/12-deployment.md) | Serverless, file-based on SharePoint: file workflow, lazy automation, trade-offs, evolution path |
+| [Workflow configuration](docs/architecture/13-workflow-configuration.md) | Configurable state machine: states, transitions, triggers, guard expression language, lazy firing |
 
 ## Status
 

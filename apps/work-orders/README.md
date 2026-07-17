@@ -39,10 +39,26 @@ calls for in the serverless, lazy-generation deployment.
 
 | File | Purpose |
 |------|---------|
-| `app.html` | **The app** — board + detail, the state machine driven by the workflow profile. Loads `pm-generate.js` for the Generate button. |
-| `pm-generate.js` | **The engine.** Dependency-free, no build. Loads as `window.PMGenerate` (browser `<script>`) or `require("./pm-generate.js")` (Node). |
-| `pm-generate.test.js` | Node test — 85 assertions on nesting, idempotency, deterministic ids and calendar math. Run: `node apps/work-orders/pm-generate.test.js`. |
-| `pm-generation-demo.html` | Self-contained browser demo — set an anchor / horizon / merge window and watch the nested work orders fall out. |
+| `app.html` | **The app** — board + detail, the state machine driven by the workflow profile. Loads `pm-generate.js` and `workflow-engine.js`. |
+| `pm-generate.js` | **PM engine.** Dependency-free. `window.PMGenerate` (browser) or `require(...)` (Node). |
+| `pm-generate.test.js` | Node test — 85 assertions (nesting, idempotency, ids, calendar math). |
+| `pm-generation-demo.html` | Self-contained browser demo of nested PM generation. |
+| `workflow-engine.js` | **Workflow engine.** The configurable state machine (see [doc 13](../../docs/architecture/13-workflow-configuration.md)): a safe guard-expression evaluator, graph-derived terminality, `available()` (manual transitions + guards) and `advance()`/`apply()` (lazy `onEntry`/`timer`/`condition` firing). `window.Workflow` or `require(...)`. |
+| `workflow-engine.test.js` | Node test — 34 assertions (expression language, terminality, guards, cancel→closed cascade, lazy timer, loop protection). |
+
+### Configurable workflow
+
+The lifecycle is **data** ([`WorkflowProfile`](../../schemas/workflow-profile.schema.json)),
+not code. States are `{id,label}`; transitions are first-class with a **trigger**
+(manual / onEntry / timer / condition), **guard expressions**
+(`actualsCaptured()`, `role('approver')`, `daysInState('completed') >= 5`) and
+**actions**. Terminality is derived from the graph. Automatic transitions fire
+**lazily** on load — e.g. cancelling an order cascades `cancelled → closed`
+on-entry (recorded as `system`), and `completed → closed` auto-fires after 5 days.
+The app renders the action bar and its guard chips straight from the engine; the
+board's 5-bucket grouping is a presentation-only `STATE_GROUP` map (a view
+concern), so states stay pure. Full model in
+[doc 13](../../docs/architecture/13-workflow-configuration.md).
 
 Related contracts: [`maintenance-schedule.schema.json`](../../schemas/maintenance-schedule.schema.json)
 (the per-asset schedule + high-water marks) and

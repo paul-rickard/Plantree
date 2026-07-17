@@ -121,7 +121,10 @@ organisation, but they encode good practice.
 
 ## Configurability
 
-The workflow engine treats the lifecycle as data, not code:
+The workflow engine treats the lifecycle as data, not code. The full model —
+states, first-class transitions, triggers (manual / on-entry / timer / condition),
+the guard expression language, and how automatic transitions fire lazily — is in
+[workflow configuration](13-workflow-configuration.md). In brief:
 
 - **States** and their order are configurable per organisation (and optionally
   per work-order type — a [`WorkOrderType`](03-data-dictionary.md#workordertype)

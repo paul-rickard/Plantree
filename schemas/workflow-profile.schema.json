@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://plantree/schemas/workflow-profile.json",
   "title": "WorkflowProfile",
-  "description": "The work-order lifecycle expressed as DATA, not code: an ordered set of states and the guarded transitions between them. A WorkOrder.status is one of the profile's state keys; a WorkOrderType may name a workflowProfile (null = the org default) so, e.g., reactive breakdowns keep the full path while administrative work skips review/approval. Plantree seeds one default profile (see work-management-lifecycle doc 05); orgs may re-order states, add states (e.g. a 'Parked' backlog) or relax guards without a code change. One JSON document = one profile.",
+  "description": "A configurable state machine — the lifecycle as DATA. An ordered list of states (each just an id + display label) and the first-class transitions between them. Semantics are NOT tagged onto states: terminality is derived from the graph (a state with no outgoing transition is terminal), where work may be created is `entryStates`, and everything view-shaped (board columns, KPIs, overdue, SLA) is expressed downstream as rules over the recorded transition history. A WorkOrder.status is a state id; a WorkOrderType may name a profile (null = the org default). Applies equally to work requests and work orders — same machine, different profile. One JSON document = one profile.",
   "type": "object",
   "additionalProperties": false,
   "required": ["id", "type", "key", "name", "states", "transitions", "rev", "createdAt", "updatedAt"],
@@ -12,16 +12,22 @@
     "key": { "type": "string", "description": "Stable key referenced by WorkOrderType.workflowProfile, e.g. 'default'." },
     "name": { "type": "string" },
     "description": { "type": ["string", "null"] },
-    "isDefault": { "type": "boolean", "default": false, "description": "True for the org's default profile, used when a WorkOrderType names no profile." },
+    "isDefault": { "type": "boolean", "default": false, "description": "True for the org's default profile, used when a type names no profile." },
+    "entryStates": {
+      "type": "array",
+      "description": "State ids at which a record may be created / enter the machine. Requested-style work enters at the first state; schedule-generated work may enter mid-graph (e.g. 'planned'). Defaults to the first state if omitted. Creation is an action that targets one of these — it is not inferred from graph position.",
+      "items": { "type": "string" }
+    },
     "states": {
       "type": "array",
       "minItems": 1,
-      "description": "The lifecycle states, in display order. A WorkOrder.status must be one of these keys.",
+      "maxItems": 25,
+      "description": "The lifecycle states in display order. A state is just identity + label — no category, no initial/terminal flags (those are derived). Display order is presentation only.",
       "items": { "$ref": "#/$defs/state" }
     },
     "transitions": {
       "type": "array",
-      "description": "The allowed moves between states. A transition not listed here is forbidden; the transitions endpoint enforces guards before applying one.",
+      "description": "The allowed moves between states — this set IS the allowable-transition configuration (an adjacency view groups them by `from`). A move not listed here is forbidden. Each transition carries how it fires (trigger), what must hold (guards) and what happens after (actions).",
       "items": { "$ref": "#/$defs/transition" }
     },
     "rev": { "type": "integer", "minimum": 0 },
@@ -34,17 +40,10 @@
     "state": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["key", "label", "category"],
+      "required": ["id", "label"],
       "properties": {
-        "key": { "type": "string", "description": "Stable state key, e.g. 'in_progress'. Referenced by WorkOrder.status and by transitions." },
-        "label": { "type": "string", "description": "Display label, e.g. 'In progress'." },
-        "category": {
-          "enum": ["open", "active", "on_hold", "done", "rejected"],
-          "description": "Coarse grouping for boards, dashboards and metrics. 'open' = not yet started (requested..assigned); 'active' = work underway; 'on_hold' = paused; 'done' = completed/verified/closed; 'rejected' = terminal without work."
-        },
-        "isInitial": { "type": "boolean", "default": false, "description": "A state work may enter the machine at. Requested is initial for demand; a PM-generated order may enter at Planned/Scheduled." },
-        "isTerminal": { "type": "boolean", "default": false, "description": "An end state (Closed, Rejected). No transitions leave a terminal state; work in it is immutable." },
-        "pausesSla": { "type": "boolean", "default": false, "description": "While in this state the due/SLA clock is paused (e.g. Awaiting parts/access)." }
+        "id": { "type": "string", "description": "Stable state id, referenced by WorkOrder.status and by transitions. Rename the label freely; keep the id stable so history and rules don't break." },
+        "label": { "type": "string", "description": "Display name, e.g. 'In progress'." }
       }
     },
     "transition": {
@@ -52,44 +51,35 @@
       "additionalProperties": false,
       "required": ["from", "to"],
       "properties": {
-        "from": { "type": "string", "description": "Source state key." },
-        "to": { "type": "string", "description": "Target state key." },
-        "label": { "type": ["string", "null"], "description": "Verb shown on the action, e.g. 'Approve', 'Start work'." },
+        "from": { "type": "string", "description": "Source state id." },
+        "to": { "type": "string", "description": "Target state id." },
+        "label": { "type": ["string", "null"], "description": "Verb shown on the action for a manual transition, e.g. 'Approve', 'Start work'." },
+        "trigger": { "$ref": "#/$defs/trigger" },
         "guards": {
           "type": "array",
-          "description": "Conditions that must hold before the transition is allowed. Empty = always permitted.",
-          "items": { "$ref": "#/$defs/guard" }
+          "description": "Boolean guard EXPRESSIONS that must all be true for the transition to be allowed (manual) or to fire (automatic). See the expression language below.",
+          "items": { "type": "string" }
         },
         "actions": {
           "type": "array",
-          "description": "Side effects fired when the transition succeeds (notify, reserve/deduct parts, create follow-up, webhook, run automation).",
+          "description": "Side effects run when the transition succeeds (notify, reserve/deduct parts, create follow-up, finalise costs, webhook, run automation).",
           "items": { "$ref": "#/$defs/action" }
         }
       }
     },
-    "guard": {
+    "trigger": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["type"],
+      "description": "What initiates the transition. Automatic triggers (onEntry / timer / condition) fire LAZILY — evaluated whenever the record is loaded or touched, matching the serverless deployment (no daemon). onEntry runs synchronously in the same operation; timers are measured from the recorded time the current state was entered. Default (omitted) = manual.",
       "properties": {
         "type": {
-          "enum": [
-            "role",
-            "within_approval_limit",
-            "job_plan_present",
-            "labour_estimate_present",
-            "parts_reserved",
-            "window_set",
-            "skills_match",
-            "permit_issued",
-            "asset_status_allows",
-            "actuals_captured",
-            "failure_report_present"
-          ],
-          "description": "The guard kind. Mirrors the default transition rules in doc 05 (e.g. 'role' + a required role to approve; 'actuals_captured' before InProgress -> Completed)."
+          "enum": ["manual", "onEntry", "timer", "condition"],
+          "default": "manual",
+          "description": "manual: a user initiates it (guards gate the button). onEntry: fires immediately on entering `from` (makes `from` a transient pass-through, e.g. cancelled → closed). timer: fires after a dwell in `from`. condition: fires when `when` becomes true."
         },
-        "role": { "type": ["string", "null"], "description": "Required role, for type = 'role' (e.g. 'approver', 'supervisor')." },
-        "note": { "type": ["string", "null"], "description": "Human explanation of the guard." }
+        "afterHours": { "type": ["number", "null"], "minimum": 0, "description": "For type=timer: hours in the `from` state before firing." },
+        "afterDays": { "type": ["number", "null"], "minimum": 0, "description": "For type=timer: convenience alternative to afterHours (afterHours wins if both set)." },
+        "when": { "type": ["string", "null"], "description": "For type=condition: a boolean expression; the transition fires when it evaluates true (and guards pass)." }
       }
     },
     "action": {
@@ -98,12 +88,13 @@
       "required": ["type"],
       "properties": {
         "type": {
-          "enum": ["notify", "reserve_parts", "deduct_stock", "create_follow_up", "webhook", "run_automation", "finalise_costs"],
-          "description": "The side effect to run on this transition."
+          "enum": ["notify", "reserve_parts", "deduct_stock", "create_follow_up", "finalise_costs", "webhook", "run_automation"],
+          "description": "The side effect to run. Beyond this built-in set, 'run_automation' names a registered automation hook (config selects pre-written behaviour) and 'webhook' is the raw escape hatch."
         },
-        "target": { "type": ["string", "null"], "description": "Optional target for the action, e.g. a role/team to notify or a webhook key." },
+        "target": { "type": ["string", "null"], "description": "Optional target — a role/team to notify, a webhook key, or an automation-rule id." },
         "note": { "type": ["string", "null"] }
       }
     }
-  }
+  },
+  "$comment": "Guard / condition expression language: a small, safe boolean mini-language (no code execution). Grammar: literals (number, 'string', true, false, null), names (variables or 0/N-arg function calls), operators ! - * / + - < <= > >= == != && || and parentheses. Names resolve from an evaluation scope the host builds per record: history-derived helpers hoursInState([id]) / daysInState([id]) / inState(id); plus domain predicates and variables the host supplies (e.g. allTasksComplete(), partsReserved(), windowSet(), permitsIssued(), assigned(), role('approver'), withinApprovalLimit(), priority, cost). Examples: \"daysInState('completed') >= 5\", \"allTasksComplete() && partsReserved()\", \"role('approver') && cost <= approverLimit\"."
 }
