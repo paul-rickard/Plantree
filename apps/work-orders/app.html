@@ -141,6 +141,7 @@
   <div class="app" id="app">
     <aside class="rail">
       <div class="rail-top">
+        <button class="btn primary" id="newWoBtn" style="width:100%;justify-content:center">+ New work order</button>
         <div class="search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--faint)"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2" stroke-linecap="round"/></svg><input id="q" placeholder="Search work orders & requests…" /></div>
       </div>
       <div class="rail-list" id="railList"></div>
@@ -299,6 +300,10 @@ function genSchedule() {
 /* ---------------- app state ---------------- */
 var S = { orders: seedOrders(), requests: seedRequests(), schedule: genSchedule(), sel: null, tab: "overview", q: "" };
 
+// Work Requests are an optional feature (see schemas/system-settings.json). Off
+// by default; the shell drives it via plantree:config. Standalone: ?wr=1 to enable.
+var featWR = /[?&]wr=1/.test(location.search);
+
 /* ---------------- guard evaluation ---------------- */
 function evalGuard(wo, g) {
   switch (g.type) {
@@ -366,6 +371,49 @@ function convertRequest(wr) {
   S.orders.push(wo); S.sel = { kind: "wo", id: wo.id }; S.tab = "overview";
   render();
   toast("Converted " + wr.requestNumber + " → work order");
+}
+
+// Raise a work order directly (no request). The path that keeps the loop working
+// when Work Requests are turned off — but always available.
+function newWorkOrder() {
+  var host = document.getElementById("modalHost");
+  var title = el("input", { type: "text", placeholder: "e.g. Replace bearing on CP-2" });
+  var type = el("select", {}, Object.keys(WOT).map(function (c) { return el("option", { value: c }, [c + " — " + WOT[c].name]); }));
+  type.value = "RM";
+  var prio = el("select", {}, ["low", "medium", "high", "urgent"].map(function (x) { return el("option", { value: x, selected: x === "medium" }, [x]); }));
+  var asset = el("input", { type: "text", placeholder: "asset id (optional), e.g. ast_gen1" });
+  function close() { host.innerHTML = ""; }
+  function create() {
+    var wo = {
+      id: idseq("wo"), type: "workOrder", workOrderNumber: "WO-NEW-" + (S.orders.length + 1), assetId: asset.value.trim() || null,
+      workOrderTypeCode: type.value, title: title.value.trim() || "New work order", description: null, priority: prio.value, status: "requested",
+      dueDate: null, scheduledStart: null, scheduleId: null, workRequestId: null, jobPlanId: null, jobPlanVersion: null,
+      assignedTo: null, estimatedLabourHours: null, actualLabourHours: null, onHold: null, snapshot: null,
+      tasks: [], labour: [], parts: [], failure: null, requiredPermits: [], comments: [],
+      statusHistory: [{ from: null, to: "requested", at: nowISO(), by: "you@plantree", reason: "Raised directly." }]
+    };
+    S.orders.push(wo); S.sel = { kind: "wo", id: wo.id }; S.tab = "overview";
+    close(); render(); document.getElementById("app").classList.add("show-detail");
+    toast("Raised " + wo.workOrderNumber);
+  }
+  host.appendChild(el("div", { class: "ovl", onclick: function (e) { if (e.target.className === "ovl") close(); } }, [
+    el("div", { class: "modal" }, [
+      el("header", {}, ["New work order"]),
+      el("div", { class: "mbody" }, [
+        el("label", { class: "lbl" }, ["Title"]), title,
+        el("div", { style: "display:flex;gap:12px" }, [
+          el("div", { style: "flex:1" }, [el("label", { class: "lbl" }, ["Type"]), type]),
+          el("div", { style: "flex:1" }, [el("label", { class: "lbl" }, ["Priority"]), prio])
+        ]),
+        el("label", { class: "lbl" }, ["Asset"]), asset
+      ]),
+      el("div", { class: "mfoot" }, [
+        el("button", { class: "btn", onclick: close }, ["Cancel"]),
+        el("button", { class: "btn primary", onclick: create }, ["Create work order"])
+      ])
+    ])
+  ]));
+  title.focus();
 }
 
 /* small planning mutations to satisfy guards */
@@ -437,7 +485,7 @@ function wrCard(wr) {
 
 function renderRail() {
   var host = document.getElementById("railList"); host.innerHTML = "";
-  var openReqs = S.requests.filter(matchesQ);
+  var openReqs = featWR ? S.requests.filter(matchesQ) : [];
   if (openReqs.length) {
     host.appendChild(el("div", { class: "grp" }, [el("span", { class: "lbl2" }, ["Requests"]), el("span", { class: "n" }, [String(openReqs.length)])]));
     openReqs.forEach(function (wr) { host.appendChild(wrCard(wr)); });
@@ -664,6 +712,7 @@ function render() { renderRail(); renderDetail(); if (typeof EMBED !== "undefine
 /* ---------------- wire up ---------------- */
 document.getElementById("q").addEventListener("input", function (e) { S.q = e.target.value; render(); });
 var _gen = document.getElementById("genBtn"); if (_gen) _gen.addEventListener("click", generatePM);
+document.getElementById("newWoBtn").addEventListener("click", newWorkOrder);
 
 /* ---------------- unified-shell (embed) support ---------------- */
 var EMBED = /[?&]embed=1/.test(location.search);
@@ -688,10 +737,11 @@ function sendStats() { if (!EMBED) return; try { window.parent.postMessage({ typ
 window.addEventListener("message", function (e) {
   var d = e.data; if (!d || typeof d !== "object") return;
   if (d.type === "plantree:generate") generatePM();
+  else if (d.type === "plantree:config") { featWR = !!(d.features && d.features.workRequests); if (!featWR && S.sel && S.sel.kind === "wr") S.sel = null; render(); }
   else if (d.type === "plantree:filterAsset") { S.q = d.assetId || ""; document.getElementById("q").value = S.q; S.sel = null; render(); document.getElementById("app").classList.remove("show-detail"); }
   else if (d.type === "plantree:statsRequest") sendStats();
   else if (d.type === "plantree:board") { S.sel = null; document.getElementById("app").classList.remove("show-detail"); render(); }
-  else if (d.type === "plantree:requests") { var r = S.requests.filter(function (x) { return x.status !== "converted" && x.status !== "rejected"; })[0]; S.sel = r ? { kind: "wr", id: r.id } : null; document.getElementById("app").classList.toggle("show-detail", !!r); render(); }
+  else if (d.type === "plantree:requests" && featWR) { var r = S.requests.filter(function (x) { return x.status !== "converted" && x.status !== "rejected"; })[0]; S.sel = r ? { kind: "wr", id: r.id } : null; document.getElementById("app").classList.toggle("show-detail", !!r); render(); }
   else if (d.type === "plantree:search") { S.q = d.q || ""; document.getElementById("q").value = S.q; S.sel = null; render(); }
 });
 render();

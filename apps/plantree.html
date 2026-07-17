@@ -139,6 +139,14 @@
   .quick button .qic { width:34px; height:34px; border-radius:10px; background:var(--accent-soft); color:var(--accent); display:flex; align-items:center; justify-content:center; flex:none; }
   .quick button .qs { display:block; font-weight:450; font-size:11.5px; color:var(--faint); margin-top:1px; }
   .quick button .go { margin-left:auto; color:var(--faint); }
+
+  /* settings */
+  .set-row { display:flex; align-items:flex-start; gap:16px; padding:14px 0; border-bottom:1px solid var(--line); }
+  .set-row:last-child { border-bottom:0; }
+  .set-row .st { flex:1; min-width:0; } .set-row .st .sn { font-weight:600; } .set-row .st .sd { font-size:12.5px; color:var(--muted); margin-top:3px; max-width:60ch; }
+  .switch { position:relative; flex:none; width:44px; height:26px; border-radius:999px; background:var(--line-2); border:0; cursor:pointer; transition:background .15s; margin-top:2px; }
+  .switch::after { content:""; position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; transition:transform .15s; box-shadow:0 1px 2px rgba(0,0,0,.25); }
+  .switch.on { background:var(--accent); } .switch.on::after { transform:translateX(18px); }
   .empty-row { padding:22px 18px; color:var(--faint); font-size:13px; text-align:center; }
 
   /* ---------- mobile drawer ---------- */
@@ -188,6 +196,7 @@
 
       <div class="stage">
         <section class="dash on" id="dash"></section>
+        <section class="dash" id="settings"></section>
         <div class="frames" id="frames">
           <iframe id="fJobs" src="job-plans/app.html?embed=1"></iframe>
           <iframe id="fWork" src="work-orders/app.html?embed=1"></iframe>
@@ -203,8 +212,24 @@
   var frames = { jobs: document.getElementById("fJobs"), work: document.getElementById("fWork") };
   var framesWrap = document.getElementById("frames");
   var dash = document.getElementById("dash");
+  var settingsEl = document.getElementById("settings");
   var genBtn = document.getElementById("genBtn");
   var pageTitle = document.getElementById("pageTitle");
+
+  /* ---------- system settings (configurable features) ---------- */
+  // Conservative defaults: capabilities a site may not need start OFF.
+  var config = { features: { workRequests: false } };
+  try { var _sv = JSON.parse(localStorage.getItem("pt.config") || "null"); if (_sv && _sv.features) config.features = Object.assign(config.features, _sv.features); } catch (e) {}
+  function featWR() { return !!config.features.workRequests; }
+  function saveConfig() { try { localStorage.setItem("pt.config", JSON.stringify(config)); } catch (e) {} }
+  function broadcastConfig() { post(frames.work, { type: "plantree:config", features: config.features }); }
+  function setFeature(key, on) {
+    config.features[key] = !!on; saveConfig(); broadcastConfig();
+    if (key === "workRequests" && !on && current === "requests") { go("work"); return; }
+    renderNav();
+    if (current === "dashboard") renderDash();
+    if (current === "settings") renderSettings();
+  }
 
   function ic(paths) { return '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' + paths + '</svg>'; }
   var ICONS = {
@@ -212,7 +237,8 @@
     work: ic('<rect x="3" y="4" width="5" height="16" rx="1.2"/><rect x="9.5" y="4" width="5" height="10" rx="1.2"/><rect x="16" y="4" width="5" height="13" rx="1.2"/>'),
     requests: ic('<path d="M21 11.5a8.4 8.4 0 0 1-11.9 7.6L3 21l1.9-6.1A8.4 8.4 0 1 1 21 11.5z"/>'),
     assets: ic('<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/>'),
-    plans: ic('<path d="M9 5h10M9 12h10M9 19h10"/><circle cx="4.5" cy="5" r="1.4"/><circle cx="4.5" cy="12" r="1.4"/><circle cx="4.5" cy="19" r="1.4"/>')
+    plans: ic('<path d="M9 5h10M9 12h10M9 19h10"/><circle cx="4.5" cy="5" r="1.4"/><circle cx="4.5" cy="12" r="1.4"/><circle cx="4.5" cy="19" r="1.4"/>'),
+    settings: ic('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>')
   };
 
   // view → title, which frame (or dashboard), and the message to send
@@ -221,7 +247,8 @@
     work:      { title: "Work Orders", frame: "work", msg: { type: "plantree:board" }, gen: true },
     requests:  { title: "Requests",    frame: "work", msg: { type: "plantree:requests" }, gen: true },
     assets:    { title: "Assets",      frame: "jobs", msg: { type: "plantree:setMode", mode: "assets" } },
-    plans:     { title: "Job Plans",   frame: "jobs", msg: { type: "plantree:setMode", mode: "classes" } }
+    plans:     { title: "Job Plans",   frame: "jobs", msg: { type: "plantree:setMode", mode: "classes" } },
+    settings:  { title: "Settings" }
   };
   var current = "dashboard";
   var stats = { work: null, jobs: null };
@@ -232,14 +259,19 @@
     { view: "dashboard", label: "Dashboard", icon: "dashboard" },
     { grp: "Maintenance" },
     { view: "work", label: "Work Orders", icon: "work", cnt: function (s) { return s.work ? s.work.open + s.work.active + s.work.on_hold : null; } },
-    { view: "requests", label: "Requests", icon: "requests", cnt: function (s) { return s.work ? s.work.requests : null; }, alert: function (s) { return s.work && s.work.requests > 0; } },
+    { view: "requests", label: "Requests", icon: "requests", when: featWR, cnt: function (s) { return s.work ? s.work.requests : null; }, alert: function (s) { return s.work && s.work.requests > 0; } },
     { grp: "Assets & Plans" },
     { view: "assets", label: "Assets", icon: "assets", cnt: function (s) { return s.jobs ? s.jobs.assets : null; } },
-    { view: "plans", label: "Job Plans", icon: "plans", cnt: function (s) { return s.jobs ? s.jobs.classes : null; } }
+    { view: "plans", label: "Job Plans", icon: "plans", cnt: function (s) { return s.jobs ? s.jobs.classes : null; } },
+    { grp: "System", when: function () { return true; } },
+    { view: "settings", label: "Settings", icon: "settings" }
   ];
   function renderNav() {
     var host = document.getElementById("nav"); host.innerHTML = "";
-    NAV.forEach(function (n) {
+    // Drop a group heading if every item under it is hidden by its `when`.
+    var visible = NAV.filter(function (n) { return !n.when || n.when(); });
+    visible = visible.filter(function (n, i) { return !n.grp || (visible[i + 1] && !visible[i + 1].grp); });
+    visible.forEach(function (n) {
       if (n.grp) { host.appendChild(mk("div", "side-grp", n.grp)); return; }
       var b = document.createElement("button");
       b.className = "nav-item" + (current === n.view ? " on" : "");
@@ -260,16 +292,19 @@
     frame.addEventListener("load", function once() { frame.removeEventListener("load", once); try { w.postMessage(msg, "*"); } catch (e) {} });
   }
   function go(view) {
+    if (view === "requests" && !featWR()) view = "work";
     var v = VIEWS[view]; if (!v) return;
     current = view;
     pageTitle.textContent = v.title;
+    dash.classList.remove("on"); settingsEl.classList.remove("on"); framesWrap.classList.remove("on");
     if (v.frame) {
-      dash.classList.remove("on"); framesWrap.classList.add("on");
+      framesWrap.classList.add("on");
       Object.keys(frames).forEach(function (k) { frames[k].classList.toggle("on", k === v.frame); });
       if (v.msg) post(frames[v.frame], v.msg);
+    } else if (view === "settings") {
+      settingsEl.classList.add("on"); renderSettings();
     } else {
-      framesWrap.classList.remove("on"); dash.classList.add("on");
-      requestStats(); renderDash();
+      dash.classList.add("on"); requestStats(); renderDash();
     }
     genBtn.style.display = v.gen ? "inline-flex" : "none";
     renderNav();
@@ -315,7 +350,7 @@
 
     // hero
     var hero = mk("div", "dash-hero");
-    hero.innerHTML = '<div><h1>Maintenance overview</h1><p>Live snapshot of work, requests and your asset base.</p></div>';
+    hero.innerHTML = '<div><h1>Maintenance overview</h1><p>Live snapshot of ' + (featWR() ? "work, requests and your asset base." : "work and your asset base.") + '</p></div>';
     var hact = mk("div", "hact");
     var genq = document.createElement("button"); genq.className = "btn primary";
     genq.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/><circle cx="12" cy="12" r="3.4"/></svg> Generate PM work';
@@ -331,7 +366,7 @@
     kpis.appendChild(kpi("hl-info", "work", "Open work orders", openWO, w ? "awaiting scheduling & start" : "", function () { go("work"); }));
     kpis.appendChild(kpi("hl-accent", "work", "In progress", active, w ? "currently being worked" : "", function () { go("work"); }));
     kpis.appendChild(kpi("hl-crit", "overdue", "Overdue", overdue, w ? "past due date" : "", function () { go("work"); }));
-    kpis.appendChild(kpi("hl-warn", "requests", "Open requests", w ? w.requests : null, w ? "awaiting triage" : "", function () { go("requests"); }));
+    if (featWR()) kpis.appendChild(kpi("hl-warn", "requests", "Open requests", w ? w.requests : null, w ? "awaiting triage" : "", function () { go("requests"); }));
     kpis.appendChild(kpi("hl-good", "assets", "Assets", j ? j.assets : null, j ? j.sites + " site" + (j.sites === 1 ? "" : "s") : "", function () { go("assets"); }));
     kpis.appendChild(kpi("hl-accent", "plans", "Job plans", j ? j.classes : null, j ? j.models + " models · " + j.instances + " instances" : "", function () { go("plans"); }));
     root.appendChild(kpis);
@@ -387,7 +422,7 @@
     var qa = mk("div", "card");
     qa.appendChild((function () { var h = document.createElement("header"); h.innerHTML = "<h3>Quick actions</h3>"; return h; })());
     var quick = mk("div", "quick");
-    quick.appendChild(quickBtn("requests", "Triage requests", "Review incoming work requests", function () { go("requests"); }));
+    if (featWR()) quick.appendChild(quickBtn("requests", "Triage requests", "Review incoming work requests", function () { go("requests"); }));
     quick.appendChild(quickBtn("work", "Open work board", "Kanban across every status", function () { go("work"); }));
     quick.appendChild(quickBtn("assets", "Browse assets", "Asset register by site & class", function () { go("assets"); }));
     quick.appendChild(quickBtn("plans", "Manage job plans", "Class → model → instance library", function () { go("plans"); }));
@@ -407,6 +442,33 @@
   }
   function barColor(k) { return k === "open" ? "info" : k === "active" ? "accent" : k === "on_hold" ? "warn" : k === "done" ? "good" : "crit"; }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+
+  /* ---------- settings ---------- */
+  function renderSettings() {
+    settingsEl.innerHTML = "";
+    var root = mk("div", "dash-in");
+    var hero = mk("div", "dash-hero");
+    hero.innerHTML = '<div><h1>Settings</h1><p>System configuration for this workspace. Changes are saved locally.</p></div>';
+    root.appendChild(hero);
+    var card = mk("div", "card");
+    card.appendChild((function () { var h = document.createElement("header"); h.innerHTML = "<h3>Features</h3>"; return h; })());
+    var body = mk("div"); body.style.cssText = "padding:6px 16px 14px";
+    body.appendChild(settingRow(
+      "Work requests",
+      "A separate intake queue for reported demand — triaged (submitted → under review → approved) and converted into work orders. Off: work orders are raised directly, and PM/scheduled work is unaffected. Existing request records are kept, just hidden.",
+      featWR(), function (on) { setFeature("workRequests", on); }
+    ));
+    card.appendChild(body); root.appendChild(card);
+    settingsEl.appendChild(root);
+  }
+  function settingRow(name, desc, on, onToggle) {
+    var row = mk("div", "set-row");
+    var txt = mk("div", "st"); txt.innerHTML = '<div class="sn">' + esc(name) + '</div><div class="sd">' + esc(desc) + '</div>';
+    var sw = document.createElement("button"); sw.className = "switch" + (on ? " on" : ""); sw.setAttribute("role", "switch"); sw.setAttribute("aria-checked", on ? "true" : "false"); sw.setAttribute("aria-label", name);
+    sw.addEventListener("click", function () { onToggle(!sw.classList.contains("on")); });
+    row.appendChild(txt); row.appendChild(sw);
+    return row;
+  }
 
   /* ---------- actions ---------- */
   function triggerGenerate() {
@@ -443,10 +505,11 @@
   /* ---------- boot ---------- */
   renderNav();
   renderDash();
-  // pull stats as soon as the frames are alive
-  frames.work.addEventListener("load", requestStats);
+  // push config + pull stats as soon as the frames are alive
+  frames.work.addEventListener("load", function () { broadcastConfig(); requestStats(); });
   frames.jobs.addEventListener("load", requestStats);
-  setTimeout(requestStats, 300);
+  broadcastConfig();
+  setTimeout(function () { broadcastConfig(); requestStats(); }, 300);
 })();
 </script>
 </body>

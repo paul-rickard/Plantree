@@ -15,9 +15,21 @@ search and a contextual action, and a **dashboard** landing.
   from the modules — nothing is hard-coded.
 - **Work Orders** / **Requests** — the [work-orders app](work-orders/README.md):
   the board + detail with the lifecycle state machine. **Generate PM** (top bar)
-  runs the generation engine.
+  runs the generation engine; **+ New work order** raises one directly.
 - **Assets** / **Job Plans** — the [job-plans app](job-plans/README.md): the
   asset register and the Class → Model → Instance template library.
+- **Settings** — configurable system features (see below). Saved locally.
+
+### Configurable features
+
+Some capabilities aren't wanted at every site, so they're **feature-toggled**
+(canonical shape: [`schemas/system-settings.schema.json`](../schemas/system-settings.schema.json)),
+defaulting off. Toggle them under **Settings**; the choice persists locally and
+the shell broadcasts it to the modules.
+
+| Feature | Default | Off means |
+|---------|---------|-----------|
+| **Work requests** | off | No separate request intake — work orders are raised directly (**+ New work order**), and PM/scheduled work is unaffected. Turning it on adds the Requests nav item, dashboard KPI and the request → work-order conversion flow. Existing request records are retained either way. |
 
 The sidebar collapses to an icon rail (state persisted), and becomes a slide-over
 drawer on narrow screens.
@@ -31,6 +43,7 @@ toggle, since the sidebar owns that switch.
 
 | Message (shell → module) | Effect |
 |--------------------------|--------|
+| `plantree:config` `{features}` | Work-orders: apply feature toggles (e.g. show/hide Work Requests). |
 | `plantree:statsRequest` | Module replies with `plantree:stats` (counts for the dashboard). |
 | `plantree:setMode` `{mode}` | Job-plans: switch between `classes` and `assets`. |
 | `plantree:board` / `plantree:requests` | Work-orders: show the board / focus the request queue. |

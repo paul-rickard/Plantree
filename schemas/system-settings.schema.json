@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://plantree/schemas/system-settings.json",
+  "title": "SystemSettings",
+  "description": "Workspace-level configuration — the system variables an organisation sets once. Feature toggles let a deployment turn whole capabilities on or off so the product fits sites that don't need them. One JSON document = one workspace's settings.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "type", "features", "rev", "createdAt", "updatedAt"],
+  "properties": {
+    "id": { "type": "string", "description": "Opaque unique id, e.g. settings_default." },
+    "type": { "const": "systemSettings" },
+    "features": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Feature toggles. Each defaults to a conservative value so a new workspace starts lean and opts in to what it needs.",
+      "properties": {
+        "workRequests": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the Work Request intake queue is enabled. OFF (default): there is no separate request entity — work orders are raised directly, and PM/scheduled work flows straight to a work order as usual. ON: reported demand is captured as a WorkRequest, triaged (submitted → under_review → approved/rejected) and converted into a WorkOrder. Turning it off hides the Requests navigation, dashboard KPI and conversion flow; existing request records are retained, just not surfaced."
+        }
+      }
+    },
+    "rev": { "type": "integer", "minimum": 0, "description": "Optimistic-concurrency revision; bumped on every save." },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "createdBy": { "type": ["string", "null"] },
+    "updatedAt": { "type": "string", "format": "date-time" },
+    "updatedBy": { "type": ["string", "null"] }
+  }
+}

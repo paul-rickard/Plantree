@@ -1,0 +1,10 @@
+{
+  "id": "settings_default",
+  "type": "systemSettings",
+  "features": {
+    "workRequests": false
+  },
+  "rev": 0,
+  "createdAt": "2026-07-14T00:00:00Z",
+  "updatedAt": "2026-07-14T00:00:00Z"
+}

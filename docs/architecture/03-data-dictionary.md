@@ -214,7 +214,11 @@ and reporting stay stable.
 | `system`, `active` | `system` marks built-in (undeletable) types; `active` controls availability for new work. |
 
 ### WorkRequest
-Reported demand, before commitment.
+Reported demand, before commitment. **Optional capability** — the request intake
+queue is a configurable feature (`features.workRequests`, see
+[system-settings](../../schemas/system-settings.schema.json)) that defaults
+**off**; sites that don't triage demand separately raise work orders directly,
+and PM/scheduled work never uses this entity regardless.
 
 | Field | Meaning |
 |-------|---------|
