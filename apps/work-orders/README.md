@@ -21,9 +21,13 @@ A single self-contained app — no server, no build — open it in a browser.
   flagged), log labour, watch reserve-then-consume parts and the cost roll-up,
   and read the audited transition **history** as a timeline. Every order carries
   its **content snapshot** (pinned plan version + resolved parameters).
-- **Generate PM work** — the topbar button runs the engine below against a seeded
-  generator schedule and drops the due (nested) orders straight onto the board;
-  press it again and nothing happens — it's idempotent.
+- **Generate PM work** — in the shell, the button asks Job Plans to resolve
+  **every asset's applied plans** (through Class → Model → Instance inheritance,
+  with each asset's own overrides) and generates the due (nested) orders per
+  asset — so two units of the same class get their own parameters (e.g. GEN-1's
+  snapshot pins oil grade `Cat DEO 15W-40`, GEN-2's `Shell Rimula`). Standalone,
+  it falls back to one seeded plan. Press it again and nothing happens — the
+  per-asset high-water marks make it idempotent.
 - **Convert a request** — triage an incoming request into a reactive work order
   that enters at `requested`, carrying provenance.
 
@@ -34,6 +38,13 @@ Turns a **maintenance schedule** (a plan applied to an asset) into `planned`
 per-frequency high-water marks so re-running is **idempotent** — the behaviour
 [doc 05](../../docs/architecture/05-work-management-lifecycle.md#pm-generated-vs-requested-work)
 calls for in the serverless, lazy-generation deployment.
+
+The engine takes a **resolved** plan (resolution is the Job Plans module's job).
+In the shell, `plantree:pmRequest` → `plantree:pmPlans` carries one resolved plan
+per (asset, applied plan): the Job Plans app walks each asset's Class → Model →
+Instance chain to fix its tasks, frequencies, safety and **parameter values with
+that asset's overrides**, so generation is genuinely asset-specific rather than
+one shared plan.
 
 ## What's here
 

@@ -322,8 +322,13 @@
       if (current === "dashboard") renderDash();
     } else if (d.type === "plantree:openWork") {   // asset → its work orders (from Job Plans)
       go("work"); post(frames.work, { type: "plantree:filterAsset", assetId: d.assetId });
+    } else if (d.type === "plantree:pmRequest") {   // work-orders asks Job Plans for resolved plans
+      postNow(frames.jobs, { type: "plantree:pmRequest" });
+    } else if (d.type === "plantree:pmPlans") {     // Job Plans replies → hand to work-orders
+      postNow(frames.work, d);
     }
   });
+  function postNow(frame, msg) { var w = frame.contentWindow; if (w) { try { w.postMessage(msg, "*"); } catch (e) {} } }
 
   /* ---------- dashboard ---------- */
   var CAT = [

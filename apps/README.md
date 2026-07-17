@@ -44,6 +44,7 @@ toggle, since the sidebar owns that switch.
 | Message (shell → module) | Effect |
 |--------------------------|--------|
 | `plantree:config` `{features}` | Work-orders: apply feature toggles (e.g. show/hide Work Requests). |
+| `plantree:pmRequest` → `plantree:pmPlans` `{plans}` | Generate PM: work-orders asks Job Plans to resolve every asset's applied plans (through Class → Model → Instance inheritance, with each asset's overrides); the shell relays the resolved plans back and work-orders generates from them. |
 | `plantree:statsRequest` | Module replies with `plantree:stats` (counts for the dashboard). |
 | `plantree:setMode` `{mode}` | Job-plans: switch between `classes` and `assets`. |
 | `plantree:board` / `plantree:requests` | Work-orders: show the board / focus the request queue. |

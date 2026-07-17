@@ -207,6 +207,7 @@
     if (d.type === "plantree:statsRequest") sendStats();
     else if (d.type === "plantree:setMode") setMode(d.mode);
     else if (d.type === "plantree:search") { G.q = d.q || ""; document.getElementById("q").value = G.q; renderRail(); if (mode === "assets" && Asel && Asel.kind !== "asset") renderDetail(); }
+    else if (d.type === "plantree:pmRequest") { try { window.parent.postMessage({ type: "plantree:pmPlans", plans: pmCandidates() }, "*"); } catch (e2) {} }
   });
   var UNIT = { day: "Daily", week: "Weekly", month: "Monthly", year: "Annual" };
   var RESP = ["none", "passfail", "numeric", "text", "choice"];
@@ -270,11 +271,12 @@
   }
   function A(id, code, name, classId, modelId, locationId, over) { return { id: id, code: code, name: name, classId: classId, modelId: modelId || null, locationId: locationId, attrOverrides: {}, paramOverrides: over || {}, ownParameters: [], addedFreqs: [], addedTasks: [], exclusions: [], mapOverrides: {} }; }
   function seedAssets() {
-    return [ A("ast_gen1", "GEN-1", "Generator 1", "gen", "gm1", "site_syd1"),
-      A("ast_gen2", "GEN-2", "Generator 2", "gen", "gm1", "site_syd1", { p_oil: "Shell Rimula" }),
-      A("ast_ups_a1", "UPS-A1", "UPS A1", "ups", "um1", "site_syd1"),
-      A("ast_ups_b1", "UPS-B1", "UPS B1", "ups", "um1", "site_mel1"),
-      A("ast_gen3", "GEN-3", "Generator 3", "gen", "gm1", "site_sin1") ];
+    function ap(a, ref) { a.appliedPlans = [ref]; return a; }
+    return [ ap(A("ast_gen1", "GEN-1", "Generator 1", "gen", "gm1", "site_syd1"), "gen>gm1"),
+      ap(A("ast_gen2", "GEN-2", "Generator 2", "gen", "gm1", "site_syd1", { p_oil: "Shell Rimula" }), "gen>gm1"),
+      ap(A("ast_ups_a1", "UPS-A1", "UPS A1", "ups", "um1", "site_syd1"), "ups>um1"),
+      ap(A("ast_ups_b1", "UPS-B1", "UPS B1", "ups", "um1", "site_mel1"), "ups>um1"),
+      ap(A("ast_gen3", "GEN-3", "Generator 3", "gen", "gm1", "site_sin1"), "gen>gm1") ];
   }
 
   /* ---------- selection & chain ---------- */
@@ -573,6 +575,41 @@
   }
   function locIcon(kind) { return el("svg", { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "1.7", html: kind === "site" ? '<path d="M12 21s-7-5-7-11a7 7 0 1114 0c0 6-7 11-7 11z"/><circle cx="12" cy="10" r="2.3"/>' : '<path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/>' }); }
   function assetChain(a) { var f = classById(a.classId); if (!f) return [a]; var ch = [f]; if (a.modelId) { var m = modelById(f, a.modelId); if (m) ch.push(m); } ch.push(a); return ch; }
+
+  /* ---------- PM generation: resolve each asset's applied plans for the engine ---------- */
+  // Resolve an asset's applied plan (walking the template chain for tasks/frequencies/
+  // safety, and the asset's own chain for parameter VALUES) into the shape the
+  // work-orders generation engine consumes. This is what makes generation
+  // asset-specific: GEN-2's oil-grade override flows into its snapshot, GEN-1's doesn't.
+  function resolveEnginePlan(a, ref) {
+    var ch = planChain(ref); if (!ch) return null;
+    var famPlan = classById(planParse(ref).fam); if (!famPlan) return null;
+    var chA = assetChain(a);
+    var freqs = effFreqs(ch).map(function (f) { return { id: f.id, unit: f.unit, interval: f.interval, label: f.label || null }; });
+    var tasks = effTasks(ch).filter(function (r) { return !r.excluded; }).map(function (r) {
+      return { id: r.task.id, instruction: r.task.instruction, responseType: r.task.responseType, unit: r.task.unit || null, acceptableRange: r.task.acceptableRange || null, choices: r.task.choices || null, frequencyIds: effTicks(ch, r) };
+    });
+    var params = (famPlan.parameters || []).map(function (p) { var v = p.defaultValue; try { v = effParam(chA, p).value; } catch (e) {} return { key: p.key, label: p.label, value: v, unit: p.unit || null }; });
+    (a.ownParameters || []).forEach(function (p) { params.push({ key: p.key, label: p.label, value: p.defaultValue, unit: p.unit || null }); });
+    return {
+      id: ref, code: famPlan.code, version: 1,
+      workOrderTypeCode: famPlan.workOrderTypeCode || "PM",
+      safetyInstructions: (effAttr(ch, "safety") || {}).value || null,
+      estimatedLabourHours: (effAttr(ch, "estimatedLabourHours") || {}).value,
+      requiredPermits: (famPlan.requiredPermits || []).slice(),
+      parameters: params, frequencies: freqs, tasks: tasks
+    };
+  }
+  function pmCandidates() {
+    var out = [];
+    assets.forEach(function (a) {
+      (a.appliedPlans || []).forEach(function (ref) {
+        var plan = resolveEnginePlan(a, ref); if (!plan) return;
+        out.push({ assetId: a.id, assetCode: a.code, scheduleId: "sch_" + a.id + "_" + String(ref).replace(/[>]/g, "-"), jobPlanId: ref, jobPlanCode: plan.code, planLevel: planLevel(ref), plan: plan });
+      });
+    });
+    return out;
+  }
 
   function selAsset(sel) { Asel = sel; bulkSel = {}; renderRail(); renderDetail(); document.getElementById("app").classList.add("show-detail"); }
   function assetBack() { document.getElementById("app").classList.remove("show-detail"); }

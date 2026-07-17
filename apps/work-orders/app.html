@@ -410,7 +410,7 @@ function genSchedule() {
 }
 
 /* ---------------- app state ---------------- */
-var S = { orders: seedOrders(), requests: seedRequests(), schedule: genSchedule(), sel: null, tab: "overview", q: "" };
+var S = { orders: seedOrders(), requests: seedRequests(), schedule: genSchedule(), schedules: {}, sel: null, tab: "overview", q: "" };
 
 // Work Requests are an optional feature (see schemas/system-settings.json). Off
 // by default; the shell drives it via plantree:config. Standalone: ?wr=1 to enable.
@@ -449,15 +449,34 @@ function applyTransition(wo, tr) {
 }
 
 function generatePM() {
-  var res = PMGenerate.generate({ plan: GEN_PLAN, schedule: S.schedule, asOf: nowISO().slice(0, 10), generatedAt: nowISO() });
-  S.schedule = res.schedule;
-  var added = 0;
-  res.workOrders.forEach(function (w) {
-    if (!S.orders.some(function (o) { return o.id === w.id; })) { S.orders.push(w); added++; }
+  // Embedded in the shell: ask Job Plans to resolve every asset's applied plans
+  // (asset-specific — parameters resolved through Class→Model→Instance inheritance
+  // with each asset's overrides), then generate from those. Standalone: one seeded plan.
+  if (EMBED) { try { window.parent.postMessage({ type: "plantree:pmRequest" }, "*"); } catch (e) {} return; }
+  runGenerate([{ assetId: "ast_gen1", assetCode: "GEN-1", scheduleId: "sch_gen_svc_gen1", jobPlanId: GEN_PLAN.id, jobPlanCode: GEN_PLAN.code, planLevel: "class", plan: GEN_PLAN }]);
+}
+function defaultSchedule(c) {
+  var anchor = new Date(); anchor.setUTCDate(anchor.getUTCDate() - 100);
+  return { id: c.scheduleId, type: "maintenanceSchedule", assetId: c.assetId, jobPlanId: c.jobPlanId, planLevel: c.planLevel || "class",
+    anchorDate: anchor.toISOString().slice(0, 10), mergeWindowDays: 7, leadTimeDays: 7, priority: "medium",
+    responsibleTeamId: null, workflowProfileKey: "default", active: true, highWaterMarks: {}, rev: 0, createdAt: nowISO(), updatedAt: nowISO() };
+}
+// Run the engine per candidate (plan + schedule), accumulate new orders, advance and render.
+function runGenerate(candidates) {
+  var added = 0, touched = {};
+  (candidates || []).forEach(function (c) {
+    if (!c || !c.plan) return;
+    var sch = S.schedules[c.scheduleId] || defaultSchedule(c);
+    var res = PMGenerate.generate({ plan: c.plan, schedule: sch, asOf: nowISO().slice(0, 10), generatedAt: nowISO() });
+    S.schedules[c.scheduleId] = res.schedule;
+    res.workOrders.forEach(function (w) {
+      if (!S.orders.some(function (o) { return o.id === w.id; })) { S.orders.push(w); added++; touched[c.assetId] = 1; }
+    });
   });
   advanceAll();
   render();
-  toast(added ? ("Generated " + added + " work order" + (added > 1 ? "s" : "")) : "Nothing due — schedule up to date (idempotent)");
+  var nAssets = Object.keys(touched).length;
+  toast(added ? ("Generated " + added + " work order" + (added > 1 ? "s" : "") + " across " + nAssets + " asset" + (nAssets > 1 ? "s" : "")) : "Nothing due — schedules up to date (idempotent)");
 }
 
 function convertRequest(wr) {
@@ -999,6 +1018,7 @@ window.addEventListener("message", function (e) {
   else if (d.type === "plantree:requests" && featWR) { var r = S.requests.filter(function (x) { return x.status !== "converted" && x.status !== "rejected"; })[0]; S.sel = r ? { kind: "wr", id: r.id } : null; document.getElementById("app").classList.toggle("show-detail", !!r); render(); }
   else if (d.type === "plantree:search") { S.q = d.q || ""; document.getElementById("q").value = S.q; S.sel = null; render(); }
   else if (d.type === "plantree:editWorkflow") openWorkflowEditor();
+  else if (d.type === "plantree:pmPlans") runGenerate(d.plans || []);
 });
 advanceAll();  // fire any due automatic transitions on load (lazy)
 render();
