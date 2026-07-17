@@ -103,6 +103,17 @@ SLA clocks (including pauses, expressed as rules that reference states), overdue
 and dashboard segments. States stay pure; behaviour is rules over the log. This
 is what lets a site rename or re-shape its lifecycle without touching the engine.
 
+## Editing it
+
+The work-orders app ships a **visual editor** for the profile (the ⚙ button in
+the Work rail, or **Settings → Workflow → Open editor** in the shell). It lists
+states with add / rename / reorder / delete (showing which are terminal, derived
+live) and transitions with from / to / label / trigger (+ its parameter) / guard
+expressions / actions. Saving applies the profile immediately and persists it
+locally (`localStorage["pt.workflow"]`); **Reset to default** restores the
+built-in lifecycle. Custom states with no explicit grouping fall to the default
+board bucket until the filters/rules layer lands.
+
 ## Mapping to the code
 
 - **Schema** — [`schemas/workflow-profile.schema.json`](../../schemas/workflow-profile.schema.json)

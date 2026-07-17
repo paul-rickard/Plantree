@@ -60,6 +60,12 @@ board's 5-bucket grouping is a presentation-only `STATE_GROUP` map (a view
 concern), so states stay pure. Full model in
 [doc 13](../../docs/architecture/13-workflow-configuration.md).
 
+**Editor** — the ⚙ button in the rail (or **Settings → Workflow** in the shell)
+opens a visual editor for the profile: add/rename/reorder/delete states (terminal
+badges derived live), and add/edit transitions (from · to · label · trigger +
+param · guard expressions · actions). Save applies it live and persists to
+`localStorage`; Reset restores the built-in default.
+
 Related contracts: [`maintenance-schedule.schema.json`](../../schemas/maintenance-schedule.schema.json)
 (the per-asset schedule + high-water marks) and
 [`work-order.schema.json`](../../schemas/work-order.schema.json) (what it emits).

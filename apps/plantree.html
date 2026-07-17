@@ -459,6 +459,17 @@
       featWR(), function (on) { setFeature("workRequests", on); }
     ));
     card.appendChild(body); root.appendChild(card);
+
+    // Workflow editor entry point
+    var wf = mk("div", "card"); wf.style.marginTop = "16px";
+    wf.appendChild((function () { var h = document.createElement("header"); h.innerHTML = "<h3>Workflow</h3>"; return h; })());
+    var wb = mk("div"); wb.style.cssText = "padding:14px 16px; display:flex; align-items:center; gap:16px;";
+    var wt = mk("div"); wt.style.flex = "1";
+    wt.innerHTML = '<div style="font-weight:600">Work-order lifecycle</div><div style="font-size:12.5px;color:var(--muted);margin-top:3px;max-width:60ch">Configure the states and the transitions between them — labels, ordering, allowed moves, triggers (manual / on-entry / timer / condition), guard expressions and actions.</div>';
+    var wbtn = document.createElement("button"); wbtn.className = "btn primary"; wbtn.textContent = "Open editor →";
+    wbtn.addEventListener("click", function () { go("work"); post(frames.work, { type: "plantree:editWorkflow" }); });
+    wb.appendChild(wt); wb.appendChild(wbtn); wf.appendChild(wb); root.appendChild(wf);
+
     settingsEl.appendChild(root);
   }
   function settingRow(name, desc, on, onToggle) {

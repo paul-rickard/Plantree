@@ -128,6 +128,27 @@
     .dhead, .actionbar, .dtabs { padding-left:14px; padding-right:14px; } .dbody { padding:14px; }
     .board { padding:14px; }
   }
+
+  /* workflow editor */
+  .editor { width:min(900px,100%); max-height:88vh; display:flex; flex-direction:column; }
+  .editor .mbody { overflow-y:auto; }
+  .wf-sec { margin-bottom:18px; } .wf-sec > h4 { font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--faint); font-family:var(--mono); margin:0 0 8px; display:flex; align-items:center; gap:8px; }
+  .wf-sec > h4 .ct { color:var(--faint); }
+  .wf-state { display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid var(--line); }
+  .wf-state:last-child { border-bottom:0; }
+  .wf-state .ord { display:flex; flex-direction:column; gap:1px; } .wf-state .ord button { border:0; background:transparent; color:var(--faint); cursor:pointer; padding:0 3px; line-height:1; font-size:11px; } .wf-state .ord button:hover { color:var(--accent); } .wf-state .ord button:disabled { opacity:.3; cursor:not-allowed; }
+  .wf-state .sid { font-family:var(--mono); font-size:11px; color:var(--faint); width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .wf-state input.lbl-in { flex:1; max-width:220px; }
+  .wf-badge { font-family:var(--mono); font-size:9px; text-transform:uppercase; letter-spacing:.04em; font-weight:700; padding:2px 7px; border-radius:5px; color:var(--good); background:var(--good-soft); }
+  .wf-trans { border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:8px; background:var(--panel-2); display:flex; flex-direction:column; gap:8px; }
+  .wf-trans .row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .wf-trans select, .wf-trans input { width:auto; }
+  .wf-trans .arrow { color:var(--faint); font-weight:700; }
+  .wf-trans .lbl-in { flex:1; min-width:120px; }
+  .wf-trans textarea { min-height:38px; font-family:var(--mono); font-size:12px; }
+  .wf-add { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:8px; }
+  .wf-derived { font-size:12px; color:var(--muted); background:var(--panel-2); border:1px solid var(--line); border-radius:9px; padding:9px 12px; } .wf-derived b { color:var(--ink); }
+  .wf-field { display:flex; flex-direction:column; gap:3px; } .wf-field .lbl { margin-bottom:1px; }
 </style>
 </head>
 <body>
@@ -141,7 +162,10 @@
   <div class="app" id="app">
     <aside class="rail">
       <div class="rail-top">
-        <button class="btn primary" id="newWoBtn" style="width:100%;justify-content:center">+ New work order</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn primary" id="newWoBtn" style="flex:1;justify-content:center">+ New work order</button>
+          <button class="btn" id="wfBtn" title="Edit workflow (states & transitions)">⚙</button>
+        </div>
         <div class="search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--faint)"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2" stroke-linecap="round"/></svg><input id="q" placeholder="Search work orders & requests…" /></div>
       </div>
       <div class="rail-list" id="railList"></div>
@@ -217,6 +241,10 @@ var PROFILE = {
     { from: "cancelled", to: "closed", trigger: { type: "onEntry" }, actions: [{ type: "finalise_costs" }] }
   ]
 };
+// The built-in default (for Reset) and any locally-saved customisation from the editor.
+var DEFAULT_PROFILE = JSON.parse(JSON.stringify(PROFILE));
+(function () { try { var s = localStorage.getItem("pt.workflow"); if (s) PROFILE = JSON.parse(s); } catch (e) {} })();
+
 // Presentation-only grouping (a VIEW concern, not a state property): maps each
 // state id to a board/dashboard bucket. Doc 13 — semantics live downstream, not on states.
 var STATE_GROUP = {
@@ -461,6 +489,126 @@ function newWorkOrder() {
     ])
   ]));
   title.focus();
+}
+
+/* ---------------- workflow editor ---------------- */
+var WF_ACTIONS = ["notify", "reserve_parts", "deduct_stock", "create_follow_up", "finalise_costs", "webhook", "run_automation"];
+function openWorkflowEditor() {
+  var host = document.getElementById("modalHost");
+  var draft = JSON.parse(JSON.stringify(PROFILE));
+  var body = el("div", { class: "mbody" });
+  function close() { host.innerHTML = ""; }
+  function labelForDraft(id) { var s = draft.states.filter(function (x) { return x.id === id; })[0]; return s ? s.label : id; }
+  function stateOptions(sel) { return draft.states.map(function (s) { return el("option", { value: s.id, selected: s.id === sel }, [s.label + " (" + s.id + ")"]); }); }
+  function rerender() { body.innerHTML = ""; body.appendChild(buildBody()); }
+
+  function buildBody() {
+    var wrap = el("div", {});
+    var terminals = Workflow.terminalStates(draft);
+
+    // States
+    var st = el("div", { class: "wf-sec" });
+    st.appendChild(el("h4", {}, ["States", el("span", { class: "ct" }, [draft.states.length + "/25"])]));
+    draft.states.forEach(function (s, i) {
+      var lbl = el("input", { class: "lbl-in", type: "text", value: s.label });
+      lbl.addEventListener("input", function () { s.label = lbl.value; });
+      st.appendChild(el("div", { class: "wf-state" }, [
+        el("div", { class: "ord" }, [
+          el("button", { title: "Move up", disabled: i === 0, onclick: function () { var t = draft.states[i - 1]; draft.states[i - 1] = s; draft.states[i] = t; rerender(); } }, ["▲"]),
+          el("button", { title: "Move down", disabled: i === draft.states.length - 1, onclick: function () { var t = draft.states[i + 1]; draft.states[i + 1] = s; draft.states[i] = t; rerender(); } }, ["▼"])
+        ]),
+        el("span", { class: "sid" }, [s.id]),
+        lbl,
+        terminals.indexOf(s.id) >= 0 ? el("span", { class: "wf-badge" }, ["terminal"]) : null,
+        (draft.entryStates || []).indexOf(s.id) >= 0 ? el("span", { class: "wf-badge", style: "color:var(--info);background:var(--info-soft)" }, ["entry"]) : null,
+        el("span", { style: "margin-left:auto" }, [el("button", { class: "x", title: "Delete state", onclick: function () {
+          if (draft.transitions.some(function (t) { return t.from === s.id || t.to === s.id; })) { toast("Remove transitions using '" + s.id + "' first"); return; }
+          if (draft.states.length <= 1) { toast("Keep at least one state"); return; }
+          draft.states.splice(i, 1); draft.entryStates = (draft.entryStates || []).filter(function (x) { return x !== s.id; }); rerender();
+        } }, ["✕"])])
+      ]));
+    });
+    var nid = el("input", { type: "text", placeholder: "id (e.g. parked)", style: "max-width:150px" });
+    var nlbl = el("input", { type: "text", placeholder: "Label", style: "max-width:150px" });
+    st.appendChild(el("div", { class: "wf-add" }, [nid, nlbl, el("button", { class: "btn sm", onclick: function () {
+      var id = (nid.value || "").trim().replace(/\s+/g, "_"); if (!id) return;
+      if (draft.states.some(function (s) { return s.id === id; })) { toast("id already exists"); return; }
+      if (draft.states.length >= 25) { toast("Max 25 states"); return; }
+      draft.states.push({ id: id, label: (nlbl.value || id).trim() }); rerender();
+    } }, ["+ Add state"])]));
+    wrap.appendChild(st);
+
+    // Transitions
+    var tr = el("div", { class: "wf-sec" });
+    tr.appendChild(el("h4", {}, ["Transitions", el("span", { class: "ct" }, [String(draft.transitions.length)])]));
+    draft.transitions.forEach(function (t, i) {
+      t.trigger = t.trigger || { type: "manual" };
+      var from = el("select", {}, stateOptions(t.from)); from.addEventListener("change", function () { t.from = from.value; rerender(); });
+      var to = el("select", {}, stateOptions(t.to)); to.addEventListener("change", function () { t.to = to.value; rerender(); });
+      var label = el("input", { class: "lbl-in", type: "text", value: t.label || "", placeholder: "button label" }); label.addEventListener("input", function () { t.label = label.value || null; });
+      var trig = el("select", {}, ["manual", "onEntry", "timer", "condition"].map(function (x) { return el("option", { value: x, selected: x === t.trigger.type }, [x]); }));
+      var paramHost = el("span", {});
+      function renderParam() {
+        paramHost.innerHTML = "";
+        if (t.trigger.type === "timer") {
+          var d = el("input", { type: "number", min: "0", value: t.trigger.afterDays != null ? t.trigger.afterDays : 5, style: "width:80px" });
+          d.addEventListener("input", function () { t.trigger = { type: "timer", afterDays: parseFloat(d.value) || 0 }; });
+          paramHost.appendChild(el("span", { style: "display:inline-flex;gap:6px;align-items:center" }, [d, el("span", { class: "lbl" }, ["days in state"])]));
+        } else if (t.trigger.type === "condition") {
+          var w = el("input", { type: "text", value: t.trigger.when || "", placeholder: "expression, e.g. allTasksComplete()", style: "min-width:240px" });
+          w.addEventListener("input", function () { t.trigger = { type: "condition", when: w.value }; });
+          paramHost.appendChild(w);
+        }
+      }
+      trig.addEventListener("change", function () { t.trigger = trig.value === "timer" ? { type: "timer", afterDays: 5 } : trig.value === "condition" ? { type: "condition", when: "" } : { type: trig.value }; renderParam(); });
+      renderParam();
+      var guards = el("textarea", { placeholder: "one guard expression per line", value: (t.guards || []).join("\n") });
+      guards.addEventListener("input", function () { t.guards = guards.value.split("\n").map(function (x) { return x.trim(); }).filter(Boolean); });
+      var actions = el("input", { type: "text", value: (t.actions || []).map(function (a) { return a.type; }).join(", "), placeholder: "actions, comma-separated" });
+      actions.addEventListener("input", function () { t.actions = actions.value.split(",").map(function (x) { return x.trim(); }).filter(Boolean).map(function (x) { return { type: x }; }); });
+      tr.appendChild(el("div", { class: "wf-trans" }, [
+        el("div", { class: "row" }, [from, el("span", { class: "arrow" }, ["→"]), to, label, el("span", { style: "margin-left:auto" }, [el("button", { class: "x", onclick: function () { draft.transitions.splice(i, 1); rerender(); } }, ["✕"])])]),
+        el("div", { class: "row" }, [el("span", { class: "lbl" }, ["trigger"]), trig, paramHost]),
+        el("div", { class: "wf-field" }, [el("span", { class: "lbl" }, ["guards (expressions)"]), guards]),
+        el("div", { class: "wf-field" }, [el("span", { class: "lbl" }, ["actions"]), actions])
+      ]));
+    });
+    tr.appendChild(el("div", { class: "wf-add" }, [el("button", { class: "btn sm", onclick: function () {
+      var s0 = draft.states[0] ? draft.states[0].id : ""; draft.transitions.push({ from: s0, to: s0, label: "", trigger: { type: "manual" } }); rerender();
+    } }, ["+ Add transition"]), el("span", { class: "hint", style: "font-size:11px;color:var(--faint)" }, ["actions: " + WF_ACTIONS.join(" · ")])]));
+    wrap.appendChild(tr);
+
+    // Derived
+    wrap.appendChild(el("div", { class: "wf-derived" }, [
+      el("div", {}, [el("b", {}, ["Terminal (derived): "]), terminals.map(labelForDraft).join(", ") || "none"]),
+      el("div", { style: "margin-top:4px" }, [el("b", {}, ["Entry: "]), (draft.entryStates && draft.entryStates.length ? draft.entryStates : [draft.states[0] && draft.states[0].id]).map(labelForDraft).join(", ")])
+    ]));
+    return wrap;
+  }
+
+  function saveEditor() {
+    var ids = {}; draft.states.forEach(function (s) { ids[s.id] = 1; });
+    if (draft.transitions.some(function (t) { return !ids[t.from] || !ids[t.to]; })) { toast("A transition references a missing state"); return; }
+    draft.entryStates = (draft.entryStates || []).filter(function (id) { return ids[id]; });
+    if (!draft.entryStates.length && draft.states[0]) draft.entryStates = [draft.states[0].id];
+    draft.updatedAt = nowISO(); draft.rev = (draft.rev || 0) + 1;
+    PROFILE = draft;
+    try { localStorage.setItem("pt.workflow", JSON.stringify(PROFILE)); } catch (e) {}
+    close(); render(); toast("Workflow saved");
+  }
+  function resetEditor() { draft = JSON.parse(JSON.stringify(DEFAULT_PROFILE)); try { localStorage.removeItem("pt.workflow"); } catch (e) {} rerender(); toast("Reset to default (unsaved — Save to apply)"); }
+
+  host.appendChild(el("div", { class: "ovl", onclick: function (e) { if (e.target.className === "ovl") close(); } }, [
+    el("div", { class: "modal editor" }, [
+      el("header", {}, [el("span", { style: "font-weight:660" }, ["Edit workflow"]), el("div", { style: "margin-left:auto;display:flex;gap:8px" }, [
+        el("button", { class: "btn sm", onclick: resetEditor }, ["Reset to default"]),
+        el("button", { class: "btn sm", onclick: close }, ["Cancel"]),
+        el("button", { class: "btn primary sm", onclick: saveEditor }, ["Save"])
+      ])]),
+      body
+    ])
+  ]));
+  rerender();
 }
 
 /* small planning mutations to satisfy guards */
@@ -760,6 +908,7 @@ function render() { renderRail(); renderDetail(); if (typeof EMBED !== "undefine
 document.getElementById("q").addEventListener("input", function (e) { S.q = e.target.value; render(); });
 var _gen = document.getElementById("genBtn"); if (_gen) _gen.addEventListener("click", generatePM);
 document.getElementById("newWoBtn").addEventListener("click", newWorkOrder);
+document.getElementById("wfBtn").addEventListener("click", openWorkflowEditor);
 
 /* ---------------- unified-shell (embed) support ---------------- */
 var EMBED = /[?&]embed=1/.test(location.search);
@@ -790,6 +939,7 @@ window.addEventListener("message", function (e) {
   else if (d.type === "plantree:board") { S.sel = null; document.getElementById("app").classList.remove("show-detail"); render(); }
   else if (d.type === "plantree:requests" && featWR) { var r = S.requests.filter(function (x) { return x.status !== "converted" && x.status !== "rejected"; })[0]; S.sel = r ? { kind: "wr", id: r.id } : null; document.getElementById("app").classList.toggle("show-detail", !!r); render(); }
   else if (d.type === "plantree:search") { S.q = d.q || ""; document.getElementById("q").value = S.q; S.sel = null; render(); }
+  else if (d.type === "plantree:editWorkflow") openWorkflowEditor();
 });
 advanceAll();  // fire any due automatic transitions on load (lazy)
 render();
