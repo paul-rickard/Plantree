@@ -731,7 +731,22 @@ function setEstimate(wo, v) { wo.estimatedLabourHours = v === "" ? null : parseF
 function setWindow(wo, v) { wo.scheduledStart = v ? v + "T08:00:00Z" : null; render(); }
 function issuePermits(wo) { wo._permitsIssued = true; render(); toast("Permits issued"); }
 function assign(wo) { wo.assignedTo = { kind: "crew", id: "crew_syd_mech", name: "Sydney Mechanical" }; render(); toast("Assigned to Sydney Mechanical"); }
-function logLabour(wo) { wo.labour.push({ id: idseq("le"), userId: "you@plantree", hours: 1, date: nowISO().slice(0, 10), rate: 90, trade: "General" }); render(); toast("Logged 1.0 h"); }
+function logLabour(wo) { addLabour(wo, 1, "General", 90); }
+// Editable (add/remove tasks & labour) while the order isn't finished.
+function woEditable(wo) { var c = segId(wo); return c === "open" || c === "active"; }
+function addTask(wo, instruction, responseType) {
+  wo.tasks = wo.tasks || [];
+  var seq = wo.tasks.reduce(function (m, t) { return Math.max(m, t.sequence || 0); }, 0) + 1;
+  wo.tasks.push({ id: idseq("wot"), jobPlanTaskId: null, sequence: seq, instruction: (instruction || "").trim() || "New task", responseType: responseType || "passfail", unit: null, acceptableRange: null, choices: null, response: null, outOfRange: null, completed: false, completedBy: null, completedAt: null });
+  render(); toast("Task added");
+}
+function removeTask(wo, t) { wo.tasks = (wo.tasks || []).filter(function (x) { return x !== t; }); render(); }
+function addLabour(wo, hours, trade, rate) {
+  wo.labour = wo.labour || [];
+  wo.labour.push({ id: idseq("le"), userId: "you@plantree", crewId: null, hours: parseFloat(hours) || 0, date: nowISO().slice(0, 10), rate: (rate === "" || rate == null) ? null : parseFloat(rate), trade: (trade || "").trim() || "General", startAt: null, endAt: null });
+  render(); toast("Logged " + (parseFloat(hours) || 0) + " h");
+}
+function removeLabour(wo, l) { wo.labour = (wo.labour || []).filter(function (x) { return x !== l; }); render(); }
 function toggleTask(wo, task, on) {
   task.completed = on; task.completedAt = on ? nowISO() : null; task.completedBy = on ? "you@plantree" : null;
   if (!on) { task.response = undefined; task.outOfRange = null; }
@@ -907,15 +922,16 @@ function renderOverview(wrap, wo) {
 function kv(k, v, mono) { return el("div", {}, [el("div", { class: "k" }, [k]), el("div", { class: "v" + (mono ? " mono" : "") }, [String(v)])]); }
 
 function renderTasks(wrap, wo) {
-  if (!(wo.tasks || []).length) { wrap.appendChild(sec("Tasks", 0, [el("div", { style: "color:var(--faint);font-style:italic" }, ["No tasks on this order."])])); return; }
-  var canDo = segId(wo) === "active";
-  var rows = wo.tasks.map(function (t) {
+  var canDo = segId(wo) === "active";      // capture responses only while in progress
+  var editable = woEditable(wo);           // add/remove tasks while open or active
+  var rows = (wo.tasks || []).map(function (t) {
     var top = el("div", { class: "task-top" }, [
       el("span", { class: "tseq" }, [String(t.sequence)]),
       el("div", { class: "tname" }, [el("div", { class: "ti" }, [t.instruction]), el("div", { class: "tm" }, [t.responseType + (t.unit ? " · " + t.unit : "") + (t.acceptableRange ? " · " + t.acceptableRange[0] + "–" + t.acceptableRange[1] : "")])]),
       el("label", { style: "display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)" }, [
         el("input", { class: "chk", type: "checkbox", checked: !!t.completed, disabled: !canDo, onchange: function (e) { toggleTask(wo, t, e.target.checked); } }), "done"
-      ])
+      ]),
+      editable && !t.completed ? el("button", { class: "x", title: "Remove task", onclick: function () { removeTask(wo, t); } }, ["✕"]) : null
     ]);
     var resp = null;
     if (t.responseType !== "none" && t.responseType !== "passfail") {
@@ -930,20 +946,37 @@ function renderTasks(wrap, wo) {
     }
     return el("div", { class: "task" }, [top, resp]);
   });
-  wrap.appendChild(sec("Tasks", wo.tasks.length, rows, canDo ? null : [el("span", { style: "font-size:11.5px;color:var(--faint)" }, ["Start the work order to capture responses"])]));
+  if (!rows.length) rows = [el("div", { style: "color:var(--faint);font-style:italic" }, ["No tasks yet." + (editable ? " Add one below." : "")])];
+  // add-task row
+  if (editable) {
+    var ti = el("input", { type: "text", placeholder: "New task instruction…", style: "flex:1;min-width:160px" });
+    var ty = el("select", { style: "width:auto" }, ["passfail", "numeric", "text", "choice", "none"].map(function (x) { return el("option", { value: x }, [x]); }));
+    var addBtn = el("button", { class: "btn primary sm", onclick: function () { addTask(wo, ti.value, ty.value); } }, ["+ Add task"]);
+    ti.addEventListener("keydown", function (e) { if (e.key === "Enter") addTask(wo, ti.value, ty.value); });
+    rows.push(el("div", { class: "addbar", style: "display:flex;gap:8px;align-items:center;padding-top:6px" }, [ti, ty, addBtn]));
+  }
+  wrap.appendChild(sec("Tasks", (wo.tasks || []).length, rows, !editable && !canDo ? [el("span", { style: "font-size:11.5px;color:var(--faint)" }, ["Order is finished — tasks are locked"])] : null));
 }
 
 function renderCosts(wrap, wo) {
+  var editable = woEditable(wo);
   // labour
-  var lrows = (wo.labour || []).map(function (l) { return el("tr", {}, [el("td", {}, [l.userId || l.crewId || "—"]), el("td", {}, [l.trade || "—"]), el("td", { class: "r" }, [String(l.hours)]), el("td", { class: "r" }, [money(l.rate)]), el("td", { class: "r" }, [money((l.hours || 0) * (l.rate || 0))])]); });
+  var lrows = (wo.labour || []).map(function (l) { return el("tr", {}, [el("td", {}, [l.userId || l.crewId || "—"]), el("td", {}, [l.trade || "—"]), el("td", { class: "r" }, [String(l.hours)]), el("td", { class: "r" }, [money(l.rate)]), el("td", { class: "r" }, [money((l.hours || 0) * (l.rate || 0))]), el("td", { class: "r", style: "width:28px" }, [editable ? el("button", { class: "x", title: "Remove", onclick: function () { removeLabour(wo, l); } }, ["✕"]) : null])]); });
   var lTotal = (wo.labour || []).reduce(function (s, l) { return s + (l.hours || 0) * (l.rate || 0); }, 0);
   var lHours = (wo.labour || []).reduce(function (s, l) { return s + (l.hours || 0); }, 0);
   var labourTbl = el("table", { class: "tbl" }, [
-    el("thead", {}, [el("tr", {}, [el("th", {}, ["Who"]), el("th", {}, ["Trade"]), el("th", { class: "r" }, ["Hours"]), el("th", { class: "r" }, ["Rate"]), el("th", { class: "r" }, ["Cost"])])]),
-    el("tbody", {}, lrows.length ? lrows.concat([el("tr", { class: "tot" }, [el("td", { colspan: 2 }, ["Total"]), el("td", { class: "r" }, [String(lHours)]), el("td", {}, [""]), el("td", { class: "r" }, [money(lTotal)])])]) : [el("tr", {}, [el("td", { colspan: 5, style: "color:var(--faint);font-style:italic" }, ["No labour booked."])])])
+    el("thead", {}, [el("tr", {}, [el("th", {}, ["Who"]), el("th", {}, ["Trade"]), el("th", { class: "r" }, ["Hours"]), el("th", { class: "r" }, ["Rate"]), el("th", { class: "r" }, ["Cost"]), el("th", {}, [""])])]),
+    el("tbody", {}, lrows.length ? lrows.concat([el("tr", { class: "tot" }, [el("td", { colspan: 2 }, ["Total"]), el("td", { class: "r" }, [String(lHours)]), el("td", {}, [""]), el("td", { class: "r" }, [money(lTotal)]), el("td", {}, [""])])]) : [el("tr", {}, [el("td", { colspan: 6, style: "color:var(--faint);font-style:italic" }, ["No labour booked."])])])
   ]);
-  var labAct = segId(wo) === "active" ? [el("button", { class: "btn sm", onclick: function () { logLabour(wo); } }, ["+ Log 1 h"])] : null;
-  wrap.appendChild(sec("Labour", null, [labourTbl], labAct));
+  var labBody = [labourTbl];
+  if (editable) {
+    var lh = el("input", { type: "number", min: "0", step: "0.25", placeholder: "hours", style: "width:90px" });
+    var lt = el("input", { type: "text", placeholder: "trade", style: "width:130px" });
+    var lr = el("input", { type: "number", min: "0", placeholder: "rate", style: "width:90px" });
+    var lb = el("button", { class: "btn primary sm", onclick: function () { if (!(parseFloat(lh.value) > 0)) { toast("Enter hours"); return; } addLabour(wo, lh.value, lt.value, lr.value); } }, ["+ Add labour"]);
+    labBody.push(el("div", { style: "display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding-top:4px" }, [lh, lt, lr, lb]));
+  }
+  wrap.appendChild(sec("Labour", null, labBody));
   // parts
   var prows = (wo.parts || []).map(function (p) { return el("tr", {}, [el("td", {}, [p.description]), el("td", { class: "r" }, [p.reservedQty != null ? String(p.reservedQty) : "—"]), el("td", { class: "r" }, [p.consumedQty != null ? String(p.consumedQty) : "—"]), el("td", { class: "r" }, [money(p.unitCost)]), el("td", { class: "r" }, [money((p.consumedQty != null ? p.consumedQty : p.reservedQty || 0) * (p.unitCost || 0))])]); });
   var pTotal = (wo.parts || []).reduce(function (s, p) { return s + (p.consumedQty != null ? p.consumedQty : p.reservedQty || 0) * (p.unitCost || 0); }, 0);
