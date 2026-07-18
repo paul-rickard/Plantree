@@ -80,6 +80,10 @@
   .main { display:flex; flex-direction:column; min-width:0; }
   .topbar { height:56px; flex:none; display:flex; align-items:center; gap:14px; padding:0 18px; background:var(--panel); border-bottom:1px solid var(--line); }
   .hamburger { display:none; border:1px solid var(--line-2); background:var(--panel); color:var(--muted); border-radius:9px; padding:7px; }
+  .wsstat { display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:600; color:var(--muted); padding:4px 11px; border-radius:999px; background:var(--panel-2); border:1px solid var(--line); }
+  .wsstat .d { width:7px; height:7px; border-radius:50%; background:var(--good); }
+  .wsstat.saving { color:var(--warn); } .wsstat.saving .d { background:var(--warn); }
+  .wsstat.error { color:var(--crit); } .wsstat.error .d { background:var(--crit); }
   .crumb { display:flex; align-items:center; gap:9px; min-width:0; }
   .crumb .home { border:0; background:transparent; color:var(--faint); display:flex; padding:5px; border-radius:9px; }
   .crumb .home:hover { color:var(--accent); background:var(--accent-soft); }
@@ -205,6 +209,7 @@
         </div>
         <label class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2" stroke-linecap="round"/></svg><input id="globalSearch" placeholder="Search work orders, assets, plans…" autocomplete="off" /></label>
         <div class="top-actions">
+          <span class="wsstat" id="wsStatus" style="display:none"><span class="d"></span><span class="t">Saved</span></span>
           <button class="iconbtn" id="notif" title="Notifications"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span class="dot"></span></button>
           <button class="btn primary" id="genBtn" style="display:none" title="Run the PM generation engine for the seeded generator schedule">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/><circle cx="12" cy="12" r="3.4"/></svg>
@@ -248,7 +253,46 @@
     renderNav();
     if (current === "dashboard") renderDash();
     if (current === "settings") renderSettings();
+    if (wsDir) saveSettingsFile();
   }
+
+  /* ---------- workspace persistence (File System Access) ---------- */
+  // The shell owns the folder handle, persists it in IndexedDB for reconnect,
+  // shares it with both module frames, and saves system-settings.json itself.
+  var wsDir = null, hasStoredWs = false, saveState = "";
+  var fsaOK = typeof window.showDirectoryPicker === "function";
+  function idb() { return new Promise(function (res, rej) { var r = indexedDB.open("plantree", 1); r.onupgradeneeded = function () { r.result.createObjectStore("kv"); }; r.onsuccess = function () { res(r.result); }; r.onerror = function () { rej(r.error); }; }); }
+  async function idbSet(k, v) { var db = await idb(); return new Promise(function (res, rej) { var tx = db.transaction("kv", "readwrite"); tx.objectStore("kv").put(v, k); tx.oncomplete = function () { res(); }; tx.onerror = function () { rej(tx.error); }; }); }
+  async function idbGet(k) { var db = await idb(); return new Promise(function (res) { var tx = db.transaction("kv", "readonly"); var rq = tx.objectStore("kv").get(k); rq.onsuccess = function () { res(rq.result); }; rq.onerror = function () { res(undefined); }; }); }
+
+  function broadcastWs() { if (!wsDir) return; postNow(frames.work, { type: "plantree:workspace", dir: wsDir }); postNow(frames.jobs, { type: "plantree:workspace", dir: wsDir }); }
+  async function connectWs() {
+    if (!fsaOK) { alert("This browser doesn't support folder access (File System Access API). Use Chrome or Edge."); return; }
+    try {
+      var dir = await window.showDirectoryPicker({ mode: "readwrite" });
+      wsDir = dir; try { await idbSet("workspace", dir); hasStoredWs = true; } catch (e) {}
+      await syncSettingsFile(); broadcastWs(); setSaveState("saved"); if (current === "settings") renderSettings();
+    } catch (e) { if (e.name !== "AbortError") alert("Could not open folder: " + e.message); }
+  }
+  async function reconnectWs() {
+    try {
+      var dir = await idbGet("workspace");
+      if (!dir || typeof dir.getFileHandle !== "function") return connectWs();
+      if (dir.requestPermission) { var perm = await dir.requestPermission({ mode: "readwrite" }); if (perm !== "granted") return; }
+      wsDir = dir; await syncSettingsFile(); broadcastWs(); setSaveState("saved"); if (current === "settings") renderSettings();
+    } catch (e) { connectWs(); }
+  }
+  function disconnectWs() { wsDir = null; try { idbSet("workspace", null); } catch (e) {} hasStoredWs = false; postNow(frames.work, { type: "plantree:workspaceOff" }); postNow(frames.jobs, { type: "plantree:workspaceOff" }); setSaveState(""); if (current === "settings") renderSettings(); }
+  async function syncSettingsFile() {
+    if (!wsDir) return;
+    try { var fh = await wsDir.getFileHandle("system-settings.json"); var f = await fh.getFile(); var s = JSON.parse(await f.text()); if (s && s.features) { config.features = Object.assign(config.features, s.features); saveConfig(); broadcastConfig(); renderNav(); } } catch (e) {}
+    await saveSettingsFile();
+  }
+  async function saveSettingsFile() {
+    if (!wsDir) return;
+    try { var fh = await wsDir.getFileHandle("system-settings.json", { create: true }); var w = await fh.createWritable(); await w.write(JSON.stringify({ id: "settings_default", type: "systemSettings", features: config.features, rev: 0, createdAt: "2026-07-14T00:00:00Z", updatedAt: new Date().toISOString() }, null, 2)); await w.close(); } catch (e) {}
+  }
+  function setSaveState(s) { saveState = s; var el = document.getElementById("wsStatus"); if (!el) return; el.style.display = wsDir ? "inline-flex" : "none"; el.className = "wsstat " + (s || ""); el.querySelector(".t").textContent = s === "saving" ? "Saving…" : s === "error" ? "Save failed" : "Saved"; }
 
   function ic(paths) { return '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' + paths + '</svg>'; }
   var ICONS = {
@@ -345,6 +389,10 @@
       postNow(frames.jobs, { type: "plantree:pmRequest" });
     } else if (d.type === "plantree:pmPlans") {     // Job Plans replies → hand to work-orders
       postNow(frames.work, d);
+    } else if (d.type === "plantree:wsRequest") {   // a frame (re)booted — resend the workspace handle
+      broadcastWs();
+    } else if (d.type === "plantree:saveState") {   // a module reports save progress
+      setSaveState(d.state);
     }
   });
   function postNow(frame, msg) { var w = frame.contentWindow; if (w) { try { w.postMessage(msg, "*"); } catch (e) {} } }
@@ -472,8 +520,26 @@
     settingsEl.innerHTML = "";
     var root = mk("div", "dash-in");
     var hero = mk("div", "dash-hero");
-    hero.innerHTML = '<div><h1>Settings</h1><p>System configuration for this workspace. Changes are saved locally.</p></div>';
+    hero.innerHTML = '<div><h1>Settings</h1><p>System configuration for this workspace.</p></div>';
     root.appendChild(hero);
+
+    // Workspace (File System Access) — the JSON-backed store on disk
+    var wsc = mk("div", "card"); wsc.style.marginBottom = "16px";
+    wsc.appendChild((function () { var h = document.createElement("header"); h.innerHTML = "<h3>Workspace</h3>"; return h; })());
+    var wb = mk("div"); wb.style.cssText = "padding:14px 16px; display:flex; align-items:center; gap:16px;";
+    var wt = mk("div"); wt.style.flex = "1";
+    if (wsDir) {
+      wt.innerHTML = '<div style="font-weight:600">Connected <span style="color:var(--good)">●</span> <span style="font-family:var(--mono);font-size:12.5px;color:var(--muted)">' + esc(wsDir.name || "folder") + '</span></div><div style="font-size:12.5px;color:var(--muted);margin-top:3px;max-width:64ch">Work orders, schedules, requests, the workflow profile, board segments, settings and the asset library autosave here as JSON — the system of record. Reopen the same folder to restore.</div>';
+      var dis = document.createElement("button"); dis.className = "btn"; dis.textContent = "Disconnect"; dis.addEventListener("click", disconnectWs);
+      wb.appendChild(wt); wb.appendChild(dis);
+    } else {
+      wt.innerHTML = '<div style="font-weight:600">Save to a folder' + (fsaOK ? "" : ' <span style="color:var(--warn);font-weight:500">— needs Chrome or Edge</span>') + '</div><div style="font-size:12.5px;color:var(--muted);margin-top:3px;max-width:64ch">Pick a folder (ideally a OneDrive/SharePoint-synced one) and Plantree reads and writes its data there as JSON documents, so your work survives a reload. Nothing leaves your machine.</div>';
+      var btn = document.createElement("button"); btn.className = "btn primary"; btn.textContent = hasStoredWs ? "Reconnect folder →" : "Connect folder →"; btn.disabled = !fsaOK;
+      btn.addEventListener("click", hasStoredWs ? reconnectWs : connectWs);
+      wb.appendChild(wt); wb.appendChild(btn);
+    }
+    wsc.appendChild(wb); root.appendChild(wsc);
+
     var card = mk("div", "card");
     card.appendChild((function () { var h = document.createElement("header"); h.innerHTML = "<h3>Features</h3>"; return h; })());
     var body = mk("div"); body.style.cssText = "padding:6px 16px 14px";
@@ -547,6 +613,9 @@
   frames.jobs.addEventListener("load", requestStats);
   broadcastConfig();
   setTimeout(function () { broadcastConfig(); requestStats(); }, 300);
+  // Note a previously-connected workspace so Settings offers "Reconnect" (a
+  // user gesture is required to re-grant folder permission after a reload).
+  if (fsaOK) idbGet("workspace").then(function (h) { if (h && typeof h.getFileHandle === "function") { hasStoredWs = true; if (current === "settings") renderSettings(); } }).catch(function () {});
 })();
 </script>
 </body>

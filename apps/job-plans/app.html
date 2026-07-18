@@ -216,7 +216,27 @@
     else if (d.type === "plantree:setMode") setMode(d.mode);
     else if (d.type === "plantree:search") { G.q = d.q || ""; document.getElementById("q").value = G.q; renderRail(); if (mode === "assets" && Asel && Asel.kind !== "asset") renderDetail(); }
     else if (d.type === "plantree:pmRequest") { try { window.parent.postMessage({ type: "plantree:pmPlans", plans: pmCandidates() }, "*"); } catch (e2) {} }
+    else if (d.type === "plantree:workspace") { WS2 = d.dir; (async function () { await loadFromWs2(); renderAll(); await wsPersistNow(); })(); }
+    else if (d.type === "plantree:workspaceOff") { WS2 = null; }
   });
+  if (EMBED) { try { window.parent.postMessage({ type: "plantree:wsRequest" }, "*"); } catch (e3) {} }
+
+  /* ---------- workspace persistence: families / assets / locations as JSON ---------- */
+  var WS2 = null, _pT2 = null;
+  async function wsWrite2(name, obj) { var fh = await WS2.getFileHandle(name, { create: true }); var w = await fh.createWritable(); await w.write(JSON.stringify(obj, null, 2)); await w.close(); }
+  async function wsRead2(name) { try { var fh = await WS2.getFileHandle(name); var f = await fh.getFile(); return JSON.parse(await f.text()); } catch (e) { return undefined; } }
+  async function loadFromWs2() {
+    var fams = await wsRead2("asset-class-plans.json"); if (Array.isArray(fams) && fams.length) { fams.forEach(normalizeFam); families = fams; E = { fam: -1, mi: -1, ii: -1, tab: "details" }; }
+    var as = await wsRead2("assets.json"); if (Array.isArray(as)) assets = as;
+    var loc = await wsRead2("locations.json"); if (Array.isArray(loc) && loc.length) locations = loc;
+  }
+  function wsPersist() { if (!WS2) return; clearTimeout(_pT2); _pT2 = setTimeout(wsPersistNow, 700); }
+  async function wsPersistNow() {
+    if (!WS2) return;
+    try { window.parent.postMessage({ type: "plantree:saveState", source: "jobs", state: "saving" }, "*"); } catch (e) {}
+    try { await wsWrite2("asset-class-plans.json", families.map(famDoc)); await wsWrite2("assets.json", assets); await wsWrite2("locations.json", locations); try { window.parent.postMessage({ type: "plantree:saveState", source: "jobs", state: "saved" }, "*"); } catch (e2) {} }
+    catch (e3) { try { window.parent.postMessage({ type: "plantree:saveState", source: "jobs", state: "error" }, "*"); } catch (e4) {} }
+  }
   var UNIT = { day: "Daily", week: "Weekly", month: "Monthly", year: "Annual" };
   var RESP = ["none", "passfail", "numeric", "text", "choice"];
   // Seeded work-order type catalogue (mirrors samples/work-order-types). A plan
@@ -358,7 +378,7 @@
   function mobileBack() { document.getElementById("app").classList.remove("show-detail"); }
 
   /* ---------- detail ---------- */
-  function renderDetail() { if (mode === "classes") renderDetailClasses(); else renderDetailAssets(); }
+  function renderDetail() { if (mode === "classes") renderDetailClasses(); else renderDetailAssets(); if (WS2) wsPersist(); }
   function renderDetailClasses() {
     var host = document.getElementById("detail"); host.innerHTML = "";
     if (E.fam < 0) { document.getElementById("app").classList.remove("show-detail"); host.appendChild(el("div", { class: "empty" }, [el("svg", { width: "42", height: "42", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "1.5", html: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/>' }), el("div", { class: "big" }, ["Select a class, model or instance"]), el("div", {}, ["The left tree is the asset hierarchy. Pick a node to see its resolved plan."])])); return; }

@@ -43,6 +43,9 @@ toggle, since the sidebar owns that switch.
 
 | Message (shell → module) | Effect |
 |--------------------------|--------|
+| `plantree:workspace` `{dir}` | Both modules: a folder handle to load from and autosave to (see Persistence). |
+| `plantree:wsRequest` → `plantree:workspace` | A module (re)booted and asks the shell to resend the connected workspace handle. |
+| `plantree:saveState` `{state}` | Module → shell: save progress (`saving`/`saved`/`error`) for the top-bar indicator. |
 | `plantree:config` `{features}` | Work-orders: apply feature toggles (e.g. show/hide Work Requests). |
 | `plantree:pmRequest` → `plantree:pmPlans` `{plans}` | Generate PM: work-orders asks Job Plans to resolve every asset's applied plans (through Class → Model → Instance inheritance, with each asset's overrides); the shell relays the resolved plans back and work-orders generates from them. |
 | `plantree:statsRequest` | Module replies with `plantree:stats` (counts for the dashboard). |
@@ -59,6 +62,26 @@ filtered to that asset.
 
 Opening `job-plans/app.html` or `work-orders/app.html` directly still works
 exactly as before — all of the shell wiring is gated on `?embed=1`.
+
+### Persistence (File System Access)
+
+**Settings → Workspace → Connect folder** picks a directory (ideally
+OneDrive/SharePoint-synced) via the [File System Access API](https://developer.mozilla.org/docs/Web/API/File_System_API);
+the shell keeps the folder handle in **IndexedDB** (so it offers *Reconnect* after
+a reload, on a fresh permission grant) and shares it with both module frames. Each
+aggregate is a JSON document written on change (debounced) — the store from
+[doc 11](../docs/architecture/11-data-storage.md) on the file-based deployment of
+[doc 12](../docs/architecture/12-deployment.md):
+
+| File | Written by |
+|------|-----------|
+| `work-orders.json`, `maintenance-schedules.json`, `work-requests.json`, `workflow-profile.json`, `board-segments.json` | Work Orders |
+| `asset-class-plans.json`, `assets.json`, `locations.json` | Job Plans |
+| `system-settings.json` | Shell |
+
+Reopen the same folder to restore everything. A top-bar pill shows *Saving… /
+Saved*. Chromium-only (Chrome/Edge); other browsers keep the in-memory/localStorage
+behaviour and the job-plans per-class Save/Open-folder fallback.
 
 | File | What |
 |------|------|
